@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "502782488114",
+    "project_id": "developers-zone-33a66",
+    "storage_bucket": "developers-zone-33a66.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:502782488114:android:7f15fcb0d822abf3a0162b",
+        "android_client_info": {
+          "package_name": "com.valiidate.developers_zone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCRkpdI1gbUCBdE551tQXXCADI5TRNsGmY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

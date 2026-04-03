@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class ImgBBService {
-  static const String apiKey = 'YOUR_IMGBB_API_KEY';
+  static const String apiKey = '6389731c687f134713a1ebb5807d0d95';
 
   static Future<String?> uploadImage(File image) async {
     try {
