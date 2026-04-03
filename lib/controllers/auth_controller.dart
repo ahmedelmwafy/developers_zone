@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../models/user_model.dart';
+import '../models/notification_model.dart';
+import '../services/notification_service.dart';
 
 class AuthController extends ChangeNotifier {
   final FirebaseAuthService _authService = FirebaseAuthService();
@@ -9,6 +11,9 @@ class AuthController extends ChangeNotifier {
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
+
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
@@ -20,6 +25,7 @@ class AuthController extends ChangeNotifier {
       } else {
         _currentUser = null;
       }
+      _isInitialized = true;
       notifyListeners();
     });
   }
@@ -102,18 +108,73 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> blockUser(String otherUid) async {
-    if (_currentUser != null) {
-      final isBlocking = !_currentUser!.blockedUsers.contains(otherUid);
-      await _firestoreService.blockUser(_currentUser!.uid, otherUid, isBlocking);
-      
-      final updatedList = List<String>.from(_currentUser!.blockedUsers);
-      if (isBlocking) {
-        updatedList.add(otherUid);
-      } else {
-        updatedList.remove(otherUid);
-      }
-      _currentUser = _currentUser!.copyWith(blockedUsers: updatedList);
-      notifyListeners();
+    if (_currentUser == null) return;
+    final isBlocking = !_currentUser!.blockedUsers.contains(otherUid);
+    await _firestoreService.blockUser(_currentUser!.uid, otherUid, isBlocking);
+    final updatedList = List<String>.from(_currentUser!.blockedUsers);
+    if (isBlocking) {
+      updatedList.add(otherUid);
+    } else {
+      updatedList.remove(otherUid);
     }
+    _currentUser = _currentUser!.copyWith(blockedUsers: updatedList);
+    notifyListeners();
+  }
+
+  Future<void> unblockUser(String otherUid) async {
+    if (_currentUser == null) return;
+    await _firestoreService.blockUser(_currentUser!.uid, otherUid, false);
+    final updatedList = List<String>.from(_currentUser!.blockedUsers)..remove(otherUid);
+    _currentUser = _currentUser!.copyWith(blockedUsers: updatedList);
+    notifyListeners();
+  }
+
+  Future<void> followUser(String targetUid) async {
+    if (_currentUser == null) return;
+    await _firestoreService.followUser(_currentUser!.uid, targetUid);
+    
+    // Trigger Notification
+    final target = await _firestoreService.getUser(targetUid);
+    if (target?.fcmToken != null) {
+      await NotificationService.sendNotification(
+        targetToken: target!.fcmToken!, 
+        targetUid: targetUid,
+        title: 'New Follower!', 
+        body: '${_currentUser!.name} followed you.',
+        type: NotificationType.follow,
+        relatedId: _currentUser!.uid,
+      );
+    }
+
+    final updatedFollowing = List<String>.from(_currentUser!.following)..add(targetUid);
+    _currentUser = _currentUser!.copyWith(following: updatedFollowing);
+    notifyListeners();
+  }
+
+  Future<void> unfollowUser(String targetUid) async {
+    if (_currentUser == null) return;
+    await _firestoreService.unfollowUser(_currentUser!.uid, targetUid);
+    final updatedFollowing = List<String>.from(_currentUser!.following)..remove(targetUid);
+    _currentUser = _currentUser!.copyWith(following: updatedFollowing);
+    notifyListeners();
+  }
+
+  bool isFollowing(String uid) => _currentUser?.following.contains(uid) ?? false;
+
+  bool isBlocked(String uid) => _currentUser?.blockedUsers.contains(uid) ?? false;
+
+  Future<List<UserModel>> searchUsers(String query) async {
+    return await _firestoreService.searchUsers(query);
+  }
+
+  Future<List<UserModel>> getBlockedUsers() async {
+    if (_currentUser == null) return [];
+    return await _firestoreService.getBlockedUsers(_currentUser!.uid);
+  }
+
+  Future<void> updateProfile(UserModel newUser) async {
+    await _firestoreService.updateUser(newUser);
+    _currentUser = newUser;
+    notifyListeners();
   }
 }

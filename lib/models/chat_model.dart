@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ChatModel {
   final String id;
-  final List<String> users; // List of uids
+  final List<String> users;
   final String lastMessage;
   final DateTime lastMessageTime;
   final String lastSenderId;
@@ -47,6 +47,7 @@ class MessageModel {
   final String? image;
   final DateTime createdAt;
   final bool isSeen;
+  final List<String> likedBy; // uids that liked this message
 
   MessageModel({
     required this.id,
@@ -56,7 +57,10 @@ class MessageModel {
     this.image,
     required this.createdAt,
     this.isSeen = false,
+    this.likedBy = const [],
   });
+
+  bool isLikedBy(String uid) => likedBy.contains(uid);
 
   factory MessageModel.fromMap(Map<String, dynamic> data, String docId) {
     return MessageModel(
@@ -67,6 +71,7 @@ class MessageModel {
       image: data['image'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isSeen: data['isSeen'] ?? false,
+      likedBy: data['likedBy'] != null ? List<String>.from(data['likedBy']) : [],
     );
   }
 
@@ -78,6 +83,7 @@ class MessageModel {
       'image': image,
       'createdAt': Timestamp.fromDate(createdAt),
       'isSeen': isSeen,
+      'likedBy': likedBy,
     };
   }
 }

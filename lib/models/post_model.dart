@@ -57,6 +57,27 @@ class PostModel {
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
+
+  PostModel copyWith({
+    String? text,
+    List<String>? images,
+    List<String>? likes,
+    int? commentCount,
+  }) {
+    return PostModel(
+      id: id,
+      authorId: authorId,
+      authorName: authorName,
+      authorProfileImage: authorProfileImage,
+      authorPosition: authorPosition,
+      isAuthorVerified: isAuthorVerified,
+      text: text ?? this.text,
+      images: images ?? this.images,
+      likes: likes ?? this.likes,
+      commentCount: commentCount ?? this.commentCount,
+      createdAt: createdAt,
+    );
+  }
 }
 
 class CommentModel {

@@ -27,6 +27,17 @@ class PostController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updatePost(PostModel post) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _firestoreService.updatePost(post);
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Stream<List<PostModel>> getGlobalFeed({String? positionFilter, List<String> blockedUsers = const []}) {
     return _firestoreService.streamGlobalFeed(positionFilter: positionFilter, blockedUsers: blockedUsers);
   }
@@ -81,5 +92,14 @@ class PostController extends ChangeNotifier {
 
   Stream<List<CommentModel>> getPostComments(String postId) {
     return _firestoreService.streamComments(postId);
+  }
+
+  Future<void> deleteComment(String postId, String commentId) async {
+    await _firestoreService.deleteComment(postId, commentId);
+    notifyListeners();
+  }
+
+  Future<List<PostModel>> searchPosts(String query) async {
+    return await _firestoreService.searchPosts(query);
   }
 }

@@ -15,9 +15,16 @@ class UserModel {
   final bool isAdmin;
   final bool isBanned;
   final bool isVerified;
-  final bool isApproved; // Added for approval system
+  final bool isApproved;
   final List<String> blockedUsers;
-  final String? fcmToken; // To send notifications
+  final List<String> followers; // uids who follow this user
+  final List<String> following; // uids this user follows
+  final String? fcmToken;
+  final bool pushNotifications;
+  final bool emailUpdates;
+  final bool collabsNotifications;
+  final List<String> mutedChats;   // chat IDs muted by this user
+  final List<String> hiddenChats;  // chat IDs hidden/deleted by this user
   final DateTime? createdAt;
 
   UserModel({
@@ -37,7 +44,14 @@ class UserModel {
     this.isVerified = false,
     this.isApproved = false,
     this.blockedUsers = const [],
+    this.followers = const [],
+    this.following = const [],
     this.fcmToken,
+    this.pushNotifications = true,
+    this.emailUpdates = true,
+    this.collabsNotifications = true,
+    this.mutedChats = const [],
+    this.hiddenChats = const [],
     this.createdAt,
   });
 
@@ -45,10 +59,23 @@ class UserModel {
     if (birthDate == null) return 0;
     final now = DateTime.now();
     int age = now.year - birthDate!.year;
-    if (now.month < birthDate!.month || (now.month == birthDate!.month && now.day < birthDate!.day)) {
+    if (now.month < birthDate!.month ||
+        (now.month == birthDate!.month && now.day < birthDate!.day)) {
       age--;
     }
     return age;
+  }
+
+  String get joinedAgo {
+    if (createdAt == null) return 'Recently joined';
+    final now = DateTime.now();
+    final diff = now.difference(createdAt!);
+    if (diff.inDays < 1) return 'Joined today';
+    if (diff.inDays == 1) return 'Joined yesterday';
+    if (diff.inDays < 7) return 'Joined ${diff.inDays} days ago';
+    if (diff.inDays < 30) return 'Joined ${(diff.inDays / 7).floor()} week${(diff.inDays / 7).floor() > 1 ? 's' : ''} ago';
+    if (diff.inDays < 365) return 'Joined ${(diff.inDays / 30).floor()} month${(diff.inDays / 30).floor() > 1 ? 's' : ''} ago';
+    return 'Joined ${(diff.inDays / 365).floor()} year${(diff.inDays / 365).floor() > 1 ? 's' : ''} ago';
   }
 
   factory UserModel.fromMap(Map<String, dynamic> data) {
@@ -69,7 +96,14 @@ class UserModel {
       isVerified: data['isVerified'] ?? false,
       isApproved: data['isApproved'] ?? false,
       blockedUsers: data['blockedUsers'] != null ? List<String>.from(data['blockedUsers']) : [],
+      followers: data['followers'] != null ? List<String>.from(data['followers']) : [],
+      following: data['following'] != null ? List<String>.from(data['following']) : [],
       fcmToken: data['fcmToken'],
+      pushNotifications: data['pushNotifications'] ?? true,
+      emailUpdates: data['emailUpdates'] ?? true,
+      collabsNotifications: data['collabsNotifications'] ?? true,
+      mutedChats: data['mutedChats'] != null ? List<String>.from(data['mutedChats']) : [],
+      hiddenChats: data['hiddenChats'] != null ? List<String>.from(data['hiddenChats']) : [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -92,7 +126,14 @@ class UserModel {
       'isVerified': isVerified,
       'isApproved': isApproved,
       'blockedUsers': blockedUsers,
+      'followers': followers,
+      'following': following,
       'fcmToken': fcmToken,
+      'pushNotifications': pushNotifications,
+      'emailUpdates': emailUpdates,
+      'collabsNotifications': collabsNotifications,
+      'mutedChats': mutedChats,
+      'hiddenChats': hiddenChats,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
@@ -112,7 +153,14 @@ class UserModel {
     bool? isApproved,
     bool? isAdmin,
     List<String>? blockedUsers,
+    List<String>? followers,
+    List<String>? following,
     String? fcmToken,
+    bool? pushNotifications,
+    bool? emailUpdates,
+    bool? collabsNotifications,
+    List<String>? mutedChats,
+    List<String>? hiddenChats,
   }) {
     return UserModel(
       uid: uid,
@@ -131,7 +179,14 @@ class UserModel {
       isVerified: isVerified ?? this.isVerified,
       isApproved: isApproved ?? this.isApproved,
       blockedUsers: blockedUsers ?? this.blockedUsers,
+      followers: followers ?? this.followers,
+      following: following ?? this.following,
       fcmToken: fcmToken ?? this.fcmToken,
+      pushNotifications: pushNotifications ?? this.pushNotifications,
+      emailUpdates: emailUpdates ?? this.emailUpdates,
+      collabsNotifications: collabsNotifications ?? this.collabsNotifications,
+      mutedChats: mutedChats ?? this.mutedChats,
+      hiddenChats: hiddenChats ?? this.hiddenChats,
       createdAt: createdAt,
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -10,6 +11,8 @@ import 'controllers/chat_controller.dart';
 import 'controllers/admin_controller.dart';
 import 'views/splash_screen.dart';
 import 'services/notification_service.dart';
+import 'services/firestore_service.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +22,7 @@ void main() async {
   runApp(
     MultiProvider(
       providers: [
+        Provider(create: (_) => FirestoreService()),
         ChangeNotifierProvider(create: (_) => AppProvider()),
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => PostController()),
@@ -36,22 +40,20 @@ class DevelopersZoneApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appProvider = Provider.of<AppProvider>(context);
+    final isArabic = appProvider.locale.languageCode == 'ar';
+    final theme = isArabic ? AppTheme.arabicTheme() : AppTheme.darkTheme;
+
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.surface,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Developers Zone',
-      theme: ThemeData(
-        fontFamily: appProvider.locale.languageCode == 'ar' ? 'Tajawal' : 'Poppins',
-        primarySwatch: Colors.deepPurple,
-        primaryColor: const Color(0xFF673AB7),
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple, brightness: Brightness.dark),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0F0E17),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0F0E17),
-          elevation: 0,
-        ),
-      ),
+      theme: theme,
       locale: appProvider.locale,
       supportedLocales: const [
         Locale('en'),

@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum NotificationType { message, post, like, verify, approve }
+enum NotificationType { message, post, like, follow, verify, approve }
 
 class AppNotificationModel {
   final String id;

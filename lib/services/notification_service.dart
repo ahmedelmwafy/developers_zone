@@ -2,16 +2,21 @@ import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:http/http.dart' as http;
+import 'package:googleapis_auth/auth_io.dart';
+import 'package:flutter/services.dart' show rootBundle;
+// http import removed as it was redundant with googleapis_auth's internal client or similar usage
 import '../models/notification_model.dart';
 import '../services/firestore_service.dart';
-import '../views/post_details_page.dart';
 import '../views/chat_detail_screen.dart';
+import '../views/profile_page.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FirestoreService _firestore = FirestoreService();
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
+  static AutoRefreshingAuthClient? _authClient;
 
   static Future<void> initialize() async {
     await _messaging.requestPermission();
@@ -21,17 +26,14 @@ class NotificationService {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       if (message.notification != null) {
         _showToast(message);
-        // Save to history (if UI is open we might want to refresh)
-        // Note: For background, FCM takes care of system notification.
       }
     });
 
-    // Background/Terminated listener (when user clicks the notification)
+    // Background/Terminated listener
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       _handleNavigation(message.data);
     });
 
-    // Handle initial message if app was terminated
     RemoteMessage? initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       _handleNavigation(initialMessage.data);
@@ -54,25 +56,43 @@ class NotificationService {
     final relatedId = data['relatedId'];
     if (typeStr == null || relatedId == null) return;
 
-    final type = NotificationType.values.firstWhere((e) => e.toString().contains(typeStr), orElse: () => NotificationType.post);
+    final type = NotificationType.values.firstWhere(
+        (e) => e.toString().contains(typeStr),
+        orElse: () => NotificationType.post);
 
     switch (type) {
       case NotificationType.message:
-        navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ChatDetailScreen(chatId: relatedId, otherUserId: data['otherUserId'] ?? '')));
+        navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => ChatDetailScreen(
+                chatId: relatedId, otherUserId: data['otherUserId'] ?? '')));
+        break;
+      case NotificationType.follow:
+      case NotificationType.verify:
+      case NotificationType.approve:
+        navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => ProfilePage(userId: relatedId)));
         break;
       case NotificationType.post:
       case NotificationType.like:
-        // Ideally we fetch the post first or pass it
-        // For simplicity, we navigate to a placeholder or fetch it
-        // navigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => PostDetailsPage(postId: relatedId)));
-        break;
-      default:
+        // Navigator to post details - typically requires mapping relatedId to post model first or a dedicated ID loader
         break;
     }
   }
 
   static Future<String?> getToken() async {
     return await _messaging.getToken();
+  }
+
+  static Future<AutoRefreshingAuthClient> _getAuthClient() async {
+    if (_authClient != null) return _authClient!;
+
+    final String jsonString =
+        await rootBundle.loadString('assets/service_account.json');
+    final accountCredentials = ServiceAccountCredentials.fromJson(jsonString);
+    final scopes = ['https://www.googleapis.com/auth/firebase.messaging'];
+
+    _authClient = await clientViaServiceAccount(accountCredentials, scopes);
+    return _authClient!;
   }
 
   static Future<void> sendNotification({
@@ -82,45 +102,63 @@ class NotificationService {
     required String body,
     required NotificationType type,
     required String relatedId,
+    Map<String, dynamic>? extraData,
   }) async {
     try {
-      // Direct FCM send (Legacy API structure as placeholder)
-      const String serverKey = 'YOUR_FCM_SERVER_KEY'; 
-      
-      final payload = {
-        'to': targetToken,
-        'notification': {
-          'title': title,
-          'body': body,
-          'sound': 'default',
-        },
-        'data': {
-          'type': type.toString().split('.').last,
-          'relatedId': relatedId,
-          'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-        },
+      final client = await _getAuthClient();
+      const String projectId = 'developers-zone-33a66';
+      const String url =
+          'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
+
+      final Map<String, dynamic> payload = {
+        'message': {
+          'token': targetToken,
+          'notification': {
+            'title': title,
+            'body': body,
+          },
+          'data': {
+            'type': type.toString().split('.').last,
+            'relatedId': relatedId,
+            if (extraData != null) ...extraData,
+          },
+          'android': {
+            'notification': {
+              'channel_id': 'high_importance_channel',
+              'priority': 'high',
+            }
+          },
+          'apns': {
+            'payload': {
+              'aps': {'sound': 'default', 'badge': 1}
+            }
+          }
+        }
       };
 
-      await http.post(
-        Uri.parse('https://fcm.googleapis.com/fcm/send'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'key=$serverKey',
-        },
+      final response = await client.post(
+        Uri.parse(url),
         body: jsonEncode(payload),
+        headers: {'Content-Type': 'application/json'},
       );
-      
+
+      if (response.statusCode != 200) {
+        debugPrint('FCM HTTP v1 Error: ${response.body}');
+      }
+
       // Save to Firestore History
-      await _firestore.createNotification(targetUid, AppNotificationModel(
-        id: '', 
-        title: title, 
-        body: body, 
-        type: type, 
-        relatedId: relatedId, 
-        createdAt: DateTime.now(),
-      ));
+      await _firestore.createNotification(
+          targetUid,
+          AppNotificationModel(
+            id: '',
+            title: title,
+            body: body,
+            type: type,
+            relatedId: relatedId,
+            createdAt: DateTime.now(),
+          ));
     } catch (e) {
-      debugPrint('FCM Send Error: $e');
+      debugPrint('Notification Send Error: $e');
     }
   }
 }
