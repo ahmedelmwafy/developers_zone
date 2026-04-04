@@ -58,6 +58,17 @@ class FirebaseAuthService {
     }
   }
 
+  Future<UserCredential?> signInWithGitHub() async {
+    try {
+      final OAuthProvider githubProvider = OAuthProvider('github.com');
+      return await _auth.signInWithProvider(githubProvider);
+    } catch (e) {
+      // ignore: avoid_print
+      print('GitHub Sign-In Error: $e');
+      rethrow;
+    }
+  }
+
   Future<UserCredential?> signInWithApple() async {
     try {
       final appleCredential = await SignInWithApple.getAppleIDCredential(

@@ -2,12 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
 import '../services/imgbb_service.dart';
-import '../providers/app_provider.dart';
-import '../theme/app_theme.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final PostModel? postToEdit;
@@ -18,22 +17,45 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
+  final _titleController = TextEditingController();
   final _textController = TextEditingController();
-  final List<dynamic> _images = []; // Can be File or String (URL)
+  final _codeController = TextEditingController();
+  final List<dynamic> _images = []; 
   bool _isUploading = false;
+  final List<String> _tags = ['ARCHITECTURE', 'SYSTEM_DESIGN'];
 
   @override
   void initState() {
     super.initState();
     if (widget.postToEdit != null) {
-      _textController.text = widget.postToEdit!.text;
+      final text = widget.postToEdit!.text;
       _images.addAll(widget.postToEdit!.images);
+      
+      String body = text;
+      
+      // Parse Title
+      if (text.startsWith('# ')) {
+        final lines = text.split('\n');
+        _titleController.text = lines.first.replaceFirst('# ', '').trim();
+        body = lines.skip(1).join('\n').trim();
+      }
+      
+      // Parse Code
+      final codeMatch = RegExp(r'```(?:\w+)?\n([\s\S]*?)```').firstMatch(body);
+      if (codeMatch != null) {
+        _codeController.text = codeMatch.group(1)?.trim() ?? '';
+        body = body.replaceFirst(codeMatch.group(0)!, '').trim();
+      }
+      
+      _textController.text = body;
     }
   }
 
   @override
   void dispose() {
+    _titleController.dispose();
     _textController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -59,9 +81,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
     }
 
+    String finalContent = _textController.text.trim();
+    if (_titleController.text.isNotEmpty) {
+      finalContent = "# ${_titleController.text}\n\n$finalContent";
+    }
+    if (_codeController.text.isNotEmpty) {
+        finalContent = "$finalContent\n\n```python\n${_codeController.text}\n```";
+    }
+
     if (widget.postToEdit != null) {
       final updatedPost = widget.postToEdit!.copyWith(
-        text: _textController.text.trim(),
+        text: finalContent,
         images: imageUrls,
       );
       await postController.updatePost(updatedPost);
@@ -72,7 +102,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         authorName: user.name,
         authorProfileImage: user.profileImage,
         authorPosition: user.position,
-        text: _textController.text.trim(),
+        text: finalContent,
         images: imageUrls,
         createdAt: DateTime.now(),
       );
@@ -84,183 +114,249 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalization.of(context)!;
-    final user = Provider.of<AuthController>(context).currentUser;
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF0D0D0D),
       appBar: AppBar(
-        backgroundColor: AppColors.background,
-        title: Text(widget.postToEdit != null ? locale.translate('edit_post') : locale.translate('create_post')),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          'DRAFT_NODE // OX-449',
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white.withOpacity(0.3),
+            fontWeight: FontWeight.w700,
+            fontSize: 11,
+            letterSpacing: 2,
+          ),
+        ),
         actions: [
-          if (_isUploading)
-            const Padding(
-              padding: EdgeInsets.all(14),
-              child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary)),
-            )
-          else
-            Container(
-              margin: const EdgeInsets.only(right: 12),
-              child: TextButton.icon(
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: Center(
+              child: _PublishButton(
+                isLoading: _isUploading,
                 onPressed: _submitPost,
-                icon: Icon(widget.postToEdit != null ? Icons.check : Icons.send, size: 16, color: AppColors.primary),
-                label: Text(
-                    widget.postToEdit != null ? locale.translate('update_button') : locale.translate('post_button'),
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                style: TextButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                ),
               ),
             ),
+          ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(color: Colors.white.withValues(alpha: 0.06), height: 1),
-        ),
       ),
-      body: Column(
-        children: [
-          // Author header
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-            child: Row(
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 20),
+            _SectionLabel(text: 'CLASSIFICATION_NAME'),
+            TextField(
+              controller: _titleController,
+              cursorColor: const Color(0xFF00E5FF),
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Entry Title...',
+                hintStyle: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.05),
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.primaryGradient),
-                  child: CircleAvatar(
-                    radius: 22,
-                    backgroundColor: AppColors.cardLight,
-                    backgroundImage: user?.profileImage.isNotEmpty == true ? NetworkImage(user!.profileImage) : null,
-                    child: user?.profileImage.isEmpty != false ? const Icon(Icons.person, color: AppColors.textSecondary) : null,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(user?.name ?? '', style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 15)),
-                    Container(
-                      margin: const EdgeInsets.only(top: 3),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(user?.position ?? '', style: const TextStyle(color: AppColors.primaryLight, fontSize: 11, fontWeight: FontWeight.w500)),
-                    ),
-                  ],
-                ),
+                ..._tags.map((tag) => _TagChip(text: tag)),
+                _AddTagButton(onPressed: () {}),
               ],
             ),
-          ),
-          // Text Input
+            const SizedBox(height: 48),
+            _SectionLabel(text: 'TECHNICAL_MANIFEST'),
+            const SizedBox(height: 16),
+            _buildEditorToolbar(),
+            TextField(
+              controller: _textController,
+              maxLines: null,
+              cursorColor: const Color(0xFF00E5FF),
+              style: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 16,
+                height: 1.7,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Detailed breakdown goes here...',
+                hintStyle: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.1),
+                  fontSize: 16,
+                ),
+                border: InputBorder.none,
+              ),
+            ),
+            const SizedBox(height: 48),
+            _SectionLabel(text: 'VISUAL_DOCUMENTATION'),
+            const SizedBox(height: 20),
+            _buildGraphicSection(),
+            const SizedBox(height: 48),
+            _SectionLabel(text: 'CODE_REPOSITORY'),
+            const SizedBox(height: 20),
+            _buildCodeEditor(),
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditorToolbar() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const _ToolbarIcon(icon: Icons.format_bold_rounded),
+          const _ToolbarIcon(icon: Icons.format_italic_rounded),
+          const _ToolbarIcon(icon: Icons.link_rounded),
+          const _ToolbarIcon(icon: Icons.format_list_bulleted_rounded),
+          const _ToolbarIcon(icon: Icons.code_rounded, isActive: true),
+          Icon(Icons.help_outline_rounded, color: Colors.white.withOpacity(0.1), size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGraphicSection() {
+    return Row(
+      children: [
+        if (_images.isEmpty)
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _textController,
-                maxLines: null,
-                autofocus: true,
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, height: 1.6),
-                decoration: InputDecoration(
-                  hintText: locale.translate('post_hint'),
-                  hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 15),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  fillColor: Colors.transparent,
-                  filled: false,
+            child: GestureDetector(
+              onTap: _pickImage,
+              child: Container(
+                height: 180,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.01),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.04), style: BorderStyle.solid),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                     Icon(Icons.add_photo_alternate_outlined, color: Colors.white.withOpacity(0.05), size: 36),
+                     const SizedBox(height: 12),
+                     Text('UPLOAD_MEDIA', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                  ],
                 ),
               ),
             ),
-          ),
-          // Image previews
-          if (_images.isNotEmpty)
-            SizedBox(
-              height: 130,
+          )
+        else
+          Expanded(
+            child: SizedBox(
+              height: 180,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: _images.length + 1,
-                itemBuilder: (context, i) {
-                  if (i == _images.length) {
+                itemBuilder: (context, index) {
+                  if (index == _images.length) {
                     return GestureDetector(
                       onTap: _pickImage,
                       child: Container(
-                        width: 110,
-                        height: 110,
-                        margin: const EdgeInsets.only(right: 10),
+                        width: 140,
+                        margin: const EdgeInsets.only(left: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.cardLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.1), style: BorderStyle.solid),
+                          color: Colors.white.withOpacity(0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.white.withOpacity(0.05)),
                         ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary, size: 28),
-                            const SizedBox(height: 4),
-                            Text(locale.translate('add_more'), style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-                          ],
-                        ),
+                        child: Icon(Icons.add_rounded, color: Colors.white.withOpacity(0.2)),
                       ),
                     );
                   }
-                  final img = _images[i];
-                  return Stack(
-                    children: [
-                      Container(
-                        margin: const EdgeInsets.only(right: 10),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: img is String
-                              ? Image.network(img, width: 110, height: 110, fit: BoxFit.cover)
-                              : Image.file(img as File, width: 110, height: 110, fit: BoxFit.cover),
-                        ),
+                  final img = _images[index];
+                  return Container(
+                    width: 240,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      image: DecorationImage(
+                        image: img is String ? NetworkImage(img) : FileImage(img) as ImageProvider,
+                        fit: BoxFit.cover,
                       ),
-                      Positioned(
-                        top: 4,
-                        right: 14,
-                        child: GestureDetector(
-                          onTap: () => setState(() => _images.removeAt(i)),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), shape: BoxShape.circle),
-                            child: const Icon(Icons.close, color: Colors.white, size: 14),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   );
                 },
               ),
             ),
-          // Toolbar
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCodeEditor() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
           Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
+              border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.03))),
             ),
-            padding: EdgeInsets.only(left: 8, right: 8, top: 8, bottom: MediaQuery.of(context).padding.bottom + 8),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _ToolbarButton(
-                  icon: Icons.image_outlined,
-                  label: locale.translate('photo'),
-                  onTap: _pickImage,
+                Row(
+                  children: [
+                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+                    const SizedBox(width: 6),
+                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
+                  ],
                 ),
-                const Spacer(),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _textController,
-                  builder: (_, val, __) => Text(
-                    locale.translate('chars_count').replaceFirst('{}', val.text.length.toString()),
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                ),
+                Text('MANUAL_OVERRIDE.MD', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
               ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: TextField(
+              controller: _codeController,
+              maxLines: 8,
+              cursorColor: const Color(0xFF00E5FF),
+              style: GoogleFonts.sourceCodePro(color: const Color(0xFF00E5FF).withOpacity(0.8), fontSize: 13, height: 1.6),
+              decoration: InputDecoration(
+                hintText: '# Insert code snippet...',
+                hintStyle: GoogleFonts.sourceCodePro(color: Colors.white.withOpacity(0.05)),
+                border: InputBorder.none,
+              ),
             ),
           ),
         ],
@@ -269,27 +365,116 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 }
 
-class _ToolbarButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _ToolbarButton({required this.icon, required this.label, required this.onTap});
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text.toUpperCase(),
+        style: GoogleFonts.spaceGrotesk(
+          color: const Color(0xFF00E5FF).withOpacity(0.4),
+          fontSize: 9,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 2,
+        ),
+      ),
+    );
+  }
+}
+
+class _PublishButton extends StatelessWidget {
+  final bool isLoading;
+  final VoidCallback onPressed;
+  const _PublishButton({required this.isLoading, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: isLoading ? null : onPressed,
+      child: Container(
+        height: 38,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00E5FF).withOpacity(0.2),
+              blurRadius: 10,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Center(
+          child: isLoading 
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text('PUBLISH', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+        ),
+      ),
+    );
+  }
+}
+
+class _TagChip extends StatelessWidget {
+  final String text;
+  const _TagChip({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF00E5FF).withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.12)),
+      ),
+      child: Text('#$text', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+class _AddTagButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _AddTagButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(6),
+        ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 20),
+            const Icon(Icons.add, color: Colors.white30, size: 12),
             const SizedBox(width: 6),
-            Text(label, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w500, fontSize: 13)),
+            Text('ADD_TAG', style: GoogleFonts.spaceGrotesk(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.w800)),
           ],
         ),
       ),
     );
+  }
+}
+
+class _ToolbarIcon extends StatelessWidget {
+  final IconData icon;
+  final bool isActive;
+  const _ToolbarIcon({required this.icon, this.isActive = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(icon, color: isActive ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.2), size: 20);
   }
 }

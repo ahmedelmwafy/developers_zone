@@ -1,5 +1,8 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
@@ -13,204 +16,528 @@ class RegisterScreen extends StatefulWidget {
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> with SingleTickerProviderStateMixin {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  late AnimationController _animController;
-  late Animation<double> _fadeIn;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
-    _fadeIn = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _animController.forward();
-  }
+  final _confirmPasswordController = TextEditingController();
 
   @override
   void dispose() {
-    _animController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _navigate(AuthController auth) {
+    if (!mounted || auth.currentUser == null) return;
+    if (auth.currentUser!.isApproved) {
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const HomeScreen()));
+    } else {
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
+    }
   }
 
   void _register() async {
     final locale = AppLocalization.of(context)!;
-    if (_nameController.text.trim().isEmpty || _emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-      AppWidgets.showSnackBar(context, locale.translate('fill_all_fields'), type: SnackBarType.warning);
+    if (_nameController.text.trim().isEmpty ||
+        _emailController.text.trim().isEmpty ||
+        _passwordController.text.isEmpty ||
+        _passwordController.text != _confirmPasswordController.text) {
+      AppWidgets.showSnackBar(
+          context, locale.translate('fill_all_fields_or_password_mismatch'),
+          type: SnackBarType.warning);
       return;
     }
     final auth = Provider.of<AuthController>(context, listen: false);
     try {
-      await auth.register(_emailController.text.trim(), _passwordController.text, _nameController.text.trim());
-      if (mounted && auth.currentUser != null) {
-        if (auth.currentUser!.isApproved) {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-        } else {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
-        }
-      }
+      await auth.register(_emailController.text.trim(),
+          _passwordController.text, _nameController.text.trim());
+      _navigate(auth);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+        AppWidgets.showSnackBar(context, e.toString(),
+            type: SnackBarType.error);
+      }
+    }
+  }
+
+  void _signInWithGitHub() async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    try {
+      await auth.signInWithGitHub();
+      _navigate(auth);
+    } catch (e) {
+      if (mounted) {
+        AppWidgets.showSnackBar(context, e.toString(),
+            type: SnackBarType.error);
+      }
+    }
+  }
+
+  void _signInWithGoogle() async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    try {
+      await auth.signInWithGoogle();
+      _navigate(auth);
+    } catch (e) {
+      if (mounted) {
+        AppWidgets.showSnackBar(context, e.toString(),
+            type: SnackBarType.error);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalization.of(context)!;
-    final auth = Provider.of<AuthController>(context);
-
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surface,
       body: Stack(
         children: [
-          Positioned(
-            top: -80,
-            left: -80,
-            child: Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.10), blurRadius: 120, spreadRadius: 60)],
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -60,
-            right: -60,
-            child: Container(
-              width: 240,
-              height: 240,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.10), blurRadius: 100, spreadRadius: 40)],
-              ),
-            ),
-          ),
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fadeIn,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Back button
-                    IconButton(
-                      icon: Container(
+          SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 60),
+
+                  // Top Bar: Obsidian Core
+                  Row(
+                    children: [
+                      Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.cardLight,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                          color: const Color(0xFF00E5FF).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Icon(Icons.arrow_back, size: 18, color: AppColors.textPrimary),
+                        child: const Icon(Icons.terminal_rounded,
+                            color: Color(0xFF00E5FF), size: 20),
                       ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                    ),
-                    const SizedBox(height: 28),
-                    // Icon badge
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.4), blurRadius: 20, spreadRadius: 2)],
-                      ),
-                      child: const Icon(Icons.code, color: Colors.white, size: 30),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      locale.translate('register'),
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      locale.translate('join_community'),
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                    ),
-                    const SizedBox(height: 36),
-                    // Name
-                    TextField(
-                      controller: _nameController,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: AppWidgets.fieldDecoration(locale.translate('name'), prefixIcon: Icons.person_outline),
-                    ),
-                    const SizedBox(height: 14),
-                    // Email
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: AppWidgets.fieldDecoration(locale.translate('email'), prefixIcon: Icons.alternate_email),
-                    ),
-                    const SizedBox(height: 14),
-                    // Password
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      style: const TextStyle(color: AppColors.textPrimary),
-                      decoration: AppWidgets.fieldDecoration(locale.translate('password'), prefixIcon: Icons.lock_outline).copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: AppColors.textSecondary, size: 20),
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      const SizedBox(width: 12),
+                      Text(
+                        'OBSIDIAN_CORE',
+                        style: GoogleFonts.spaceGrotesk(
+                          color: const Color(0xFF00E5FF),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 18,
+                          letterSpacing: 2,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    // Password hint
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline, size: 14, color: AppColors.textMuted),
-                        const SizedBox(width: 6),
-                        Text(locale.translate('password_hint'), style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-                    AppWidgets.gradientButton(
-                      label: locale.translate('register'),
-                      onPressed: auth.isLoading ? null : _register,
-                      isLoading: auth.isLoading,
-                      icon: Icons.person_add_outlined,
-                    ),
-                    const SizedBox(height: 28),
-                    Center(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: RichText(
-                          text: TextSpan(
-                            text: locale.translate('already_have_account'),
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                            children: [
-                              TextSpan(text: locale.translate('sign_in'), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
-                            ],
+                    ],
+                  ),
+
+                  const SizedBox(height: 100),
+
+                  // Status Chip
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Color(0xFF00E5FF),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Color(0xFF00E5FF),
+                                    blurRadius: 8,
+                                    spreadRadius: 1),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'LIVE CONNECTION SECURE',
+                            style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white.withOpacity(0.5),
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.5,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Headline
+                  Center(
+                    child: Text(
+                      'Join the Obsidian\nCore',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Text(
+                        'Create your elite operator profile to access the developer network.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.inter(
+                          color: Colors.white.withOpacity(0.5),
+                          fontSize: 16,
+                          height: 1.5,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  // Form
+                  const _TerminalLabel('DISPLAY NAME'),
+                  _TerminalInput(
+                      controller: _nameController, hint: 'e.g. Neo_Operator'),
+
+                  const SizedBox(height: 32),
+
+                  const _TerminalLabel('EMAIL ADDRESS'),
+                  _TerminalInput(
+                      controller: _emailController,
+                      hint: 'dev@obsidian.io',
+                      keyboardType: TextInputType.emailAddress),
+
+                  const SizedBox(height: 32),
+
+                  const _TerminalLabel('ACCESS KEY'),
+                  _TerminalInput(
+                      controller: _passwordController,
+                      hint: '••••••••••••',
+                      obscureText: true),
+
+                  const SizedBox(height: 32),
+
+                  const _TerminalLabel('CONFIRM ACCESS KEY'),
+                  _TerminalInput(
+                      controller: _confirmPasswordController,
+                      hint: '••••••••••••',
+                      obscureText: true),
+
+                  const SizedBox(height: 48),
+
+                  // Initialize Button
+                  _InitializeButton(
+                    onPressed: _register,
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Auth Divider
+                  Center(
+                    child: Text(
+                      'OR AUTHENTICATE WITH',
+                      style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white.withOpacity(0.2),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Social Row
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _SocialButton(
+                        icon: FontAwesomeIcons.google,
+                        label: 'Google',
+                        onPressed: _signInWithGoogle,
+                      )),
+                      const SizedBox(width: 12),
+                      Expanded(
+                          child: _SocialButton(
+                        icon: FontAwesomeIcons.github,
+                        label: 'GitHub',
+                        onPressed: _signInWithGitHub,
+                      )),
+                    ],
+                  ),
+
+                  const SizedBox(height: 60),
+
+                  // Login Link
+                  Center(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.inter(
+                              color: Colors.white.withOpacity(0.6),
+                              fontSize: 14),
+                          children: [
+                            const TextSpan(text: 'Already an operator? '),
+                            TextSpan(
+                              text: 'Login',
+                              style: GoogleFonts.inter(
+                                  color: const Color(0xFF00E5FF),
+                                  fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 80),
+
+                  // Footer Links
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _FooterLink('PRIVACY PROTOCOL'),
+                      _FooterLink('TERMS OF SERVICE'),
+                      _FooterLink('VER 4.0.2-STABLE'),
+                    ],
+                  ),
+
+                  const SizedBox(height: 100),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom Navigation Bar (Visual Only for now)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: Color(0xFF0D0D0D),
+                border: Border(top: BorderSide(color: Colors.white10)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _NavIcon(Icons.login_rounded, isActive: false),
+                  _NavIcon(Icons.person_add_rounded, isActive: true),
+                  _NavIcon(Icons.shield_outlined, isActive: false),
+                  _NavIcon(Icons.help_outline_rounded, isActive: false),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _TerminalLabel extends StatelessWidget {
+  final String text;
+  const _TerminalLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Text(
+        text,
+        style: GoogleFonts.spaceGrotesk(
+          color: const Color(0xFF00E5FF),
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _TerminalInput extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final bool obscureText;
+  final TextInputType? keyboardType;
+
+  const _TerminalInput({
+    required this.controller,
+    required this.hint,
+    this.obscureText = false,
+    this.keyboardType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.1), fontSize: 13),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          border: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+          enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+          focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF00E5FF))),
+        ),
+      ),
+    );
+  }
+}
+
+class _InitializeButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  const _InitializeButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 60,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB2FEFA), Color(0xFF0ED2F7)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0ED2F7).withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(6),
+          child: Center(
+            child: Text(
+              'INITIALIZE ACCOUNT',
+              style: GoogleFonts.spaceGrotesk(
+                color: const Color(0xFF006064),
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialButton extends StatelessWidget {
+  final dynamic icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  const _SocialButton(
+      {required this.icon, required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FaIcon(icon as FaIconData?,
+                  color: Colors.white.withOpacity(0.8), size: 18),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterLink extends StatelessWidget {
+  final String text;
+  const _FooterLink(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.spaceGrotesk(
+        color: Colors.white.withOpacity(0.2),
+        fontSize: 9,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.1,
+      ),
+    );
+  }
+}
+
+class _NavIcon extends StatelessWidget {
+  final IconData icon;
+  final bool isActive;
+  const _NavIcon(this.icon, {this.isActive = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: isActive
+          ? BoxDecoration(
+              color: const Color(0xFF00E5FF).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            )
+          : null,
+      child: Icon(icon,
+          color: isActive
+              ? const Color(0xFF00E5FF)
+              : Colors.white.withOpacity(0.2),
+          size: 24),
     );
   }
 }

@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../models/post_model.dart';
 import '../../controllers/auth_controller.dart';
 import '../../controllers/post_controller.dart';
 import '../../providers/app_provider.dart';
-import '../../theme/app_theme.dart';
 import '../post_details_page.dart';
 import '../profile_page.dart';
-import '../create_post_screen.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -23,256 +21,340 @@ class PostCard extends StatelessWidget {
     final isMe = currentUser?.uid == post.authorId;
     final isLiked = currentUser != null && post.likes.contains(currentUser.uid);
 
-    return GestureDetector(
-      onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => PostDetailsPage(post: post))),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.25),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Header ────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 10, 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Avatar
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ProfilePage(userId: post.authorId))),
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
-                      ),
-                      child: CircleAvatar(
-                        radius: 22,
-                        backgroundColor: AppColors.cardLight,
-                        backgroundImage: post.authorProfileImage.isNotEmpty
-                            ? NetworkImage(post.authorProfileImage)
-                            : null,
-                        child: post.authorProfileImage.isEmpty
-                            ? const Icon(Icons.person,
-                                size: 22, color: AppColors.textSecondary)
-                            : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // Name + position + time
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                              builder: (_) =>
-                                  ProfilePage(userId: post.authorId))),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  post.authorName,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 14,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              if (post.isAuthorVerified) ...[
-                                const SizedBox(width: 4),
-                                const Icon(Icons.verified,
-                                    color: AppColors.accent, size: 14),
-                              ],
-                            ],
-                          ),
-                          const SizedBox(height: 3),
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color:
-                                      AppColors.primary.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  post.authorPosition,
-                                  style: const TextStyle(
-                                    color: AppColors.primaryLight,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _timeAgo(post.createdAt, locale),
-                                style: const TextStyle(
-                                    color: AppColors.textMuted, fontSize: 10),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // More options / own post menu
-                  if (!isMe && currentUser != null)
-                    _PostMenu(post: post, authController: authController, locale: locale)
-                  else if (isMe)
-                    _OwnPostMenu(post: post, postController: postController, locale: locale),
-                ],
-              ),
-            ),
+    // Dynamic Manifest Parsing
+    final parts = _parseManifest(post.text);
 
-            // ── Post text ──────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-              child: Text(
-                post.text,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  height: 1.6,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => PostDetailsPage(post: post))),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildAuthorHeader(context, post, isMe, currentUser,
+                    authController, postController, locale),
+                const SizedBox(height: 16),
+                _buildDynamicContent(parts),
+                if (parts['code'] != null) ...[
+                  const SizedBox(height: 16),
+                  _buildCodeManifest(parts['code']!),
+                ],
+                if (post.images.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  _buildPostMedia(post.images.first),
+                ],
+                const SizedBox(height: 24),
+                _buildActionRow(post, isLiked, currentUser, postController,
+                    locale, context),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Map<String, String?> _parseManifest(String text) {
+    String? title;
+    String? body = text;
+    String? code;
+
+    // Detect Title
+    if (text.startsWith('# ')) {
+      final lines = text.split('\n');
+      title = lines.first.replaceFirst('# ', '').trim();
+      body = lines.skip(1).join('\n').trim();
+    }
+
+    // Detect Code Block
+    final codeMatch = RegExp(r'```(?:\w+)?\n([\s\S]*?)```').firstMatch(body);
+    if (codeMatch != null) {
+      code = codeMatch.group(1)?.trim();
+      body = body.replaceFirst(codeMatch.group(0)!, '').trim();
+    }
+
+    return {'title': title, 'body': body, 'code': code};
+  }
+
+  Widget _buildDynamicContent(Map<String, String?> parts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (parts['title'] != null) ...[
+          Text(
+            parts['title']!,
+            style: GoogleFonts.spaceGrotesk(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (parts['body'] != null && parts['body']!.isNotEmpty) ...[
+          Text(
+            parts['body']!,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.7),
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAuthorHeader(
+      BuildContext context,
+      PostModel post,
+      bool isMe,
+      dynamic currentUser,
+      AuthController authController,
+      PostController postController,
+      AppLocalization locale) {
+    return Row(
+      children: [
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => ProfilePage(userId: post.authorId))),
+          child: Container(
+            padding: const EdgeInsets.all(1),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
+            ),
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: const Color(0xFF0D0D0D),
+              backgroundImage: post.authorProfileImage.isNotEmpty
+                  ? NetworkImage(post.authorProfileImage)
+                  : null,
+              child: post.authorProfileImage.isEmpty
+                  ? const Icon(Icons.person, size: 18, color: Colors.white24)
+                  : null,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                post.authorName,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
                   fontSize: 14,
                 ),
-                maxLines: 6,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-
-            // ── Images ────────────────────────────────────────────────
-            if (post.images.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: Stack(
-                    children: [
-                      Image.network(
-                        post.images.first,
-                        width: double.infinity,
-                        height: post.images.length == 1 ? null : 200,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (ctx, child, progress) {
-                          if (progress == null) return child;
-                          return Container(
-                            height: 160,
-                            color: AppColors.cardLight,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                  color: AppColors.primary, strokeWidth: 2),
-                            ),
-                          );
-                        },
-                        errorBuilder: (_, __, ___) => Container(
-                          height: 120,
-                          color: AppColors.cardLight,
-                          child: const Center(
-                            child: Icon(Icons.broken_image_outlined,
-                                color: AppColors.textMuted, size: 32),
-                          ),
-                        ),
-                      ),
-                      if (post.images.length > 1)
-                        Positioned(
-                          right: 10,
-                          bottom: 10,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.65),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              '+${post.images.length - 1}',
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+              const SizedBox(height: 2),
+              Text(
+                'COMMITTED ${_timeAgo(post.createdAt, locale).toUpperCase()} • ${post.authorPosition.toUpperCase()}',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.35),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
               ),
+            ],
+          ),
+        ),
+        _buildMenuButton(context, post, isMe, currentUser, authController,
+            postController, locale),
+      ],
+    );
+  }
 
-            // ── Divider + Stats ────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              child: Row(
-                children: [
-                  // Like avatars / count
-                  _LikeCountRow(likes: post.likes),
-                  const Spacer(),
-                  Text(
-                    post.commentCount == 1
-                        ? locale.translate('comment_count')
-                        : locale.translate('comments_count').replaceFirst('{}', post.commentCount.toString()),
-                    style: const TextStyle(
-                        color: AppColors.textMuted, fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
+  Widget _buildMenuButton(
+      BuildContext context,
+      PostModel post,
+      bool isMe,
+      dynamic currentUser,
+      AuthController authController,
+      PostController postController,
+      AppLocalization locale) {
+    return PopupMenuButton<String>(
+      icon: Icon(Icons.more_horiz_rounded,
+          color: Colors.white.withOpacity(0.4), size: 20),
+      color: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: (val) async {
+        if (val == 'delete' && isMe) {
+          await postController.deletePost(post.id);
+        } else if (val == 'block' && !isMe) {
+          authController.blockUser(post.authorId);
+        }
+      },
+      itemBuilder: (_) => isMe
+          ? [
+              _buildMenuItem('delete', Icons.delete_outline_rounded,
+                  locale.translate('delete'), Colors.redAccent),
+            ]
+          : [
+              _buildMenuItem('block', Icons.block_rounded,
+                  locale.translate('block'), Colors.redAccent),
+            ],
+    );
+  }
 
-            // ── Thin divider ──────────────────────────────────────────
-            Container(
-              margin: const EdgeInsets.fromLTRB(14, 10, 14, 0),
-              height: 0.5,
-              color: Colors.white.withValues(alpha: 0.07),
-            ),
+  PopupMenuItem<String> _buildMenuItem(
+      String value, IconData icon, String text, Color color) {
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 10),
+          Text(text, style: GoogleFonts.inter(color: color, fontSize: 13)),
+        ],
+      ),
+    );
+  }
 
-            // ── Action bar ────────────────────────────────────────────
-            Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Row(
-                children: [
-                  _ActionBtn(
-                    icon: isLiked
-                        ? FontAwesomeIcons.solidHeart
-                        : FontAwesomeIcons.heart,
-                    label: isLiked ? locale.translate('liked_label') : locale.translate('like_label'),
-                    color: isLiked ? Colors.redAccent : AppColors.textMuted,
-                    onTap: currentUser == null
-                        ? null
-                        : () => postController.togglePostLike(
-                            post.id, currentUser.uid, !isLiked),
-                  ),
-                  _ActionBtn(
-                    icon: FontAwesomeIcons.commentDots,
-                    label: locale.translate('comment_label'),
-                    color: AppColors.textMuted,
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => PostDetailsPage(post: post))),
-                  ),
-                ],
-              ),
+  Widget _buildPostMedia(String url) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Image.network(
+          url,
+          width: double.infinity,
+          height: 220,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, progress) {
+            if (progress == null) return child;
+            return Container(
+              height: 220,
+              color: Colors.white.withOpacity(0.02),
+              child: const Center(
+                  child: CircularProgressIndicator(
+                      color: Color(0xFF00E5FF), strokeWidth: 2)),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCodeManifest(String code) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+              const SizedBox(width: 5),
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+              const SizedBox(width: 5),
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
+              const Spacer(),
+              Text('CODE_MANIFEST', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.1), fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            code,
+            maxLines: 6,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.sourceCodePro(
+              color: const Color(0xFF00E5FF).withOpacity(0.8),
+              fontSize: 12,
+              height: 1.5,
             ),
-            const SizedBox(height: 2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionRow(
+      PostModel post,
+      bool isLiked,
+      dynamic currentUser,
+      PostController postController,
+      AppLocalization locale,
+      BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            _buildInteractionIcon(
+              isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+              '${post.likes.length}',
+              isLiked ? Colors.redAccent : Colors.white.withOpacity(0.4),
+              () => currentUser == null
+                  ? null
+                  : postController.togglePostLike(
+                      post.id, currentUser.uid, !isLiked),
+            ),
+            const SizedBox(width: 20),
+            _buildInteractionIcon(
+              Icons.chat_bubble_outline_rounded,
+              '${post.commentCount}',
+              Colors.white.withOpacity(0.4),
+              () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => PostDetailsPage(post: post))),
+            ),
           ],
         ),
+        Icon(Icons.bookmark_outline_rounded,
+            color: Colors.white.withOpacity(0.4), size: 20),
+      ],
+    );
+  }
+
+  Widget _buildInteractionIcon(
+      IconData icon, String label, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: GoogleFonts.spaceGrotesk(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -280,224 +362,9 @@ class PostCard extends StatelessWidget {
   String _timeAgo(DateTime dt, AppLocalization locale) {
     final diff = DateTime.now().difference(dt);
     if (diff.inDays >= 7) return '${dt.day}/${dt.month}/${dt.year}';
-    if (diff.inDays > 0) {
-      return locale.translate('days_ago').replaceFirst('{}', diff.inDays.toString());
-    }
-    if (diff.inHours > 0) {
-      return locale.translate('hours_ago').replaceFirst('{}', diff.inHours.toString());
-    }
-    if (diff.inMinutes > 0) {
-      return locale.translate('minutes_ago').replaceFirst('{}', diff.inMinutes.toString());
-    }
-    return locale.translate('just_now');
-  }
-}
-
-// ── Like Count Row ────────────────────────────────────────────────────────────
-
-class _LikeCountRow extends StatelessWidget {
-  final List<String> likes;
-  const _LikeCountRow({required this.likes});
-
-  @override
-  Widget build(BuildContext context) {
-    final locale = AppLocalization.of(context)!;
-    if (likes.isEmpty) return const SizedBox.shrink();
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.redAccent.withValues(alpha: 0.15),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.favorite,
-              color: Colors.redAccent, size: 11),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          likes.length == 1
-              ? locale.translate('like_count')
-              : locale.translate('likes_count').replaceFirst('{}', likes.length.toString()),
-          style: const TextStyle(
-              color: AppColors.textMuted, fontSize: 11),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Action Button ─────────────────────────────────────────────────────────────
-
-class _ActionBtn extends StatelessWidget {
-  final FaIconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _ActionBtn({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FaIcon(icon, color: color, size: 15),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  color: color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Other-user post menu ──────────────────────────────────────────────────────
-
-class _PostMenu extends StatelessWidget {
-  final PostModel post;
-  final AuthController authController;
-  final AppLocalization locale;
-
-  const _PostMenu({
-    required this.post,
-    required this.authController,
-    required this.locale,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      padding: EdgeInsets.zero,
-      icon: const Icon(Icons.more_horiz, color: AppColors.textMuted, size: 20),
-      color: AppColors.cardLight,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      onSelected: (val) {
-        if (val == 'block') authController.blockUser(post.authorId);
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'block',
-          child: Row(
-            children: [
-              const Icon(Icons.block, color: AppColors.error, size: 16),
-              const SizedBox(width: 8),
-              Text(locale.translate('block'),
-                  style: const TextStyle(color: AppColors.error)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// ── Own-post menu ─────────────────────────────────────────────────────────────
-
-class _OwnPostMenu extends StatelessWidget {
-  final PostModel post;
-  final PostController postController;
-  final AppLocalization locale;
-
-  const _OwnPostMenu({
-    required this.post,
-    required this.postController,
-    required this.locale,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      padding: EdgeInsets.zero,
-      icon: const Icon(Icons.more_horiz, color: AppColors.textMuted, size: 20),
-      color: AppColors.cardLight,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      onSelected: (val) async {
-        if (val == 'edit') {
-           Navigator.of(context).push(MaterialPageRoute(
-               builder: (_) => CreatePostScreen(postToEdit: post)));
-        } else if (val == 'delete') {
-          final confirm = await showDialog<bool>(
-            context: context,
-            builder: (_) => AlertDialog(
-              backgroundColor: AppColors.card,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
-              title: Text(locale.translate('delete_post_title'),
-                  style: const TextStyle(color: AppColors.textPrimary)),
-              content: Text(
-                locale.translate('delete_post_confirm'),
-                style:
-                    const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(locale.translate('cancel'),
-                      style: const TextStyle(color: AppColors.textSecondary)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(locale.translate('delete'),
-                      style: const TextStyle(
-                          color: AppColors.error,
-                          fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ),
-          );
-          if (confirm == true && context.mounted) {
-            await postController.deletePost(post.id);
-            AppWidgets.showSnackBar(context, locale.translate('post_deleted'),
-                type: SnackBarType.success);
-          }
-        }
-      },
-      itemBuilder: (_) => [
-        PopupMenuItem(
-          value: 'edit',
-          child: Row(
-            children: [
-              const Icon(Icons.edit_outlined,
-                  color: AppColors.textPrimary, size: 16),
-              const SizedBox(width: 8),
-              Text(locale.translate('edit'),
-                  style: const TextStyle(color: AppColors.textPrimary)),
-            ],
-          ),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(
-            children: [
-              const Icon(Icons.delete_outline,
-                  color: AppColors.error, size: 16),
-              const SizedBox(width: 8),
-              Text(locale.translate('delete_post'),
-                  style: const TextStyle(color: AppColors.error)),
-            ],
-          ),
-        ),
-      ],
-    );
+    if (diff.inDays > 0) return '${diff.inDays}D AGO';
+    if (diff.inHours > 0) return '${diff.inHours}H AGO';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}M AGO';
+    return 'JUST NOW';
   }
 }

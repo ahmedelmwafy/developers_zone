@@ -25,6 +25,7 @@ class UserModel {
   final bool collabsNotifications;
   final List<String> mutedChats;   // chat IDs muted by this user
   final List<String> hiddenChats;  // chat IDs hidden/deleted by this user
+  final DateTime? lastSeen;
   final DateTime? createdAt;
 
   UserModel({
@@ -52,6 +53,7 @@ class UserModel {
     this.collabsNotifications = true,
     this.mutedChats = const [],
     this.hiddenChats = const [],
+    this.lastSeen,
     this.createdAt,
   });
 
@@ -104,6 +106,7 @@ class UserModel {
       collabsNotifications: data['collabsNotifications'] ?? true,
       mutedChats: data['mutedChats'] != null ? List<String>.from(data['mutedChats']) : [],
       hiddenChats: data['hiddenChats'] != null ? List<String>.from(data['hiddenChats']) : [],
+      lastSeen: (data['lastSeen'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
   }
@@ -134,6 +137,7 @@ class UserModel {
       'collabsNotifications': collabsNotifications,
       'mutedChats': mutedChats,
       'hiddenChats': hiddenChats,
+      'lastSeen': lastSeen != null ? Timestamp.fromDate(lastSeen!) : null,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
   }
@@ -161,6 +165,7 @@ class UserModel {
     bool? collabsNotifications,
     List<String>? mutedChats,
     List<String>? hiddenChats,
+    DateTime? lastSeen,
   }) {
     return UserModel(
       uid: uid,
@@ -187,6 +192,7 @@ class UserModel {
       collabsNotifications: collabsNotifications ?? this.collabsNotifications,
       mutedChats: mutedChats ?? this.mutedChats,
       hiddenChats: hiddenChats ?? this.hiddenChats,
+      lastSeen: lastSeen ?? this.lastSeen,
       createdAt: createdAt,
     );
   }

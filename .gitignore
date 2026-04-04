@@ -47,3 +47,4 @@ app.*.map.json
 **/*.jks
 **/*.keystore
 \nassets/service_account.json
+assets/service_account.json

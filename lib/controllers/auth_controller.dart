@@ -65,6 +65,55 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> signInWithGitHub() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final credential = await _authService.signInWithGitHub();
+      if (credential != null && credential.user != null) {
+        final existingUser = await _firestoreService.getUser(credential.user!.uid);
+        
+        // Extract GitHub specific profile data
+        final githubProfile = credential.additionalUserInfo?.profile ?? {};
+        final bio = githubProfile['bio'] ?? '';
+        final company = githubProfile['company'] ?? '';
+        final location = githubProfile['location'] ?? ''; // e.g. "San Francisco, CA"
+        
+        String city = '';
+        String country = '';
+        if (location.contains(',')) {
+          final parts = location.split(',');
+          city = parts.first.trim();
+          country = parts.last.trim();
+        } else {
+          city = location;
+        }
+
+        if (existingUser == null) {
+          final newUser = UserModel(
+            uid: credential.user!.uid,
+            name: credential.user!.displayName ?? githubProfile['login'] ?? 'Developer',
+            email: credential.user!.email ?? '',
+            profileImage: credential.user!.photoURL ?? '',
+            bio: bio,
+            position: company,
+            city: city,
+            country: country,
+            createdAt: DateTime.now(),
+          );
+          await _firestoreService.createUser(newUser);
+          _currentUser = newUser;
+        } else {
+          // Optional: Update existing user with latest GitHub data if desired
+           _currentUser = existingUser;
+        }
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     _isLoading = true;
     notifyListeners();
@@ -176,5 +225,14 @@ class AuthController extends ChangeNotifier {
     await _firestoreService.updateUser(newUser);
     _currentUser = newUser;
     notifyListeners();
+  }
+
+  Future<void> refreshUser() async {
+    if (_currentUser == null) return;
+    final updatedUser = await _firestoreService.getUser(_currentUser!.uid);
+    if (updatedUser != null) {
+      _currentUser = updatedUser;
+      notifyListeners();
+    }
   }
 }

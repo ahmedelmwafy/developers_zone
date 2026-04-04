@@ -28,12 +28,16 @@ class FirestoreService {
   }
 
   Stream<UserModel?> streamUser(String uid) {
-    return _db.collection('users').doc(uid).snapshots().map(
-        (doc) => doc.exists ? UserModel.fromMap(doc.data()!) : null);
+    return _db
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .map((doc) => doc.exists ? UserModel.fromMap(doc.data()!) : null);
   }
 
   Future<void> deleteUserData(String uid) async {
-    final posts = await _db.collection('posts').where('authorId', isEqualTo: uid).get();
+    final posts =
+        await _db.collection('posts').where('authorId', isEqualTo: uid).get();
     for (var post in posts.docs) {
       await _db.collection('posts').doc(post.id).delete();
     }
@@ -78,20 +82,39 @@ class FirestoreService {
 
   Future<void> togglePostLike(String postId, String uid, bool isLiking) async {
     if (isLiking) {
-      await _db.collection('posts').doc(postId).update({'likes': FieldValue.arrayUnion([uid])});
+      await _db.collection('posts').doc(postId).update({
+        'likes': FieldValue.arrayUnion([uid])
+      });
     } else {
-      await _db.collection('posts').doc(postId).update({'likes': FieldValue.arrayRemove([uid])});
+      await _db.collection('posts').doc(postId).update({
+        'likes': FieldValue.arrayRemove([uid])
+      });
     }
   }
 
   Future<void> addComment(CommentModel comment) async {
-    await _db.collection('posts').doc(comment.postId).collection('comments').add(comment.toMap());
-    await _db.collection('posts').doc(comment.postId).update({'commentCount': FieldValue.increment(1)});
+    await _db
+        .collection('posts')
+        .doc(comment.postId)
+        .collection('comments')
+        .add(comment.toMap());
+    await _db
+        .collection('posts')
+        .doc(comment.postId)
+        .update({'commentCount': FieldValue.increment(1)});
   }
 
   Future<void> deleteComment(String postId, String commentId) async {
-    await _db.collection('posts').doc(postId).collection('comments').doc(commentId).delete();
-    await _db.collection('posts').doc(postId).update({'commentCount': FieldValue.increment(-1)});
+    await _db
+        .collection('posts')
+        .doc(postId)
+        .collection('comments')
+        .doc(commentId)
+        .delete();
+    await _db
+        .collection('posts')
+        .doc(postId)
+        .update({'commentCount': FieldValue.increment(-1)});
   }
 
   Stream<List<CommentModel>> streamComments(String postId) {
@@ -106,19 +129,40 @@ class FirestoreService {
             .toList());
   }
 
-  Stream<List<PostModel>> streamGlobalFeed({String? positionFilter, List<String> blockedUsers = const []}) {
-    Query query = _db.collection('posts').orderBy('createdAt', descending: true);
+  Stream<List<PostModel>> streamGlobalFeed(
+      {String? positionFilter, List<String> blockedUsers = const []}) {
+    Query query =
+        _db.collection('posts').orderBy('createdAt', descending: true);
     if (positionFilter != null && positionFilter.isNotEmpty) {
       query = query.where('authorPosition', isEqualTo: positionFilter);
     }
     return query.snapshots().map((snapshot) {
       final posts = snapshot.docs
-          .map((doc) => PostModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .map((doc) =>
+              PostModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
           .toList();
       if (blockedUsers.isNotEmpty) {
-        return posts.where((post) => !blockedUsers.contains(post.authorId)).toList();
+        return posts
+            .where((post) => !blockedUsers.contains(post.authorId))
+            .toList();
       }
       return posts;
+    });
+  }
+
+  Stream<List<PostModel>> streamFollowingFeed(
+      {required String userId, required List<String> followingIds}) {
+    return _db
+        .collection('posts')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      final posts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.data(), doc.id))
+          .toList();
+      return posts
+          .where((post) => followingIds.contains(post.authorId))
+          .toList();
     });
   }
 
@@ -129,12 +173,12 @@ class FirestoreService {
         // No orderBy to avoid composite index requirement — sorted client-side.
         .snapshots()
         .map((snapshot) {
-          final posts = snapshot.docs
-              .map((doc) => PostModel.fromMap(doc.data(), doc.id))
-              .toList();
-          posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-          return posts;
-        });
+      final posts = snapshot.docs
+          .map((doc) => PostModel.fromMap(doc.data(), doc.id))
+          .toList();
+      posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return posts;
+    });
   }
 
   Future<List<PostModel>> searchPosts(String query) async {
@@ -157,7 +201,7 @@ class FirestoreService {
   }
 
   // CHAT CRUD
-  Future<String> startOrGetChat(String uid1, String uid2) async {
+  Future<String> getOrCreateChat(String uid1, String uid2) async {
     final List<String> userIds = [uid1, uid2]..sort();
     final query = await _db
         .collection('chats')
@@ -182,7 +226,11 @@ class FirestoreService {
   }
 
   Future<void> sendMessage(String chatId, MessageModel message) async {
-    await _db.collection('chats').doc(chatId).collection('messages').add(message.toMap());
+    await _db
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .add(message.toMap());
     await _db.collection('chats').doc(chatId).update({
       'lastMessage': message.text.isNotEmpty
           ? message.text
@@ -193,9 +241,17 @@ class FirestoreService {
     });
   }
 
-  Future<void> toggleMessageLike(String chatId, String messageId, String uid, bool isLiking) async {
-    await _db.collection('chats').doc(chatId).collection('messages').doc(messageId).update({
-      'likedBy': isLiking ? FieldValue.arrayUnion([uid]) : FieldValue.arrayRemove([uid]),
+  Future<void> toggleMessageLike(
+      String chatId, String messageId, String uid, bool isLiking) async {
+    await _db
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId)
+        .update({
+      'likedBy': isLiking
+          ? FieldValue.arrayUnion([uid])
+          : FieldValue.arrayRemove([uid]),
     });
   }
 
@@ -219,13 +275,13 @@ class FirestoreService {
         // Sorting is done client-side below.
         .snapshots()
         .map((snapshot) {
-          final chats = snapshot.docs
-              .map((doc) => ChatModel.fromMap(doc.data(), doc.id))
-              .toList();
-          // Sort by lastMessageTime descending (most recent first)
-          chats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-          return chats;
-        });
+      final chats = snapshot.docs
+          .map((doc) => ChatModel.fromMap(doc.data(), doc.id))
+          .toList();
+      // Sort by lastMessageTime descending (most recent first)
+      chats.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+      return chats;
+    });
   }
 
   Future<void> deleteMessage(String chatId, String messageId) async {
@@ -248,11 +304,8 @@ class FirestoreService {
   /// Permanently deletes a chat and all its messages (best-effort).
   Future<void> deleteChat(String chatId) async {
     // Delete sub-collection messages first
-    final msgs = await _db
-        .collection('chats')
-        .doc(chatId)
-        .collection('messages')
-        .get();
+    final msgs =
+        await _db.collection('chats').doc(chatId).collection('messages').get();
     final batch = _db.batch();
     for (final doc in msgs.docs) {
       batch.delete(doc.reference);
@@ -294,15 +347,15 @@ class FirestoreService {
     Query query = _db.collection('ads').where('active', isEqualTo: true);
     if (type != null) query = query.where('type', isEqualTo: type);
     return query.snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => AdModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .map((doc) =>
+            AdModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
         .toList());
   }
 
   // ADMIN
   Stream<List<UserModel>> streamAllUsers() {
-    return _db.collection('users').snapshots().map((snapshot) => snapshot.docs
-        .map((doc) => UserModel.fromMap(doc.data()))
-        .toList());
+    return _db.collection('users').snapshots().map((snapshot) =>
+        snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
   }
 
   Future<void> banUser(String uid, bool isBanned) async {
@@ -318,8 +371,13 @@ class FirestoreService {
   }
 
   // NOTIFICATIONS
-  Future<void> createNotification(String uid, AppNotificationModel notification) async {
-    await _db.collection('users').doc(uid).collection('notifications').add(notification.toMap());
+  Future<void> createNotification(
+      String uid, AppNotificationModel notification) async {
+    await _db
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .add(notification.toMap());
   }
 
   Stream<List<AppNotificationModel>> streamNotifications(String uid) {
@@ -361,9 +419,8 @@ class FirestoreService {
 
   Future<List<UserModel>> searchUsers(String query) async {
     final snapshot = await _db.collection('users').get();
-    final users = snapshot.docs
-        .map((doc) => UserModel.fromMap(doc.data()))
-        .toList();
+    final users =
+        snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
     if (query.isEmpty) return [];
     final q = query.toLowerCase();
     return users

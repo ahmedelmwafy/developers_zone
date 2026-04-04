@@ -23,7 +23,7 @@ class AdManagementPage extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () => _showAddAdDialog(context),
               icon: const Icon(Icons.add, size: 18, color: AppColors.primary),
-              label: const Text('New Ad', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+              label: Text(locale.translate('new_ad'), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
               style: TextButton.styleFrom(
                 backgroundColor: AppColors.primary.withValues(alpha: 0.12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -51,9 +51,9 @@ class AdManagementPage extends StatelessWidget {
                     child: const Icon(Icons.campaign_outlined, size: 36, color: AppColors.textMuted),
                   ),
                   const SizedBox(height: 16),
-                  const Text('No ads yet', style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
+                  Text(locale.translate('no_ads_yet'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 6),
-                  const Text('Tap "+ New Ad" to create your first ad', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Text(locale.translate('tap_new_ad_hint'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
                 ],
               ),
             );
@@ -68,12 +68,12 @@ class AdManagementPage extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             children: [
               if (homeAds.isNotEmpty) ...[
-                AppWidgets.sectionTitle('Home Ads'),
+                AppWidgets.sectionTitle(locale.translate('home_ads')),
                 ...homeAds.map((ad) => _AdCard(ad: ad, adminController: adminController)),
                 const SizedBox(height: 8),
               ],
               if (splashAds.isNotEmpty) ...[
-                AppWidgets.sectionTitle('Splash Ads'),
+                AppWidgets.sectionTitle(locale.translate('splash_ads')),
                 ...splashAds.map((ad) => _AdCard(ad: ad, adminController: adminController)),
               ],
             ],
@@ -86,9 +86,11 @@ class AdManagementPage extends StatelessWidget {
   void _showAddAdDialog(BuildContext context) {
     final titleController = TextEditingController();
     final imageUrlController = TextEditingController();
+    final descriptionController = TextEditingController();
     final targetUrlController = TextEditingController();
     String selectedType = 'home';
     final adminController = Provider.of<AdminController>(context, listen: false);
+    final locale = AppLocalization.of(context)!;
 
     showModalBottomSheet(
       context: context,
@@ -122,29 +124,36 @@ class AdManagementPage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              const Text('Create New Ad', style: TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
+              Text(locale.translate('create_new_ad'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
-              const Text('Add an ad to appear in the home feed or splash screen', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              Text(locale.translate('add_ad_desc'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
               const SizedBox(height: 24),
               TextField(
                 controller: titleController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: AppWidgets.fieldDecoration('Ad Title', prefixIcon: Icons.title),
+                decoration: AppWidgets.fieldDecoration(locale.translate('ad_title'), prefixIcon: Icons.title),
               ),
               const SizedBox(height: 14),
               TextField(
                 controller: imageUrlController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: AppWidgets.fieldDecoration('Image URL', prefixIcon: Icons.image_outlined),
+                decoration: AppWidgets.fieldDecoration(locale.translate('image_url'), prefixIcon: Icons.image_outlined),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: descriptionController,
+                maxLines: 2,
+                style: const TextStyle(color: AppColors.textPrimary),
+                decoration: AppWidgets.fieldDecoration(locale.translate('ad_description'), prefixIcon: Icons.description_outlined),
               ),
               const SizedBox(height: 14),
               TextField(
                 controller: targetUrlController,
                 style: const TextStyle(color: AppColors.textPrimary),
-                decoration: AppWidgets.fieldDecoration('Target URL (optional)', prefixIcon: Icons.link),
+                decoration: AppWidgets.fieldDecoration(locale.translate('target_url_optional'), prefixIcon: Icons.link),
               ),
               const SizedBox(height: 14),
-              const Text('Ad Type', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+              Text(locale.translate('ad_type'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               Row(
                 children: ['home', 'splash'].map((type) {
@@ -178,12 +187,13 @@ class AdManagementPage extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               AppWidgets.gradientButton(
-                label: 'Create Ad',
+                label: locale.translate('create_post'), // Reusing create_post or I should use create_ad if I added it
                 icon: Icons.rocket_launch_outlined,
                 onPressed: () {
                   adminController.addAd(AdModel(
                     id: '',
                     title: titleController.text.trim(),
+                    description: descriptionController.text.trim(),
                     imageUrl: imageUrlController.text.trim(),
                     targetUrl: targetUrlController.text.trim(),
                     type: selectedType,
@@ -240,7 +250,7 @@ class _AdCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(ad.title.isNotEmpty ? ad.title : 'Untitled Ad', style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
+                Text(ad.title.isNotEmpty ? ad.title : AppLocalization.of(context)!.translate('untitled_ad'), style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 14), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -263,7 +273,7 @@ class _AdCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      ad.active ? 'Active' : 'Inactive',
+                      ad.active ? AppLocalization.of(context)!.translate('active') : AppLocalization.of(context)!.translate('inactive'),
                       style: TextStyle(color: ad.active ? AppColors.success : AppColors.textMuted, fontSize: 11),
                     ),
                   ],
@@ -280,7 +290,15 @@ class _AdCard extends StatelessWidget {
                 child: Switch(
                   value: ad.active,
                   onChanged: (val) => adminController.updateAd(
-                    AdModel(id: ad.id, title: ad.title, imageUrl: ad.imageUrl, targetUrl: ad.targetUrl, active: val, type: ad.type),
+                    AdModel(
+                      id: ad.id,
+                      title: ad.title,
+                      description: ad.description,
+                      imageUrl: ad.imageUrl,
+                      targetUrl: ad.targetUrl,
+                      active: val,
+                      type: ad.type,
+                    ),
                   ),
                   activeThumbColor: AppColors.success,
                   inactiveThumbColor: AppColors.textMuted,
@@ -310,19 +328,19 @@ class _AdCard extends StatelessWidget {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Ad', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
-        content: Text('Are you sure you want to delete "${ad.title}"?', style: const TextStyle(color: AppColors.textSecondary)),
+        title: Text(AppLocalization.of(context)!.translate('delete_ad_confirm_title'), style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600)),
+        content: Text(AppLocalization.of(context)!.translate('delete_ad_confirm_content').replaceFirst('{}', ad.title), style: const TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: Text(AppLocalization.of(context)!.translate('cancel'), style: const TextStyle(color: AppColors.textSecondary)),
           ),
           TextButton(
             onPressed: () {
               adminController.deleteAd(ad.id);
               Navigator.pop(context);
             },
-            child: const Text('Delete', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
+            child: Text(AppLocalization.of(context)!.translate('delete'), style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.w600)),
           ),
         ],
       ),

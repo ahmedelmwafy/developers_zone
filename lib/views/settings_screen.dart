@@ -1,568 +1,617 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
-import 'edit_profile_screen.dart';
-import 'legal_screens.dart';
-import 'profile_page.dart';
 import 'splash_screen.dart';
 import 'admin_dashboard_page.dart';
-import 'blocked_users_page.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final authController = Provider.of<AuthController>(context);
-    final user = authController.currentUser;
-    final locale = AppLocalization.of(context)!;
-
-    if (user == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        slivers: [
-          _buildSliverAppBar(locale),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              child: Column(
-                children: [
-                  _ProfileHeaderCard(
-                    user: user,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const ProfilePage()),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  if (user.isAdmin) ...[
-                    _SettingsSection(title: locale.translate('administrative'), items: [
-                      _SettingsTile(
-                        icon: Icons.admin_panel_settings_outlined,
-                        iconColor: AppColors.accent,
-                        title: locale.translate('admin'),
-                        subtitle: locale.translate('admin_dashboard_sub'),
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const AdminDashboardPage()),
-                        ),
-                      ),
-                    ]),
-                  ],
-
-                  _SettingsSection(title: locale.translate('account'), items: [
-                    _SettingsTile(
-                      icon: Icons.person_outline_rounded,
-                      iconColor: AppColors.primary,
-                      title: locale.translate('edit_profile'),
-                      subtitle: locale.translate('edit_profile_sub'),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                      ),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.vpn_key_outlined,
-                      iconColor: AppColors.accent,
-                      title: locale.translate('change_password'),
-                      subtitle: locale.translate('change_password_sub'),
-                      onTap: () => _showChangePasswordDialog(context),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.notifications_none_rounded,
-                      iconColor: AppColors.warning,
-                      title: locale.translate('notifications'),
-                      subtitle: locale.translate('notifications_sub'),
-                      onTap: () => _showNotificationSettings(context, authController),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.block_outlined,
-                      iconColor: AppColors.error,
-                      title: locale.translate('blocked_users'),
-                      subtitle: locale.translate('blocked_users_sub'),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const BlockedUsersPage()),
-                      ),
-                    ),
-                  ]),
-
-                  _SettingsSection(title: locale.translate('preferences'), items: [
-                    _SettingsTile(
-                      icon: Icons.translate_rounded,
-                      iconColor: AppColors.accentSecondary,
-                      title: locale.translate('language'),
-                      subtitle: Provider.of<AppProvider>(context).locale.languageCode == 'ar' ? 'العربية' : 'English',
-                      trailing: const Icon(Icons.chevron_right, color: AppColors.textMuted, size: 18),
-                      onTap: () {
-                        final p = Provider.of<AppProvider>(context, listen: false);
-                        p.setLocale(p.locale.languageCode == 'ar' ? const Locale('en') : const Locale('ar'));
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (_) => const SplashScreen()),
-                          (route) => false,
-                        );
-                      },
-                    ),
-                  ]),
-
-                  _SettingsSection(title: locale.translate('legal'), items: [
-                    _SettingsTile(
-                      icon: Icons.description_outlined,
-                      iconColor: AppColors.textSecondary,
-                      title: locale.translate('privacy_policy'),
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.policy_outlined,
-                      iconColor: AppColors.textSecondary,
-                      title: locale.translate('terms_conditions'),
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TermsConditionsScreen())),
-                    ),
-                  ]),
-
-                  _SettingsSection(title: locale.translate('danger_zone'), isDanger: true, items: [
-                    _SettingsTile(
-                      icon: Icons.logout_rounded,
-                      iconColor: AppColors.error,
-                      title: locale.translate('logout'),
-                      titleColor: AppColors.error,
-                      onTap: () => _confirmLogout(context, authController, locale),
-                    ),
-                    _SettingsTile(
-                      icon: Icons.person_remove_outlined,
-                      iconColor: AppColors.error,
-                      title: locale.translate('delete_account'),
-                      subtitle: locale.translate('delete_account_sub'),
-                      titleColor: AppColors.error,
-                      onTap: () => _confirmDelete(context, authController, locale),
-                    ),
-                  ]),
-
-                  const SizedBox(height: 32),
-                  const _VersionInfo(),
-                  const SizedBox(height: 40),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSliverAppBar(AppLocalization locale) {
-    return SliverAppBar(
-      pinned: true,
-      expandedHeight: 120,
-      backgroundColor: AppColors.background,
-      elevation: 0,
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        centerTitle: false,
-        title: Text(
-          locale.translate('settings'),
-          style: const TextStyle(
-            color: AppColors.textPrimary,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.5,
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog(BuildContext context) {
-    final passwordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-
-    final locale = AppLocalization.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        padding: EdgeInsets.fromLTRB(24, 12, 24, MediaQuery.of(_).viewInsets.bottom + 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)))),
-            const SizedBox(height: 24),
-            Text(locale.translate('change_password'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text(locale.translate('strengthen_security'), style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
-            const SizedBox(height: 24),
-            TextField(controller: passwordController, obscureText: true, decoration: AppWidgets.fieldDecoration(locale.translate('current_password'), prefixIcon: Icons.lock_outline)),
-            const SizedBox(height: 16),
-            TextField(controller: newPasswordController, obscureText: true, decoration: AppWidgets.fieldDecoration(locale.translate('new_password'), prefixIcon: Icons.password_rounded)),
-            const SizedBox(height: 16),
-            TextField(controller: confirmPasswordController, obscureText: true, decoration: AppWidgets.fieldDecoration(locale.translate('confirm_new_password'), prefixIcon: Icons.verified_user_outlined)),
-            const SizedBox(height: 32),
-            AppWidgets.gradientButton(label: locale.translate('update_credentials'), onPressed: () => Navigator.pop(context)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showNotificationSettings(BuildContext context, AuthController auth) {
-    final locale = AppLocalization.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (context, setModalState) {
-          final user = auth.currentUser!;
-          return Container(
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-            ),
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)))),
-                const SizedBox(height: 24),
-                Text(locale.translate('notification_preferences'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 24),
-                _buildSwitchTile(
-                    locale.translate('email_updates'), 
-                    locale.translate('email_updates_sub'), 
-                    user.emailUpdates,
-                    (v) async {
-                      final updated = user.copyWith(emailUpdates: v);
-                      await auth.updateProfile(updated);
-                      setModalState(() {});
-                    }
-                ),
-                _buildSwitchTile(
-                    locale.translate('push_notifications_title'), 
-                    locale.translate('push_notifications_sub'), 
-                    user.pushNotifications,
-                    (v) async {
-                      final updated = user.copyWith(pushNotifications: v);
-                      await auth.updateProfile(updated);
-                      setModalState(() {});
-                    }
-                ),
-                _buildSwitchTile(
-                    locale.translate('collabs'), 
-                    locale.translate('collabs_sub'), 
-                    user.collabsNotifications,
-                    (v) async {
-                      final updated = user.copyWith(collabsNotifications: v);
-                      await auth.updateProfile(updated);
-                      setModalState(() {});
-                    }
-                ),
-                const SizedBox(height: 10),
-              ],
-            ),
-          );
-        }
-      ),
-    );
-  }
-
-  Widget _buildSwitchTile(String title, String subtitle, bool value, Function(bool) onChanged) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-              ],
-            ),
-          ),
-          Switch(
-            value: value, 
-            onChanged: onChanged, 
-            activeColor: AppColors.primary,
-            activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmLogout(BuildContext context, AuthController auth, AppLocalization locale) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
-        padding: const EdgeInsets.fromLTRB(32, 12, 32, 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.white12, borderRadius: BorderRadius.circular(10)))),
-            const SizedBox(height: 32),
-            Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: AppColors.error.withValues(alpha: 0.1), shape: BoxShape.circle), child: const Icon(Icons.logout_rounded, color: AppColors.error, size: 40)),
-            const SizedBox(height: 24),
-            Text(locale.translate('logout'), style: const TextStyle(color: AppColors.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Text(locale.translate('logout_confirm'), textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary, height: 1.5)),
-            const SizedBox(height: 32),
-            Row(
-              children: [
-                Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(context), style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: Text(locale.translate('cancel')))),
-                const SizedBox(width: 16),
-                Expanded(child: ElevatedButton(onPressed: () async {
-                  Navigator.pop(context);
-                  await auth.logout();
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const SplashScreen()),
-                      (route) => false,
-                    );
-                  }
-                }, style: ElevatedButton.styleFrom(backgroundColor: AppColors.error, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))), child: Text(locale.translate('logout')))),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _confirmDelete(BuildContext context, AuthController auth, AppLocalization locale) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(locale.translate('delete_account'), style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold)),
-        content: Text(locale.translate('delete_account_confirm')),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(locale.translate('cancel'), style: const TextStyle(color: AppColors.textMuted))),
-          TextButton(onPressed: () async {
-            Navigator.pop(context);
-            await auth.deleteAccount();
-            if (context.mounted) {
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const SplashScreen()),
-                (route) => false,
-              );
-            }
-          }, child: Text(locale.translate('confirm_deletion'), style: const TextStyle(color: AppColors.error))),
-        ],
-      ),
-    );
-  }
+  State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _ProfileHeaderCard extends StatelessWidget {
-  final UserModel user;
-  final VoidCallback onTap;
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _bioController = TextEditingController();
+  bool _isLoading = false;
 
-  const _ProfileHeaderCard({required this.user, required this.onTap});
+  @override
+  void initState() {
+    super.initState();
+    final user = Provider.of<AuthController>(context, listen: false).currentUser;
+    if (user != null) {
+      _nameController.text = user.name;
+      _emailController.text = user.email;
+      _bioController.text = user.bio;
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updateProfile() async {
+    setState(() => _isLoading = true);
+    final auth = Provider.of<AuthController>(context, listen: false);
+    final user = auth.currentUser!;
+    
+    try {
+      final updated = user.copyWith(
+        name: _nameController.text.trim(),
+        bio: _bioController.text.trim(),
+      );
+      await auth.updateProfile(updated);
+      if (mounted) {
+        AppWidgets.showSnackBar(context, 'Profile records synchronized successfully.', type: SnackBarType.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildAdminCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF2979FF).withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2979FF).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.admin_panel_settings_rounded, color: Color(0xFF2979FF), size: 24),
+              ),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Admin Dashboard', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Text('Access core system controls', style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                ],
+              ),
+            ],
+          ),
+          _OutlineButton(
+            label: 'INITIALIZE',
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage())),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
+    final user = auth.currentUser;
     final locale = AppLocalization.of(context)!;
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            )
-          ],
-        ),
-        child: Row(
+
+    if (user == null) {
+      return const Scaffold(backgroundColor: Color(0xFF0D0D0D), body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+    }
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0D),
+      body: SafeArea(
+        child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(2.5),
-              decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.primaryGradient),
-              child: CircleAvatar(
-                radius: 35,
-                backgroundImage: user.profileImage.isNotEmpty ? NetworkImage(user.profileImage) : null,
-                child: user.profileImage.isEmpty ? const Icon(Icons.person, size: 35, color: AppColors.textMuted) : null,
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 32),
+                    _buildHeroHeader(),
+                    const SizedBox(height: 40),
+                    
+                    if (user.isAdmin) ...[
+                      _SectionTitle(icon: Icons.admin_panel_settings_outlined, title: 'Administrative Protocols'),
+                      _buildAdminCard(context),
+                      const SizedBox(height: 48),
+                    ],
+                    
+                    _SectionTitle(icon: Icons.person_outline_rounded, title: 'Account Management'),
+                    _buildAccountCard(user),
+                    
+                    const SizedBox(height: 48),
+                    
+                    _SectionTitle(icon: Icons.shield_outlined, title: 'Security Suite'),
+                    _buildSecurityCard(),
+                    
+                    const SizedBox(height: 48),
+                    
+                    _SectionTitle(icon: Icons.tune_rounded, title: 'Zone Preferences'),
+                    _buildPreferencesCard(),
+                    
+                    const SizedBox(height: 60),
+                    
+                    _buildLogoutButton(auth, locale),
+                    
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00E5FF).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.person_search_rounded, color: Color(0xFF00E5FF), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'DEVELOPERS ZONE',
+                style: GoogleFonts.spaceGrotesk(
+                  color: const Color(0xFF00E5FF),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ],
+          ),
+          Icon(Icons.help_outline_rounded, color: Colors.white.withOpacity(0.3), size: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF00E5FF), shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Text(
+                'CORE CONFIG',
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'System Preferences',
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Modify your identity parameters and security protocols for the zone.',
+          style: GoogleFonts.inter(
+            color: Colors.white.withOpacity(0.5),
+            fontSize: 14,
+            height: 1.5,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAccountCard(UserModel user) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Stack(
+                alignment: Alignment.bottomRight,
                 children: [
-                  Text(
-                    user.name,
-                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 20, fontWeight: FontWeight.bold),
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Colors.white10,
+                    backgroundImage: user.profileImage.isNotEmpty ? NetworkImage(user.profileImage) : null,
+                    child: user.profileImage.isEmpty ? const Icon(Icons.person, size: 30, color: Colors.white24) : null,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    user.position.isNotEmpty ? user.position : locale.translate('dev_enthusiast'),
-                    style: const TextStyle(color: AppColors.primaryLight, fontSize: 13, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    user.email,
-                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00E5FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.edit_rounded, color: Color(0xFF0D0D0D), size: 14),
                   ),
                 ],
               ),
+              const SizedBox(width: 20),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '@${user.name.toLowerCase().replaceAll(' ', '_')}',
+                    style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    'Level 7 Contributor',
+                    style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 13),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _TerminalField(label: 'DISPLAY NAME', controller: _nameController),
+          const SizedBox(height: 24),
+          _TerminalField(label: 'EMAIL UPDATE', controller: _emailController),
+          const SizedBox(height: 24),
+          _TerminalField(label: 'SYSTEM MANIFEST (BIO)', controller: _bioController, isMultiline: true),
+          const SizedBox(height: 32),
+          _SyncButton(onPressed: _updateProfile, isLoading: _isLoading),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSecurityCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          _SecurityItem(
+            title: 'Access Credentials',
+            subtitle: 'Last rotated 42 days ago',
+            trailing: _OutlineButton(label: 'CHANGE KEY', onPressed: () {}),
+          ),
+          Divider(color: Colors.white.withOpacity(0.05), height: 1),
+          _SecurityItem(
+            title: '2FA Protocols',
+            subtitle: 'Biometric & TOTP authentication',
+            trailing: Switch(
+              value: true,
+              onChanged: (v) {},
+              activeColor: const Color(0xFF00E5FF),
+              activeTrackColor: const Color(0xFF00E5FF).withOpacity(0.2),
             ),
-            const Icon(Icons.keyboard_arrow_right_rounded, color: AppColors.textMuted),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreferencesCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          _buildLanguageSwitcher(),
+          Divider(color: Colors.white.withOpacity(0.05), height: 1),
+          const _PreferenceToggle(icon: Icons.terminal_rounded, title: 'Terminal Logs', value: true),
+          const _PreferenceToggle(icon: Icons.hub_outlined, title: 'Node Syncs', value: true),
+          const _PreferenceToggle(icon: Icons.gavel_rounded, title: 'Governance', value: false),
+          const _PreferenceToggle(icon: Icons.alternate_email_rounded, title: 'Direct Comms', value: true),
+          const _PreferenceToggle(icon: Icons.security_rounded, title: 'Vulnerability Alerts', value: true),
+          const _PreferenceToggle(icon: Icons.show_chart_rounded, title: 'System Metrics', value: false),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageSwitcher() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.language_rounded, color: Colors.white.withOpacity(0.3), size: 20),
+              const SizedBox(width: 12),
+              Text('Language', style: GoogleFonts.inter(color: Colors.white, fontSize: 14)),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: Colors.black,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                const _LangChip(label: 'EN', isActive: true),
+                const _LangChip(label: 'AR', isActive: false),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(AuthController auth, AppLocalization locale) {
+    return Center(
+      child: GestureDetector(
+        onTap: () async {
+          await auth.logout();
+          if (mounted) Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const SplashScreen()));
+        },
+        child: Text(
+          'LOGOUT SESSION',
+          style: GoogleFonts.spaceGrotesk(
+            color: const Color(0xFFFF5252),
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+          ),
         ),
       ),
     );
   }
 }
 
-class _SettingsSection extends StatelessWidget {
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
   final String title;
-  final List<_SettingsTile> items;
-  final bool isDanger;
-  const _SettingsSection({required this.title, required this.items, this.isDanger = false});
+  const _SectionTitle({required this.icon, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white.withOpacity(0.3), size: 18),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: GoogleFonts.spaceGrotesk(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TerminalField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+  final bool isMultiline;
+  const _TerminalField({required this.label, required this.controller, this.isMultiline = false});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 12),
-          child: Text(
-            title.toUpperCase(),
-            style: TextStyle(
-              color: isDanger ? AppColors.error : AppColors.primary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5,
-            ),
+        Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+            color: const Color(0xFF00E5FF),
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
           ),
         ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.card,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
-          ),
-          child: Column(
-            children: List.generate(
-              items.length,
-              (i) => Column(
-                children: [
-                  items[i],
-                  if (i < items.length - 1)
-                    Divider(height: 1, indent: 64, color: Colors.white.withValues(alpha: 0.05)),
-                ],
-              ),
-            ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: controller,
+          maxLines: isMultiline ? 4 : 1,
+          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: Colors.black.withOpacity(0.3),
+            contentPadding: const EdgeInsets.all(16),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: Color(0xFF00E5FF), width: 0.5)),
           ),
         ),
-        const SizedBox(height: 28),
       ],
     );
   }
 }
 
-class _SettingsTile extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String? subtitle;
-  final Widget? trailing;
-  final Color? titleColor;
-  final VoidCallback onTap;
-
-  const _SettingsTile({required this.icon, required this.iconColor, required this.title, this.subtitle, this.trailing, this.titleColor, required this.onTap});
+class _SyncButton extends StatelessWidget {
+  final VoidCallback onPressed;
+  final bool isLoading;
+  const _SyncButton({required this.onPressed, required this.isLoading});
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      leading: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: iconColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(icon, color: iconColor, size: 22),
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          color: titleColor ?? AppColors.textPrimary,
-          fontSize: 15,
-          fontWeight: FontWeight.w600,
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(6),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFB2FEFA), Color(0xFF0ED2F7)],
         ),
       ),
-      subtitle: subtitle != null
-          ? Text(subtitle!, style: const TextStyle(color: AppColors.textMuted, fontSize: 12))
-          : null,
-      trailing: trailing ?? const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 14),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isLoading ? null : onPressed,
+          borderRadius: BorderRadius.circular(6),
+          child: Center(
+            child: isLoading 
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF006064), strokeWidth: 2))
+              : Text(
+                  'SYNC PROFILE DATA',
+                  style: GoogleFonts.spaceGrotesk(color: const Color(0xFF006064), fontWeight: FontWeight.w800, letterSpacing: 1),
+                ),
+          ),
+        ),
+      ),
     );
   }
 }
 
-class _VersionInfo extends StatelessWidget {
-  const _VersionInfo();
+class _SecurityItem extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  const _SecurityItem({required this.title, required this.subtitle, required this.trailing});
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Column(
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: AppColors.card,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.verified_outlined, size: 14, color: AppColors.accent),
-                const SizedBox(width: 8),
-                Text(
-                  'Developers Zone Premium v1.0.1',
-                  style: TextStyle(
-                    color: AppColors.textMuted.withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(subtitle, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'Made with ❤️ for Developers',
-            style: TextStyle(color: AppColors.textMuted.withValues(alpha: 0.5), fontSize: 10),
+          trailing,
+        ],
+      ),
+    );
+  }
+}
+
+class _PreferenceToggle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool value;
+  const _PreferenceToggle({required this.icon, required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white.withOpacity(0.3), size: 18),
+          const SizedBox(width: 16),
+          Expanded(child: Text(title, style: GoogleFonts.inter(color: Colors.white, fontSize: 14))),
+          Container(
+            width: 18,
+            height: 18,
+            decoration: BoxDecoration(
+              color: value ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: value ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.1)),
+            ),
+            child: value ? const Icon(Icons.check, color: Color(0xFF0D0D0D), size: 12) : null,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OutlineButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onPressed;
+  const _OutlineButton({required this.label, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: BorderSide(color: Colors.white.withOpacity(0.1)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      ),
+      child: Text(label, style: GoogleFonts.spaceGrotesk(fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
+    );
+  }
+}
+
+class _LangChip extends StatelessWidget {
+  final String label;
+  final bool isActive;
+  const _LangChip({required this.label, required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFF00E5FF) : Colors.transparent,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.spaceGrotesk(
+          color: isActive ? const Color(0xFF0D0D0D) : Colors.white.withOpacity(0.3),
+          fontWeight: FontWeight.bold,
+          fontSize: 10,
+        ),
       ),
     );
   }

@@ -2,6 +2,7 @@
 class AdModel {
   final String id;
   final String title;
+  final String description;
   final String imageUrl;
   final String? targetUrl;
   final bool active;
@@ -10,6 +11,7 @@ class AdModel {
   AdModel({
     required this.id,
     required this.title,
+    required this.description,
     required this.imageUrl,
     this.targetUrl,
     this.active = true,
@@ -20,6 +22,7 @@ class AdModel {
     return AdModel(
       id: docId,
       title: data['title'] ?? '',
+      description: data['description'] ?? '',
       imageUrl: data['imageUrl'] ?? '',
       targetUrl: data['targetUrl'],
       active: data['active'] ?? true,
@@ -30,6 +33,7 @@ class AdModel {
   Map<String, dynamic> toMap() {
     return {
       'title': title,
+      'description': description,
       'imageUrl': imageUrl,
       'targetUrl': targetUrl,
       'active': active,

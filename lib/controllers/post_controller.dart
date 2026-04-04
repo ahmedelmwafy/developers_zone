@@ -42,6 +42,10 @@ class PostController extends ChangeNotifier {
     return _firestoreService.streamGlobalFeed(positionFilter: positionFilter, blockedUsers: blockedUsers);
   }
 
+  Stream<List<PostModel>> getFollowingFeed({required String userId, required List<String> followingIds}) {
+    return _firestoreService.streamFollowingFeed(userId: userId, followingIds: followingIds);
+  }
+
   Stream<List<PostModel>> getUserPosts(String uid) {
     return _firestoreService.streamUserPosts(uid);
   }

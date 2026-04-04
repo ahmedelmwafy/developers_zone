@@ -1,0 +1,339 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../models/user_model.dart';
+import '../models/chat_model.dart';
+import '../controllers/auth_controller.dart';
+import '../controllers/chat_controller.dart';
+import '../services/firestore_service.dart';
+
+import '../providers/app_provider.dart';
+
+class ChatConfigPage extends StatefulWidget {
+  final String chatId;
+  final String otherUserId;
+
+  const ChatConfigPage({required this.chatId, required this.otherUserId, super.key});
+
+  @override
+  State<ChatConfigPage> createState() => _ChatConfigPageState();
+}
+
+class _ChatConfigPageState extends State<ChatConfigPage> {
+  UserModel? _otherUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOtherUser();
+  }
+
+  Future<void> _loadOtherUser() async {
+    final user = await FirestoreService().getUser(widget.otherUserId);
+    if (mounted) setState(() => _otherUser = user);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
+    final chatController = Provider.of<ChatController>(context);
+    final isMuted = auth.currentUser?.mutedChats.contains(widget.chatId) ?? false;
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0D),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF00E5FF), size: 24),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          AppLocalization.of(context)!.translate('chat_config'),
+          style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF), fontWeight: FontWeight.w800, fontSize: 18, letterSpacing: 1),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF00E5FF)),
+            onPressed: () {},
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            _buildProfileSection(),
+            const SizedBox(height: 48),
+            _buildOptionTile(
+              icon: Icons.notifications_off_outlined,
+              label: AppLocalization.of(context)!.translate('mute_notifications'),
+              trailing: Switch(
+                value: isMuted,
+                onChanged: (val) {
+                  chatController.muteChat(auth.currentUser!.uid, widget.chatId, mute: val);
+                },
+                activeColor: const Color(0xFF00E5FF),
+                activeTrackColor: const Color(0xFF00E5FF).withOpacity(0.2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOptionTile(
+              icon: Icons.mark_chat_unread_outlined,
+              label: AppLocalization.of(context)!.translate('mark_as_unread'),
+              onTap: () {
+                chatController.toggleUnread(widget.chatId, true);
+                Navigator.pop(context);
+              },
+              trailing: Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.2)),
+            ),
+            const SizedBox(height: 16),
+            _buildOptionTile(
+              icon: Icons.delete_forever_outlined,
+              label: AppLocalization.of(context)!.translate('purge_local_repo'),
+              subLabel: AppLocalization.of(context)!.translate('destructive_action'),
+              onTap: () {
+                _showDeleteConfirmation(chatController);
+              },
+              color: Colors.redAccent.withOpacity(0.8),
+              destructive: true,
+            ),
+            const SizedBox(height: 48),
+            _buildHistorySection(chatController),
+            const SizedBox(height: 48),
+            _buildAssetSection(chatController),
+            const SizedBox(height: 100),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfileSection() {
+    return Column(
+      children: [
+        Container(
+          width: 120, height: 120,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5), width: 3),
+            image: _otherUser?.profileImage.isNotEmpty == true 
+                ? DecorationImage(image: NetworkImage(_otherUser!.profileImage), fit: BoxFit.cover) 
+                : null,
+            color: Colors.white.withOpacity(0.05),
+          ),
+          child: Stack(
+             children: [
+                if (_otherUser?.profileImage.isEmpty == true) 
+                  const Center(child: Icon(Icons.person, color: Colors.white10, size: 60)),
+                Positioned(
+                  bottom: 8, right: 8,
+                  child: Container(
+                    width: 16, height: 16,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00E5FF),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFF0D0D0D), width: 3),
+                    ),
+                  ),
+                ),
+             ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          _otherUser?.name ?? AppLocalization.of(context)!.translate('loading_dots'),
+          style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${AppLocalization.of(context)!.translate('active_now')} • ${_otherUser?.position.toUpperCase() ?? AppLocalization.of(context)!.translate('kernel_contributor')}',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.4), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String label,
+    String? subLabel,
+    Widget? trailing,
+    VoidCallback? onTap,
+    Color? color,
+    bool destructive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.03)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color ?? Colors.white.withOpacity(0.6), size: 24),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: GoogleFonts.spaceGrotesk(color: color ?? Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                  if (subLabel != null)
+                    Text(subLabel, style: GoogleFonts.spaceGrotesk(color: color?.withOpacity(0.5) ?? Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                ],
+              ),
+            ),
+            if (trailing != null) trailing,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHistorySection(ChatController chatController) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          AppLocalization.of(context)!.translate('COMMIT_HISTORY'),
+          style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.4), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2),
+        ),
+        const SizedBox(height: 24),
+        StreamBuilder<List<MessageModel>>(
+          stream: chatController.getMessages(widget.chatId),
+          builder: (context, snapshot) {
+            final messages = snapshot.data?.take(2).toList() ?? [];
+            return Column(
+              children: messages.map((msg) => _buildHistoryMessage(msg)).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHistoryMessage(MessageModel msg) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(12),
+        border: const Border(left: BorderSide(color: Color(0xFF00E5FF), width: 3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white10,
+              shape: BoxShape.circle,
+              image: _otherUser?.profileImage.isNotEmpty == true ? DecorationImage(image: NetworkImage(_otherUser!.profileImage), fit: BoxFit.cover) : null,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  msg.text.isNotEmpty ? msg.text : '📷 ${AppLocalization.of(context)!.translate('image_payload')}',
+                  style: GoogleFonts.inter(color: Colors.white.withOpacity(0.8), fontSize: 14, height: 1.5),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(AppLocalization.of(context)!.translate('seen_at').replaceFirst('{}', '${msg.createdAt.hour}:${msg.createdAt.minute}'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 8, fontWeight: FontWeight.w800)),
+                    const SizedBox(width: 8),
+                    Container(width: 4, height: 4, decoration: const BoxDecoration(color: Color(0xFF00E5FF), shape: BoxShape.circle)),
+                    const SizedBox(width: 8),
+                    Text(AppLocalization.of(context)!.translate('delivered'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 8, fontWeight: FontWeight.w800)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssetSection(ChatController chatController) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalization.of(context)!.translate('shared_assets'),
+              style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.4), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 2),
+            ),
+            Text(
+              AppLocalization.of(context)!.translate('files_count').replaceFirst('{}', '12'),
+              style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: 4,
+            itemBuilder: (context, index) {
+              if (index == 3) {
+                return Container(
+                  width: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161616),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.white38),
+                );
+              }
+              return Container(
+                width: 80,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  image: const DecorationImage(image: NetworkImage('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=100&q=80'), fit: BoxFit.cover),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showDeleteConfirmation(ChatController chatController) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        title: Text(AppLocalization.of(context)!.translate('purge_repo_confirm_title'), style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.w800)),
+        content: Text(AppLocalization.of(context)!.translate('purge_repo_confirm_content'), style: GoogleFonts.inter(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(AppLocalization.of(context)!.translate('cancel').toUpperCase(), style: GoogleFonts.spaceGrotesk(color: Colors.white38))),
+          TextButton(
+            onPressed: () {
+              chatController.deleteChat(widget.chatId);
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Exit config
+              Navigator.pop(context); // Exit chat
+            },
+            child: Text(AppLocalization.of(context)!.translate('purge'), style: GoogleFonts.spaceGrotesk(color: Colors.redAccent, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+  }
+}

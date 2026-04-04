@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
-import '../providers/app_provider.dart';
-import '../theme/app_theme.dart';
+import '../models/user_model.dart';
 import 'profile_page.dart';
-import 'components/shimmer_loading.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final PostModel post;
@@ -55,329 +53,145 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalization.of(context)!;
     final postController = Provider.of<PostController>(context);
     final authController = Provider.of<AuthController>(context);
     final currentUser = authController.currentUser;
     final post = widget.post;
     final isLiked = currentUser != null && post.likes.contains(currentUser.uid);
 
+    // Dynamic Manifest Parsing
+    final parts = _parseManifest(post.text);
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppWidgets.appBar(locale.translate('post_details')),
+      backgroundColor: const Color(0xFF0D0D0D),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+        centerTitle: true,
+        title: Text(
+          'MANIFEST_ENTRY // ${post.id.substring(0, 8).toUpperCase()}',
+          style: GoogleFonts.spaceGrotesk(
+            color: const Color(0xFF00E5FF).withOpacity(0.4),
+            fontWeight: FontWeight.w700,
+            fontSize: 10,
+            letterSpacing: 2,
+          ),
+        ),
+      ),
       body: Column(
         children: [
           Expanded(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Post card ──────────────────────────────────────────
-                  Container(
-                    margin: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border:
-                          Border.all(color: Colors.white.withValues(alpha: 0.06)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Author row
-                        Padding(
-                          padding: const EdgeInsets.all(14),
-                          child: InkWell(
-                            onTap: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                    builder: (_) =>
-                                        ProfilePage(userId: post.authorId))),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(2),
-                                  decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      gradient: AppColors.primaryGradient),
-                                  child: CircleAvatar(
-                                    radius: 22,
-                                    backgroundColor: AppColors.cardLight,
-                                    backgroundImage:
-                                        post.authorProfileImage.isNotEmpty
-                                            ? NetworkImage(
-                                                post.authorProfileImage)
-                                            : null,
-                                    child: post.authorProfileImage.isEmpty
-                                        ? const Icon(Icons.person,
-                                            color: AppColors.textSecondary)
-                                        : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Flexible(
-                                            child: Text(post.authorName,
-                                                style: const TextStyle(
-                                                    color:
-                                                        AppColors.textPrimary,
-                                                    fontWeight:
-                                                        FontWeight.w600,
-                                                    fontSize: 15),
-                                                overflow:
-                                                    TextOverflow.ellipsis),
-                                          ),
-                                          if (post.isAuthorVerified) ...[
-                                            const SizedBox(width: 4),
-                                            const Icon(Icons.verified,
-                                                color: AppColors.accent,
-                                                size: 15),
-                                          ],
-                                        ],
-                                      ),
-                                      const SizedBox(height: 3),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary
-                                              .withValues(alpha: 0.12),
-                                          borderRadius:
-                                              BorderRadius.circular(6),
-                                        ),
-                                        child: Text(post.authorPosition,
-                                            style: const TextStyle(
-                                                color: AppColors.primaryLight,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w500)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Text(
-                                  _timeAgo(post.createdAt),
-                                  style: const TextStyle(
-                                      color: AppColors.textMuted,
-                                      fontSize: 11),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Post text
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 14),
-                          child: Text(post.text,
-                              style: const TextStyle(
-                                  color: AppColors.textPrimary,
-                                  fontSize: 15,
-                                  height: 1.65)),
-                        ),
-                        // Images
-                        if (post.images.isNotEmpty)
-                          Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
-                              child: Image.network(post.images.first,
-                                  fit: BoxFit.cover,
-                                  width: double.infinity),
-                            ),
-                          ),
-                        // Stats row
-                        Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(14, 14, 14, 0),
-                          child: Row(
-                            children: [
-                              _StatChip(
-                                  icon: Icons.favorite,
-                                  count: post.likes.length,
-                                  color: Colors.red),
-                              const SizedBox(width: 12),
-                              _StatChip(
-                                  icon: Icons.chat_bubble_outline,
-                                  count: post.commentCount,
-                                  color: AppColors.textMuted),
-                            ],
-                          ),
-                        ),
-                        // Action bar
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 14),
-                          child: Divider(height: 24),
-                        ),
-                        Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                          child: _ReactionButton(
-                            icon: isLiked
-                                ? Icons.favorite
-                                : Icons.favorite_border,
-                            label: isLiked ? locale.translate('liked_label') : locale.translate('like_label'),
-                            color: isLiked ? Colors.red : AppColors.textSecondary,
-                            onTap: currentUser == null
-                                ? null
-                                : () => postController.togglePostLike(
-                                    post.id, currentUser.uid, !isLiked),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // ── Comments section ───────────────────────────────────
-                  Padding(
-                    padding:
-                        const EdgeInsets.fromLTRB(16, 4, 16, 4),
-                    child: AppWidgets.sectionTitle(
-                        '${locale.translate('comments')} (${post.commentCount})'),
-                  ),
-                  StreamBuilder<List<CommentModel>>(
-                    stream: postController.getPostComments(post.id),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState ==
-                          ConnectionState.waiting) {
-                        return Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            children: const [
-                              UserTileShimmer(),
-                              UserTileShimmer(),
-                              UserTileShimmer(),
-                            ],
-                          ),
-                        );
-                      }
-                      if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                        return _buildEmptyComments(locale);
-                      }
-                      final comments = snapshot.data!;
-                      return ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: comments.length,
-                        itemBuilder: (context, index) =>
-                            _CommentCard(
-                              comment: comments[index],
-                              currentUserId: currentUser?.uid,
-                              postId: post.id,
-                            ),
-                      );
-                    },
-                  ),
                   const SizedBox(height: 20),
+                  _buildHeader(parts),
+                  const SizedBox(height: 32),
+                  _buildAuthorCard(post),
+                  const SizedBox(height: 48),
+                  _buildDetailedContent(post, parts),
+                  const SizedBox(height: 48),
+                  _buildActionBar(post, isLiked, currentUser, postController),
+                  const SizedBox(height: 48),
+                  _buildCommentSection(post, postController),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
           ),
+          _buildCommentInput(),
+        ],
+      ),
+    );
+  }
 
-          // ── Comment input bar ──────────────────────────────────────────
+  Map<String, String?> _parseManifest(String text) {
+    String? title;
+    String? body = text;
+    String? code;
+
+    if (text.startsWith('# ')) {
+      final lines = text.split('\n');
+      title = lines.first.replaceFirst('# ', '').trim();
+      body = lines.skip(1).join('\n').trim();
+    }
+
+    final codeMatch = RegExp(r'```(?:\w+)?\n([\s\S]*?)```').firstMatch(body);
+    if (codeMatch != null) {
+      code = codeMatch.group(1)?.trim();
+      body = body.replaceFirst(codeMatch.group(0)!, '').trim();
+    }
+
+    return {'title': title, 'body': body, 'code': code};
+  }
+
+  Widget _buildHeader(Map<String, String?> parts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NODAL_MANIFEST_DECAP',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          parts['title'] ?? 'TRANSCRIPT_NODE',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.25),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAuthorCard(PostModel post) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Row(
+        children: [
           Container(
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border(
-                  top: BorderSide(
-                      color: Colors.white.withValues(alpha: 0.07))),
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.3)),
             ),
-            padding: EdgeInsets.only(
-                left: 12,
-                right: 12,
-                top: 10,
-                bottom: MediaQuery.of(context).padding.bottom + 10),
-            child: Row(
+            child: CircleAvatar(
+              radius: 22,
+              backgroundColor: const Color(0xFF0D0D0D),
+              backgroundImage: post.authorProfileImage.isNotEmpty ? NetworkImage(post.authorProfileImage) : null,
+              child: post.authorProfileImage.isEmpty ? const Icon(Icons.person, size: 22, color: Colors.white24) : null,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Current user avatar
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.cardLight,
-                  backgroundImage:
-                      currentUser?.profileImage.isNotEmpty == true
-                          ? NetworkImage(currentUser!.profileImage)
-                          : null,
-                  child: currentUser?.profileImage.isEmpty != false
-                      ? const Icon(Icons.person,
-                          size: 18, color: AppColors.textSecondary)
-                      : null,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    focusNode: _focusNode,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary, fontSize: 14),
-                    maxLines: null,
-                    decoration: InputDecoration(
-                      hintText: locale.translate('add_comment_hint'),
-                      hintStyle: const TextStyle(
-                          color: AppColors.textMuted, fontSize: 14),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      fillColor: AppColors.cardLight,
-                      filled: true,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(
-                              color: AppColors.primary, width: 1.5)),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                AnimatedBuilder(
-                  animation: _commentController,
-                  builder: (context, _) {
-                    final hasText =
-                        _commentController.text.trim().isNotEmpty;
-                    return GestureDetector(
-                      onTap: hasText ? _addComment : null,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: hasText
-                              ? AppColors.primaryGradient
-                              : null,
-                          color: hasText
-                              ? null
-                              : AppColors.cardLight,
-                          shape: BoxShape.circle,
-                        ),
-                        child: _isSending
-                            ? const Center(
-                                child: SizedBox(
-                                  width: 18,
-                                  height: 18,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2),
-                                ),
-                              )
-                            : Icon(Icons.send_rounded,
-                                color: hasText
-                                    ? Colors.white
-                                    : AppColors.textMuted,
-                                size: 18),
-                      ),
-                    );
-                  },
-                ),
+                Text(post.authorName, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                Text(post.authorPosition.toUpperCase(), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
               ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProfilePage(userId: post.authorId))),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF).withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.15)),
+              ),
+              child: Text('VIEW_NODE', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ),
         ],
@@ -385,289 +199,253 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     );
   }
 
-  Widget _buildEmptyComments(AppLocalization locale) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.chat_bubble_outline_rounded,
-                  size: 36, color: AppColors.primary),
-            ),
-            const SizedBox(height: 14),
-            Text(locale.translate('no_comments'),
-                style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16)),
-            const SizedBox(height: 6),
-            Text(locale.translate('be_first_comment'),
-                style:
-                    const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                textAlign: TextAlign.center),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _timeAgo(DateTime dt) {
-    final locale = AppLocalization.of(context)!;
-    final diff = DateTime.now().difference(dt);
-    if (diff.inDays > 0) return locale.translate('days_ago').replaceFirst('{}', diff.inDays.toString());
-    if (diff.inHours > 0) return locale.translate('hours_ago').replaceFirst('{}', diff.inHours.toString());
-    if (diff.inMinutes > 0) return locale.translate('minutes_ago').replaceFirst('{}', diff.inMinutes.toString());
-    return locale.translate('just_now');
-  }
-}
-
-// ── Comment Card ─────────────────────────────────────────────────────────────
-
-class _CommentCard extends StatelessWidget {
-  final CommentModel comment;
-  final String? currentUserId;
-  final String postId;
-
-  const _CommentCard({
-    required this.comment,
-    required this.currentUserId,
-    required this.postId,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isOwn = currentUserId == comment.authorId;
-    final locale = AppLocalization.of(context)!;
-
-    return GestureDetector(
-      onLongPress: isOwn
-          ? () {
-              HapticFeedback.mediumImpact();
-              _showCommentOptions(context);
-            }
-          : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Avatar
-            GestureDetector(
-              onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) =>
-                      ProfilePage(userId: comment.authorId))),
-              child: Container(
-                padding: const EdgeInsets.all(1.5),
-                decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.primaryGradient),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.cardLight,
-                  backgroundImage: comment.authorProfileImage.isNotEmpty
-                      ? NetworkImage(comment.authorProfileImage)
-                      : null,
-                  child: comment.authorProfileImage.isEmpty
-                      ? const Icon(Icons.person,
-                          size: 18, color: AppColors.textSecondary)
-                      : null,
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => Navigator.of(context).push(
-                              MaterialPageRoute(
-                                  builder: (_) => ProfilePage(
-                                      userId: comment.authorId))),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                comment.authorName,
-                                style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13),
-                              ),
-                              Text(
-                                _timeAgo(comment.createdAt, locale),
-                                style: const TextStyle(
-                                    color: AppColors.textMuted,
-                                    fontSize: 10),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (isOwn)
-                        GestureDetector(
-                          onTap: () => _showCommentOptions(context),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: const Icon(Icons.more_horiz,
-                                color: AppColors.textMuted, size: 18),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    comment.text,
-                    style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                        height: 1.5),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCommentOptions(BuildContext context) {
-    final postController =
-        Provider.of<PostController>(context, listen: false);
-    final locale = AppLocalization.of(context)!;
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (_) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        padding: EdgeInsets.fromLTRB(
-            20, 12, 20, MediaQuery.of(context).padding.bottom + 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: Colors.white24,
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.delete_outline_rounded,
-                    color: AppColors.error, size: 20),
-              ),
-              title: Text(locale.translate('delete_comment'),
-                  style: const TextStyle(
-                      color: AppColors.error, fontWeight: FontWeight.w600)),
-              onTap: () async {
-                Navigator.pop(context);
-                await postController.deleteComment(postId, comment.id);
-                if (context.mounted) {
-                  AppWidgets.showSnackBar(context, locale.translate('comment_deleted'),
-                      type: SnackBarType.success);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _timeAgo(DateTime dt, AppLocalization locale) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inDays > 0) return locale.translate('days_ago').replaceFirst('{}', diff.inDays.toString());
-    if (diff.inHours > 0) return locale.translate('hours_ago').replaceFirst('{}', diff.inHours.toString());
-    if (diff.inMinutes > 0) return locale.translate('minutes_ago').replaceFirst('{}', diff.inMinutes.toString());
-    return locale.translate('just_now');
-  }
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-class _StatChip extends StatelessWidget {
-  final IconData icon;
-  final int count;
-  final Color color;
-
-  const _StatChip(
-      {required this.icon, required this.count, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
+  Widget _buildDetailedContent(PostModel post, Map<String, String?> parts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 14, color: color.withValues(alpha: 0.8)),
-        const SizedBox(width: 4),
-        Text('$count',
-            style: TextStyle(
-                color: AppColors.textMuted,
-                fontSize: 12,
-                fontWeight: FontWeight.w500)),
+        if (post.images.isNotEmpty) ...[
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 32),
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.04)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: Image.network(post.images.first, fit: BoxFit.cover),
+            ),
+          ),
+        ],
+        if (parts['body'] != null && parts['body']!.isNotEmpty)
+          Text(
+            parts['body']!,
+            style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 17, height: 1.8),
+          ),
+        if (parts['code'] != null) ...[
+          const SizedBox(height: 32),
+          _buildCodeManifest(parts['code']!),
+        ],
       ],
     );
   }
+
+  Widget _buildCodeManifest(String code) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.5), blurRadius: 40, spreadRadius: -10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+              Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
+              const Spacer(),
+              Text('MAIN_TRANSCRIPT.PY', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SelectableText(
+            code,
+            style: GoogleFonts.sourceCodePro(
+              color: const Color(0xFF00E5FF).withOpacity(0.8),
+              fontSize: 14,
+              height: 1.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionBar(PostModel post, bool isLiked, UserModel? currentUser, PostController postController) {
+    return Row(
+      children: [
+        _InteractionNode(
+          icon: isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+          count: post.likes.length.toString(),
+          color: isLiked ? Colors.redAccent : Colors.white.withOpacity(0.2),
+          onTap: currentUser == null ? null : () => postController.togglePostLike(post.id, currentUser.uid, !isLiked),
+        ),
+        const SizedBox(width: 24),
+        _InteractionNode(
+          icon: Icons.chat_bubble_outline_rounded,
+          count: post.commentCount.toString(),
+          color: Colors.white.withOpacity(0.2),
+          onTap: () {},
+        ),
+        const Spacer(),
+        Icon(Icons.bookmark_outline_rounded, color: Colors.white.withOpacity(0.2), size: 24),
+      ],
+    );
+  }
+
+  Widget _buildCommentSection(PostModel post, PostController postController) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TRANSMISSION_THREAD',
+          style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2),
+        ),
+        const SizedBox(height: 24),
+        StreamBuilder<List<CommentModel>>(
+          stream: postController.getPostComments(post.id),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
+            final comments = snapshot.data!;
+            if (comments.isEmpty) return _buildEmptyState();
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: comments.length,
+              itemBuilder: (context, index) => _CommentNode(comment: comments[index]),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Text('WAITING_FOR_UPLINK...', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+      ),
+    );
+  }
+
+  Widget _buildCommentInput() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0D0D),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.03))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF161616),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.04)),
+              ),
+              child: TextField(
+                controller: _commentController,
+                focusNode: _focusNode,
+                cursorColor: const Color(0xFF00E5FF),
+                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Add to the manifest...',
+                  hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.1), fontSize: 14),
+                  border: InputBorder.none,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          GestureDetector(
+            onTap: _addComment,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: const Color(0xFF00E5FF).withOpacity(0.2), blurRadius: 10, spreadRadius: 1),
+                ],
+              ),
+              child: Center(
+                child: _isSending 
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                    : const Icon(Icons.send_rounded, color: Colors.black, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _ReactionButton extends StatelessWidget {
+class _InteractionNode extends StatelessWidget {
   final IconData icon;
-  final String label;
+  final String count;
   final Color color;
   final VoidCallback? onTap;
-  const _ReactionButton(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
+  const _InteractionNode({required this.icon, required this.count, required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 19, color: color),
-            const SizedBox(width: 6),
-            Text(label,
-                style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.w500,
-                    fontSize: 13)),
-          ],
-        ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(width: 8),
+          Text(count, style: GoogleFonts.spaceGrotesk(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _CommentNode extends StatelessWidget {
+  final CommentModel comment;
+  const _CommentNode({required this.comment});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 32),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF161616),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              image: comment.authorProfileImage.isNotEmpty ? DecorationImage(image: NetworkImage(comment.authorProfileImage), fit: BoxFit.cover) : null,
+            ),
+            child: comment.authorProfileImage.isEmpty ? const Icon(Icons.person, color: Colors.white10, size: 20) : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(comment.authorName, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+                    Text('NODE_RX', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(comment.text, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.6)),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,11 +1,13 @@
-import 'dart:math';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
-import '../theme/app_theme.dart';
-import 'login_screen.dart';
+import '../models/ad_model.dart';
+import '../providers/app_provider.dart';
 import 'home_screen.dart';
+import 'login_screen.dart';
 import 'waiting_approval_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -15,228 +17,96 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMixin {
-  late AnimationController _logoController;
-  late AnimationController _particleController;
-  late Animation<double> _logoScale;
-  late Animation<double> _logoFade;
-  late Animation<double> _textFade;
-  late Animation<Offset> _textSlide;
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _progressController;
+  late Animation<double> _progressAnimation;
+  String _statusKey = 'initializing_core';
+  double _percent = 0.0;
+  AdModel? _featuredAd;
 
   @override
   void initState() {
     super.initState();
-    _logoController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
-    _particleController = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
-
-    _logoScale = CurvedAnimation(parent: _logoController, curve: Curves.elasticOut).drive(
-      Tween<double>(begin: 0.3, end: 1.0),
-    );
-    _logoFade = CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.5)).drive(
-      Tween<double>(begin: 0.0, end: 1.0),
-    );
-    _textFade = CurvedAnimation(parent: _logoController, curve: const Interval(0.5, 1.0)).drive(
-      Tween<double>(begin: 0.0, end: 1.0),
-    );
-    _textSlide = CurvedAnimation(parent: _logoController, curve: const Interval(0.5, 1.0, curve: Curves.easeOut)).drive(
-      Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero),
+    _progressController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
     );
 
-    _logoController.forward();
-    _checkStatus();
+    _progressAnimation = Tween<double>(begin: 0.1, end: 1.0).animate(
+      CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
+    );
+
+    _progressController.addListener(() {
+      setState(() {
+        _percent = _progressAnimation.value;
+        if (_percent > 0.8) {
+          _statusKey = 'syncing_repos';
+        } else if (_percent > 0.5) {
+          _statusKey = 'verifying_nodal_protocols';
+        } else if (_percent > 0.3) {
+          _statusKey = 'establishing_secure_session';
+        }
+      });
+    });
+
+    _progressController.forward();
+    _loadData();
+  }
+
+  void _loadData() async {
+    final adminController = Provider.of<AdminController>(context, listen: false);
+    final adStream = adminController.getAds(type: 'splash');
+    final ads = await adStream.first;
+    if (ads.isNotEmpty) {
+      setState(() => _featuredAd = ads.first);
+    }
+
+    await Future.delayed(const Duration(seconds: 4));
+    if (!mounted) return;
+
+    final authController = Provider.of<AuthController>(context, listen: false);
+    if (authController.currentUser != null) {
+      if (authController.currentUser!.isApproved) {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()));
+      } else {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
+      }
+    } else {
+      Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const LoginScreen()));
+    }
   }
 
   @override
   void dispose() {
-    _logoController.dispose();
-    _particleController.dispose();
+    _progressController.dispose();
     super.dispose();
-  }
-
-  void _checkStatus() async {
-    // Minimum 2.5s to show the splash animation.
-    // Then wait (up to 5s more) for Firebase to restore session.
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (!mounted) return;
-
-    final authController = Provider.of<AuthController>(context, listen: false);
-
-    // Poll until isInitialized, with a 5s safety timeout.
-    final deadline = DateTime.now().add(const Duration(seconds: 5));
-    while (!authController.isInitialized && DateTime.now().isBefore(deadline)) {
-      await Future.delayed(const Duration(milliseconds: 100));
-    }
-    if (!mounted) return;
-
-    _showSplashAd().then((_) async {
-      if (!mounted) return;
-      if (authController.currentUser != null) {
-        if (authController.currentUser!.isApproved) {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const HomeScreen()));
-        } else {
-          Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
-        }
-      } else {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
-      }
-    });
-  }
-
-  Future<void> _showSplashAd() async {
-    final adminController = Provider.of<AdminController>(context, listen: false);
-    final ads = await adminController.getAds(type: 'splash').first;
-
-    if (ads.isEmpty || !mounted) return;
-
-    final ad = ads.first;
-
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black.withValues(alpha: 0.85),
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.card.withValues(alpha: 0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: Colors.white, size: 18),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 30, spreadRadius: 5)],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Image.network(ad.imageUrl, fit: BoxFit.cover),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(ad.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFF0D0D0D),
       body: Stack(
         children: [
-          // Animated background particles
-          AnimatedBuilder(
-            animation: _particleController,
-            builder: (context, _) => CustomPaint(
-              painter: _ParticlePainter(_particleController.value),
-              size: MediaQuery.of(context).size,
-            ),
-          ),
-          // Glow backdrop
-          Positioned(
-            top: MediaQuery.of(context).size.height * 0.2,
-            left: MediaQuery.of(context).size.width * 0.1,
-            right: MediaQuery.of(context).size.width * 0.1,
-            child: Container(
-              height: 300,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: AppColors.primary.withValues(alpha: 0.15), blurRadius: 120, spreadRadius: 60)],
-              ),
-            ),
-          ),
-          // Center content
-          Center(
+          const Positioned.fill(child: _DigitalGridPainter()),
+          _buildBackglow(),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo with scale + fade animation
-                FadeTransition(
-                  opacity: _logoFade,
-                  child: ScaleTransition(
-                    scale: _logoScale,
-                    child: Container(
-                      width: 110,
-                      height: 110,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
-                        boxShadow: [
-                          BoxShadow(color: AppColors.primary.withValues(alpha: 0.5), blurRadius: 40, spreadRadius: 5),
-                          BoxShadow(color: AppColors.accent.withValues(alpha: 0.2), blurRadius: 60, spreadRadius: 10),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(3),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.code, size: 60, color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                // Animated text
-                SlideTransition(
-                  position: _textSlide,
-                  child: FadeTransition(
-                    opacity: _textFade,
-                    child: Column(
-                      children: [
-                        ShaderMask(
-                          shaderCallback: (bounds) => AppColors.primaryGradient.createShader(bounds),
-                          child: const Text(
-                            'Developers Zone',
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: Colors.white, letterSpacing: 0.5),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Where code meets community',
-                          style: TextStyle(fontSize: 13, color: AppColors.textSecondary, letterSpacing: 0.3),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 60),
-                FadeTransition(
-                  opacity: _textFade,
-                  child: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary.withValues(alpha: 0.6)),
-                    ),
-                  ),
-                ),
+                const Spacer(flex: 3),
+                _buildLogoHeader(),
+                const SizedBox(height: 40),
+                _buildProgressSection(),
+                const SizedBox(height: 48),
+                if (_featuredAd != null) _buildPromotedCard(_featuredAd!),
+                const Spacer(flex: 2),
+                _buildFooter(),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -244,40 +114,302 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
       ),
     );
   }
+
+  Widget _buildBackglow() {
+    return Positioned(
+      top: -100,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          width: 300,
+          height: 300,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00E5FF).withOpacity(0.05),
+                blurRadius: 150,
+                spreadRadius: 50,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoHeader() {
+    final locale = AppLocalization.of(context)!;
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: const Color(0xFF161616),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF00E5FF).withOpacity(0.1),
+                blurRadius: 20,
+              ),
+            ],
+          ),
+          child: Stack(
+            children: [
+              const Center(
+                child: Icon(Icons.terminal_rounded,
+                    color: Color(0xFF00E5FF), size: 36),
+              ),
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00E5FF),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Color(0xFF00E5FF), blurRadius: 4)
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 32),
+        Text(
+          locale.translate('DEVELOPERS_ZONE').split(' ')[0],
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white,
+            fontWeight: FontWeight.w900,
+            fontSize: 44,
+            letterSpacing: -1,
+            height: 1,
+          ),
+        ),
+        Text(
+          locale.translate('DEVELOPERS_ZONE').split(' ').last,
+          style: GoogleFonts.spaceGrotesk(
+            color: const Color(0xFF00E5FF),
+            fontWeight: FontWeight.w900,
+            fontSize: 44,
+            letterSpacing: -1,
+            height: 1,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Text(
+          locale.translate('architecting_future'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white.withOpacity(0.3),
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2,
+            height: 1.6,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressSection() {
+    return Column(
+      children: [
+        Container(
+          height: 2,
+          width: double.infinity,
+          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05)),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: _percent,
+            child: Container(color: const Color(0xFF00E5FF)),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              AppLocalization.of(context)!.translate(_statusKey),
+              style: GoogleFonts.spaceGrotesk(
+                color: const Color(0xFF00E5FF).withOpacity(0.8),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1.5,
+              ),
+            ),
+            Text(
+              '${(_percent * 100).toInt()}%',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white.withOpacity(0.3),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromotedCard(AdModel ad) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 16 / 7,
+              child: Image.network(
+                ad.imageUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: Colors.white.withOpacity(0.05),
+                  child: const Icon(Icons.cloud_queue_rounded,
+                      color: Colors.white24, size: 40),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2979FF),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  AppLocalization.of(context)!.translate('promoted'),
+                  style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                ad.title.toUpperCase(),
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            ad.description,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: GoogleFonts.inter(
+              color: Colors.white.withOpacity(0.4),
+              fontSize: 12,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          GestureDetector(
+            onTap: () {}, // Link to Ad
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF333333),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                AppLocalization.of(context)!.translate('deploy_now'),
+                style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(Icons.terminal_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
+        const SizedBox(width: 8),
+        Text(
+          AppLocalization.of(context)!.translate('stable_version'),
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white.withOpacity(0.2),
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(width: 24),
+        Icon(Icons.shield_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
+        const SizedBox(width: 8),
+        Text(
+          AppLocalization.of(context)!.translate('e2e_encryption'),
+          style: GoogleFonts.spaceGrotesk(
+            color: Colors.white.withOpacity(0.2),
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _ParticlePainter extends CustomPainter {
-  final double progress;
-  static final _particles = List.generate(20, (i) => _Particle(i));
-
-  _ParticlePainter(this.progress);
+class _DigitalGridPainter extends StatelessWidget {
+  const _DigitalGridPainter();
 
   @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _GridPainter(),
+    );
+  }
+}
+
+class _GridPainter extends CustomPainter {
+  @override
   void paint(Canvas canvas, Size size) {
-    for (final p in _particles) {
-      final x = (p.x * size.width + progress * p.speedX * size.width) % size.width;
-      final y = (p.y * size.height + progress * p.speedY * size.height) % size.height;
-      final paint = Paint()
-        ..color = (p.isAccent ? AppColors.accent : AppColors.primary).withValues(alpha: p.opacity * (0.5 + 0.5 * sin(progress * 2 * pi + p.phase)))
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3);
-      canvas.drawCircle(Offset(x, y), p.radius, paint);
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.02)
+      ..strokeWidth = 1;
+
+    const spacing = 40.0;
+    for (double i = 0; i < size.width; i += spacing) {
+      for (double j = 0; j < size.height; j += spacing) {
+        canvas.drawLine(Offset(i, j - 4), Offset(i, j + 4), paint);
+        canvas.drawLine(Offset(i - 4, j), Offset(i + 4, j), paint);
+      }
     }
   }
 
   @override
-  bool shouldRepaint(_ParticlePainter old) => old.progress != progress;
-}
-
-class _Particle {
-  final double x, y, speedX, speedY, opacity, radius, phase;
-  final bool isAccent;
-  _Particle(int seed)
-      : x = (seed * 0.13 + 0.05) % 1.0,
-        y = (seed * 0.17 + 0.03) % 1.0,
-        speedX = (seed % 5 - 2) * 0.05,
-        speedY = -(seed % 4 + 1) * 0.04,
-        opacity = 0.2 + (seed % 5) * 0.08,
-        radius = 1.5 + (seed % 4) * 1.0,
-        phase = seed * 0.7,
-        isAccent = seed % 3 == 0;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

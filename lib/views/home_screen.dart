@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../providers/app_provider.dart';
 import '../models/ad_model.dart';
-import '../theme/app_theme.dart';
 import 'feed_page.dart';
 import 'chat_list_page.dart';
-import 'settings_screen.dart';
 import 'search_screen.dart';
+import 'profile_page.dart';
+import 'network_page.dart';
+import 'admin_dashboard_page.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,7 +25,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkProfileCompleteness());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _checkProfileCompleteness());
   }
 
   void _checkProfileCompleteness() {
@@ -36,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
           user.bio.isNotEmpty &&
           user.city.isNotEmpty &&
           user.profileImage.isNotEmpty;
-      
+
       if (!isComplete) {
         _showCompleteProfileDialog();
       }
@@ -48,93 +50,71 @@ class _HomeScreenState extends State<HomeScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text(locale.translate('profile_incomplete'), 
-            style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF161616),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(locale.translate('profile_incomplete'),
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
+                color: const Color(0xFF00E5FF).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.person_outline, size: 48, color: AppColors.primary),
+              child: const Icon(Icons.person_outline_rounded,
+                  size: 48, color: Color(0xFF00E5FF)),
             ),
             const SizedBox(height: 16),
             Text(locale.translate('complete_to_verify'),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6))),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text(locale.translate('cancel'), style: const TextStyle(color: AppColors.textMuted)),
+            child: Text(locale.translate('cancel'),
+                style: GoogleFonts.spaceGrotesk(color: Colors.white30)),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() => _currentIndex = 3); // Switch to Settings tab
+              setState(() => _currentIndex = 4); // Navigate to Profile
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              backgroundColor: const Color(0xFF00E5FF),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(locale.translate('complete_profile'), style: const TextStyle(color: Colors.white)),
+            child: Text(locale.translate('complete_profile'),
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.black, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  final List<Widget> _pages = [
-    const FeedPage(),
-    const SearchScreen(),
-    const ChatListPage(),
-    const SettingsScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final locale = AppLocalization.of(context)!;
-
-    final navItems = <_NavItem>[
-      _NavItem(
-        iconData: FontAwesomeIcons.house,
-        label: locale.translate('feed'),
-      ),
-      _NavItem(
-        iconData: FontAwesomeIcons.magnifyingGlass,
-        label: locale.translate('explore'),
-      ),
-      _NavItem(
-        iconData: FontAwesomeIcons.commentDots,
-        label: locale.translate('chat'),
-      ),
-      _NavItem(
-        iconData: FontAwesomeIcons.gear,
-        label: locale.translate('settings'),
-      ),
-    ];
-
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
+      backgroundColor: const Color(0xFF0D0D0D),
+      body: IndexedStack(
+        index: _currentIndex,
         children: [
-          Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: _pages,
-            ),
-          ),
-          if (_currentIndex == 0) const HomeAdsSection(),
+          const FeedPage(),
+          const SearchScreen(),
+          const ChatListPage(),
+          const NetworkPage(), // Social Network Manifest
+          const ProfilePage(), // Profile
+          if (Provider.of<AuthController>(context).currentUser?.isAdmin == true)
+            const AdminDashboardPage(),
         ],
       ),
-      bottomNavigationBar: _BottomNav(
-        items: navItems,
+      bottomNavigationBar: _DigitalBottomNav(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
       ),
@@ -142,129 +122,89 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Bottom Navigation Bar ────────────────────────────────────────────────────
-
-class _BottomNav extends StatelessWidget {
-  final List<_NavItem> items;
+class _DigitalBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _BottomNav({
-    required this.items,
+  const _DigitalBottomNav({
     required this.currentIndex,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      Icons.grid_view_rounded,
+      Icons.explore_rounded,
+      Icons.chat_bubble_rounded,
+      Icons.analytics_rounded,
+      Icons.person_rounded,
+      if (Provider.of<AuthController>(context).currentUser?.isAdmin == true)
+        Icons.admin_panel_settings_rounded,
+    ];
+
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border:
-            Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.07))),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 24,
-            offset: const Offset(0, -4),
-          ),
-        ],
+      height: 85,
+      decoration: const BoxDecoration(
+        color: Color(0xFF0D0D0D),
+        border: Border(top: BorderSide(color: Colors.white12, width: 0.5)),
       ),
       child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          child: Row(
-            children: List.generate(items.length, (i) {
-              final item = items[i];
-              final isSelected = currentIndex == i;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onTap(i),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeInOut,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Icon with glow / pill
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 250),
-                          padding: isSelected
-                              ? const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 7)
-                              : const EdgeInsets.all(7),
-                          decoration: isSelected
-                              ? BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [
-                                      Color(0x337C4DFF),
-                                      Color(0x1A00E5FF),
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                )
-                              : null,
-                          child: isSelected
-                              ? ShaderMask(
-                                  shaderCallback: (b) =>
-                                      AppColors.primaryGradient
-                                          .createShader(b),
-                                  child: FaIcon(
-                                    item.iconData,
-                                    color: Colors.white,
-                                    size: 18,
-                                  ),
-                                )
-                              : FaIcon(
-                                  item.iconData,
-                                  color: AppColors.textMuted,
-                                  size: 18,
-                                ),
-                        ),
-                        const SizedBox(height: 4),
-                        AnimatedDefaultTextStyle(
-                          duration: const Duration(milliseconds: 200),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: isSelected
-                                ? FontWeight.w700
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? AppColors.primary
-                                : AppColors.textMuted,
-                            fontFamily: 'Poppins',
-                          ),
-                          child: Text(
-                            item.label,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: List.generate(items.length, (index) {
+            final isSelected = currentIndex == index;
+            return GestureDetector(
+              onTap: () => onTap(index),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF00E5FF).withOpacity(0.05)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-              );
-            }),
-          ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      items[index],
+                      color: isSelected
+                          ? const Color(0xFF00E5FF)
+                          : Colors.white.withOpacity(0.2),
+                      size: 26,
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF00E5FF),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0xFF00E5FF),
+                              blurRadius: 4,
+                              spreadRadius: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }),
         ),
       ),
     );
   }
 }
-
-class _NavItem {
-  final FaIconData iconData;
-  final String label;
-  const _NavItem({
-    required this.iconData,
-    required this.label,
-  });
-}
-
-// ── Home Ads Banner ──────────────────────────────────────────────────────────
 
 class HomeAdsSection extends StatelessWidget {
   const HomeAdsSection({super.key});
@@ -296,7 +236,7 @@ class HomeAdsSection extends StatelessWidget {
                       image: NetworkImage(ad.imageUrl), fit: BoxFit.cover),
                   boxShadow: [
                     BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
+                        color: const Color(0xFF00E5FF).withOpacity(0.1),
                         blurRadius: 12,
                         offset: const Offset(0, 4)),
                   ],
@@ -307,7 +247,7 @@ class HomeAdsSection extends StatelessWidget {
                     gradient: LinearGradient(
                       colors: [
                         Colors.transparent,
-                        Colors.black.withValues(alpha: 0.6)
+                        Colors.black.withOpacity(0.6)
                       ],
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
@@ -317,7 +257,7 @@ class HomeAdsSection extends StatelessWidget {
                   padding: const EdgeInsets.all(12),
                   child: Text(
                     ad.title,
-                    style: const TextStyle(
+                    style: GoogleFonts.inter(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                         fontSize: 13),

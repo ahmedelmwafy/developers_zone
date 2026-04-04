@@ -7,17 +7,19 @@ import '../services/notification_service.dart';
 class ChatController extends ChangeNotifier {
   final FirestoreService _firestoreService = FirestoreService();
 
-  Future<String> startOrGetChat(String uid1, String uid2) async {
-    return _firestoreService.startOrGetChat(uid1, uid2);
+  Future<String> getOrCreateChat(String uid1, String uid2) async {
+    return _firestoreService.getOrCreateChat(uid1, uid2);
   }
 
-  Future<void> sendMessage(String chatId, MessageModel message, String senderName) async {
+  Future<void> sendMessage(
+      String chatId, MessageModel message, String senderName) async {
     await _firestoreService.sendMessage(chatId, message);
 
     // Trigger Notification
     final chatDoc = await _firestoreService.getChat(chatId);
     if (chatDoc != null) {
-      final recipientId = chatDoc.users.firstWhere((id) => id != message.senderId);
+      final recipientId =
+          chatDoc.users.firstWhere((id) => id != message.senderId);
       final recipient = await _firestoreService.getUser(recipientId);
       if (recipient?.fcmToken != null) {
         await NotificationService.sendNotification(
@@ -34,7 +36,8 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> toggleMessageLike(String chatId, String messageId, String uid, bool isLiking) async {
+  Future<void> toggleMessageLike(
+      String chatId, String messageId, String uid, bool isLiking) async {
     await _firestoreService.toggleMessageLike(chatId, messageId, uid, isLiking);
   }
 
