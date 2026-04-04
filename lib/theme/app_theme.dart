@@ -161,10 +161,37 @@ class AppTheme {
 
   static ThemeData arabicTheme() {
     final base = darkTheme;
-    final tajawalTheme = GoogleFonts.tajawalTextTheme(base.textTheme);
+    final cairoTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    final cairoDisplayTheme = GoogleFonts.cairoTextTheme(base.textTheme);
 
     return base.copyWith(
-      textTheme: tajawalTheme,
+      textTheme: cairoTheme.copyWith(
+        displayLarge: cairoDisplayTheme.displayLarge?.copyWith(
+          color: AppColors.onSurface,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0,
+        ),
+        headlineLarge: cairoDisplayTheme.headlineLarge?.copyWith(
+          color: AppColors.onSurface,
+          fontWeight: FontWeight.w800,
+        ),
+        headlineMedium: cairoDisplayTheme.headlineMedium?.copyWith(
+          color: AppColors.onSurface,
+          fontWeight: FontWeight.w700,
+        ),
+        titleLarge: cairoDisplayTheme.titleLarge?.copyWith(
+          color: AppColors.onSurface,
+          fontWeight: FontWeight.w700,
+        ),
+        bodyLarge: cairoTheme.bodyLarge?.copyWith(
+          color: AppColors.onSurface,
+          height: 1.6,
+        ),
+        bodyMedium: cairoTheme.bodyMedium?.copyWith(
+          color: AppColors.onSurfaceVariant,
+          height: 1.5,
+        ),
+      ),
     );
   }
 }

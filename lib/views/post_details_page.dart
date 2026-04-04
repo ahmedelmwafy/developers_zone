@@ -3,9 +3,13 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../models/post_model.dart';
 import '../models/user_model.dart';
 import 'profile_page.dart';
+import '../providers/app_provider.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final PostModel post;
@@ -19,6 +23,12 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   final _commentController = TextEditingController();
   final _focusNode = FocusNode();
   bool _isSending = false;
+  CommentModel? _replyingTo; // Added state for replies
+
+  void setReply(CommentModel comment) {
+    setState(() => _replyingTo = comment);
+    _focusNode.requestFocus();
+  }
 
   @override
   void dispose() {
@@ -27,34 +37,11 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     super.dispose();
   }
 
-  void _addComment() async {
-    if (_commentController.text.trim().isEmpty || _isSending) return;
-    setState(() => _isSending = true);
-
-    final authController = Provider.of<AuthController>(context, listen: false);
-    final postController = Provider.of<PostController>(context, listen: false);
-    final user = authController.currentUser!;
-
-    final newComment = CommentModel(
-      id: '',
-      postId: widget.post.id,
-      authorId: user.uid,
-      authorName: user.name,
-      authorProfileImage: user.profileImage,
-      text: _commentController.text.trim(),
-      createdAt: DateTime.now(),
-    );
-
-    await postController.addComment(newComment);
-    _commentController.clear();
-    _focusNode.unfocus();
-    setState(() => _isSending = false);
-  }
-
   @override
   Widget build(BuildContext context) {
     final postController = Provider.of<PostController>(context);
     final authController = Provider.of<AuthController>(context);
+    final locale = AppLocalization.of(context)!;
     final currentUser = authController.currentUser;
     final post = widget.post;
     final isLiked = currentUser != null && post.likes.contains(currentUser.uid);
@@ -73,7 +60,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         ),
         centerTitle: true,
         title: Text(
-          'MANIFEST_ENTRY // ${post.id.substring(0, 8).toUpperCase()}',
+          '${locale.translate('MANIFEST_ENTRY')} // ${post.id.substring(0, 8).toUpperCase()}',
           style: GoogleFonts.spaceGrotesk(
             color: const Color(0xFF00E5FF).withOpacity(0.4),
             fontWeight: FontWeight.w700,
@@ -81,6 +68,23 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
             letterSpacing: 2,
           ),
         ),
+        actions: [
+          if (currentUser != null)
+            IconButton(
+              icon: Icon(
+                currentUser.savedPosts.contains(post.id)
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                color: const Color(0xFF00E5FF),
+                size: 20,
+              ),
+              onPressed: () {
+                final isSaving = !currentUser.savedPosts.contains(post.id);
+                postController.toggleSavedPost(currentUser.uid, post.id, isSaving);
+              },
+            ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [
@@ -133,16 +137,17 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   }
 
   Widget _buildHeader(Map<String, String?> parts) {
+    final locale = AppLocalization.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'NODAL_MANIFEST_DECAP',
+          locale.translate('NODAL_MANIFEST_DECAP'),
           style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
         ),
         const SizedBox(height: 12),
         Text(
-          parts['title'] ?? 'TRANSCRIPT_NODE',
+          parts['title'] ?? locale.translate('TRANSCRIPT_NODE'),
           style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.25),
         ),
       ],
@@ -191,7 +196,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.15)),
               ),
-              child: Text('VIEW_NODE', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              child: Text(AppLocalization.of(context)!.translate('VIEW_NODE'), style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ),
         ],
@@ -218,9 +223,17 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
           ),
         ],
         if (parts['body'] != null && parts['body']!.isNotEmpty)
-          Text(
-            parts['body']!,
-            style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 17, height: 1.8),
+          MarkdownBody(
+            data: parts['body']!,
+            onTapLink: (text, href, title) {
+              if (href != null) launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
+            },
+            styleSheet: MarkdownStyleSheet(
+              p: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 17, height: 1.8),
+              strong: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+              a: const TextStyle(color: Color(0xFF00E5FF), decoration: TextDecoration.underline),
+              listBullet: TextStyle(color: Colors.white.withOpacity(0.3)),
+            ),
           ),
         if (parts['code'] != null) ...[
           const SizedBox(height: 32),
@@ -253,7 +266,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               const SizedBox(width: 8),
               Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
-              Text('MAIN_TRANSCRIPT.PY', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              Text(AppLocalization.of(context)!.translate('MAIN_TRANSCRIPT'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 24),
@@ -274,30 +287,42 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return Row(
       children: [
         _InteractionNode(
-          icon: isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-          count: post.likes.length.toString(),
-          color: isLiked ? Colors.redAccent : Colors.white.withOpacity(0.2),
-          onTap: currentUser == null ? null : () => postController.togglePostLike(post.id, currentUser.uid, !isLiked),
-        ),
-        const SizedBox(width: 24),
-        _InteractionNode(
           icon: Icons.chat_bubble_outline_rounded,
           count: post.commentCount.toString(),
           color: Colors.white.withOpacity(0.2),
-          onTap: () {},
+          onTap: () {
+            _focusNode.requestFocus();
+          },
         ),
         const Spacer(),
-        Icon(Icons.bookmark_outline_rounded, color: Colors.white.withOpacity(0.2), size: 24),
+        IconButton(
+          icon: Icon(
+            currentUser?.savedPosts.contains(post.id) ?? false
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_outline_rounded,
+            color: currentUser?.savedPosts.contains(post.id) ?? false
+                ? const Color(0xFF00E5FF)
+                : Colors.white.withOpacity(0.2),
+            size: 24,
+          ),
+          onPressed: currentUser == null
+              ? null
+              : () {
+                  final isSaving = !currentUser.savedPosts.contains(post.id);
+                  postController.toggleSavedPost(currentUser.uid, post.id, isSaving);
+                },
+        ),
       ],
     );
   }
 
   Widget _buildCommentSection(PostModel post, PostController postController) {
+    final locale = AppLocalization.of(context)!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TRANSMISSION_THREAD',
+          locale.translate('TRANSMISSION_THREAD'),
           style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2),
         ),
         const SizedBox(height: 24),
@@ -320,67 +345,140 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
   }
 
   Widget _buildEmptyState() {
+    final locale = AppLocalization.of(context)!;
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text('WAITING_FOR_UPLINK...', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+        child: Text(locale.translate('WAITING_FOR_UPLINK'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
       ),
     );
   }
 
   Widget _buildCommentInput() {
-    return Container(
-      padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0D0D0D),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.03))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF161616),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
-              ),
-              child: TextField(
-                controller: _commentController,
-                focusNode: _focusNode,
-                cursorColor: const Color(0xFF00E5FF),
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Add to the manifest...',
-                  hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.1), fontSize: 14),
-                  border: InputBorder.none,
+    final locale = AppLocalization.of(context)!;
+    final user = Provider.of<AuthController>(context, listen: false).currentUser;
+
+    if (user != null && !user.canComment) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          border: Border(top: BorderSide(color: Colors.white.withOpacity(0.03))),
+        ),
+        child: Center(
+          child: Text(
+            locale.translate('commenting_restricted'),
+            style: GoogleFonts.spaceGrotesk(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_replyingTo != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF00E5FF).withOpacity(0.05),
+              border: Border(top: BorderSide(color: const Color(0xFF00E5FF).withOpacity(0.1))),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.reply_rounded, color: Color(0xFF00E5FF), size: 14),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    '${locale.translate('REPLYING_TO')} @${_replyingTo!.authorName}',
+                    style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => setState(() => _replyingTo = null),
+                  child: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.3), size: 14),
+                ),
+              ],
+            ),
+          ),
+        Container(
+          padding: EdgeInsets.fromLTRB(24, 16, 24, MediaQuery.of(context).padding.bottom + 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0D0D0D),
+            border: Border(top: BorderSide(color: Colors.white.withOpacity(0.03))),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161616),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.04)),
+                  ),
+                  child: TextField(
+                    controller: _commentController,
+                    focusNode: _focusNode,
+                    cursorColor: const Color(0xFF00E5FF),
+                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: locale.translate('ADD_TO_MANIFEST'),
+                      hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.1), fontSize: 14),
+                      border: InputBorder.none,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          GestureDetector(
-            onTap: _addComment,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 50,
-              height: 50,
-              decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(color: const Color(0xFF00E5FF).withOpacity(0.2), blurRadius: 10, spreadRadius: 1),
-                ],
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () async {
+                  if (_commentController.text.trim().isEmpty) return;
+                  if (user == null) return;
+                  
+                  setState(() => _isSending = true);
+                  final comment = CommentModel(
+                    id: '',
+                    postId: widget.post.id,
+                    authorId: user.uid,
+                    authorName: user.name,
+                    authorProfileImage: user.profileImage,
+                    text: _commentController.text.trim(),
+                    parentCommentId: _replyingTo?.id,
+                    replyToName: _replyingTo?.authorName,
+                    createdAt: DateTime.now(),
+                  );
+                  await Provider.of<PostController>(context, listen: false).addComment(comment);
+                  _commentController.clear();
+                  _focusNode.unfocus();
+                  setState(() {
+                    _isSending = false;
+                    _replyingTo = null;
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E5FF),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(color: const Color(0xFF00E5FF).withOpacity(0.2), blurRadius: 10, spreadRadius: 1),
+                    ],
+                  ),
+                  child: Center(
+                    child: _isSending 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
+                        : const Icon(Icons.send_rounded, color: Colors.black, size: 20),
+                  ),
+                ),
               ),
-              child: Center(
-                child: _isSending 
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                    : const Icon(Icons.send_rounded, color: Colors.black, size: 20),
-              ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -437,11 +535,36 @@ class _CommentNode extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(comment.authorName, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-                    Text('NODE_RX', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    Text(AppLocalization.of(context)!.translate('NODE_RX'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                   ],
                 ),
                 const SizedBox(height: 4),
+                if (comment.replyToName != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Text(
+                      '@${comment.replyToName}',
+                      style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 Text(comment.text, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.6)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Text(timeago.format(comment.createdAt), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: () {
+                        // Finding the ancestor state to trigger reply
+                        final state = context.findAncestorStateOfType<_PostDetailsPageState>();
+                        if (state != null) {
+                          state.setReply(comment);
+                        }
+                      },
+                      child: Text(AppLocalization.of(context)!.translate('REPLY_ACTION'), style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

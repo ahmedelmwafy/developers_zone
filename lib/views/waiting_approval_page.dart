@@ -45,10 +45,10 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       } else {
         setState(() => _isRefreshing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Verification still pending. Node auth in progress...'),
-            backgroundColor: Color(0xFF161616),
+          SnackBar(
+            content: Text(AppLocalization.of(context)!
+                .translate('VERIFICATION_PENDING')),
+            backgroundColor: const Color(0xFF161616),
           ),
         );
       }
@@ -81,7 +81,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
                   _buildMainStatus(locale),
                   const SizedBox(height: 48),
                   _buildDetailsCard(
-                      user?.uid.substring(0, 8).toUpperCase() ?? '8842-AX'),
+                      user?.uid.substring(0, 8).toUpperCase() ?? '8842-AX',
+                      locale),
                   const SizedBox(height: 48),
                   _buildActionButtons(locale),
                   const SizedBox(height: 60),
@@ -157,7 +158,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 32),
         Text(
-          'REVIEWING NODE\nCREDENTIALS...',
+          locale.translate('REVIEWING_NODE_CREDENTIALS'),
           textAlign: TextAlign.center,
           style: GoogleFonts.spaceGrotesk(
             color: const Color(0xFF00E5FF),
@@ -168,7 +169,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 48),
         Text(
-          'ACCESS_PENDING',
+          locale.translate('ACCESS_PENDING'),
           style: GoogleFonts.spaceGrotesk(
             color: Colors.white,
             fontSize: 42,
@@ -178,7 +179,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 24),
         Text(
-          'Your application is currently being reviewed by the core administrators. You will be notified once your node is authorized.',
+          locale.translate('ACCESS_PENDING_DESC'),
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             color: Colors.white.withOpacity(0.5),
@@ -190,7 +191,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
     );
   }
 
-  Widget _buildDetailsCard(String nodeId) {
+  Widget _buildDetailsCard(String nodeId, AppLocalization locale) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
@@ -202,11 +203,14 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildDetailItem('NODE ID', 'DEV-ZONE-$nodeId'),
+          _buildDetailItem(
+              locale.translate('NODE_ID_LABEL'), 'DEV-ZONE-$nodeId'),
           const SizedBox(height: 24),
-          _buildDetailItem('QUEUE POSITION', 'Top 15% (High Priority)'),
+          _buildDetailItem(locale.translate('QUEUE_POSITION'),
+              locale.translate('QUEUE_POSITION_VALUE')),
           const SizedBox(height: 24),
-          _buildDetailItem('AVG REVIEW TIME', '4-6 Hours'),
+          _buildDetailItem(locale.translate('AVG_REVIEW_TIME'),
+              locale.translate('AVG_REVIEW_TIME_VALUE')),
         ],
       ),
     );
@@ -264,7 +268,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
                       child: CircularProgressIndicator(
                           color: Colors.black, strokeWidth: 3))
                   : Text(
-                      'REFRESH_STATUS',
+                      locale.translate('REFRESH_STATUS'),
                       style: GoogleFonts.spaceGrotesk(
                         color: Colors.black,
                         fontWeight: FontWeight.w900,
@@ -317,7 +321,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
     return Column(
       children: [
         Text(
-          'SECURITY LOGS',
+          AppLocalization.of(context)!.translate('SECURITY_LOGS'),
           style: GoogleFonts.spaceGrotesk(
             color: Colors.white.withOpacity(0.2),
             fontSize: 10,

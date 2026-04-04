@@ -7,7 +7,9 @@ import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
+import 'forgot_password_screen.dart';
 import 'waiting_approval_page.dart';
+import '../providers/app_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -77,6 +79,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
+    final locale = AppLocalization.of(context)!;
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -182,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'STATUS: ELITE NODE ACTIVE',
+                          locale.translate('ELITE_NODE_ACTIVE'),
                           style: GoogleFonts.spaceGrotesk(
                             color: Colors.white.withOpacity(0.7),
                             fontWeight: FontWeight.w700,
@@ -198,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   
                   // Hero Text
                   Text(
-                    'The Architect’s\nCommand Center.',
+                    locale.translate('HERO_TITLE'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
@@ -214,7 +217,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(
-                      'A unified ecosystem for elite contributors. Sync your repositories, manage API keys, and connect with the global developer network.',
+                      locale.translate('HERO_SUBTITLE'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
                         color: Colors.white.withOpacity(0.6),
@@ -232,14 +235,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       Expanded(
                         child: _StatBox(
                           value: '2.4M+',
-                          label: 'COMMITS TODAY',
+                          label: locale.translate('COMMITS_TODAY'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: _StatBox(
                           value: '99.9%',
-                          label: 'UPTIME SLA',
+                          label: locale.translate('UPTIME_SLA'),
                         ),
                       ),
                     ],
@@ -275,7 +278,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Select your authentication method to continue.',
+                                    locale.translate('AUTH_METHOD_SUB'),
                                     style: GoogleFonts.inter(
                                       color: Colors.white.withOpacity(0.5),
                                       fontSize: 13,
@@ -313,7 +316,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         
                         Center(
                           child: Text(
-                            'OR VIA TERMINAL',
+                            locale.translate('OR_VIA_TERMINAL'),
                             style: GoogleFonts.spaceGrotesk(
                               color: Colors.white.withOpacity(0.3),
                               fontSize: 10,
@@ -326,11 +329,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         const SizedBox(height: 32),
                         
                         // Email Field
-                        _TerminalLabel('EMAIL ADDRESS'),
+                        _TerminalLabel(locale.translate('EMAIL_ADDRESS_CAPS')),
                         TextField(
                           controller: _emailController,
                           style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                          decoration: _terminalInputDecoration(Icons.mail_outline, 'dev@architect.zone'),
+                          decoration: _terminalInputDecoration(Icons.mail_outline, locale.translate('email_hint')),
                         ),
                         
                         const SizedBox(height: 24),
@@ -339,11 +342,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                             _TerminalLabel('ACCESS KEY'),
+                             _TerminalLabel(locale.translate('ACCESS_KEY_CAPS')),
                              GestureDetector(
-                               onTap: () {},
+                               onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
                                child: Text(
-                                 'FORGOT?',
+                                 locale.translate('FORGOT_CAPS'),
                                  style: GoogleFonts.spaceGrotesk(
                                    color: Colors.white.withOpacity(0.4),
                                    fontSize: 10,
@@ -388,7 +391,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'Maintain persistent session',
+                              locale.translate('MAINTAIN_SESSION'),
                               style: GoogleFonts.inter(
                                 color: Colors.white.withOpacity(0.6),
                                 fontSize: 13,
@@ -418,7 +421,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   child: GestureDetector(
                                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
                                     child: Text(
-                                      'Create Account',
+                                      locale.translate('CREATE_ACCOUNT'),
                                       style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
                                     ),
                                   ),
@@ -437,9 +440,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _BottomNavLink('DOCUMENTATION'),
-                      _BottomNavLink('API STATUS'),
-                      _BottomNavLink('PRIVACY PROTOCOL'),
+                      _BottomNavLink(locale.translate('DOCUMENTATION')),
+                      _BottomNavLink(locale.translate('API_STATUS')),
+                      _BottomNavLink(locale.translate('PRIVACY_PROTOCOL')),
                     ],
                   ),
                   
@@ -577,6 +580,7 @@ class _ExecuteLoginButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return Container(
       width: double.infinity,
       height: 56,
@@ -609,7 +613,7 @@ class _ExecuteLoginButton extends StatelessWidget {
                     child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                   )
                 : Text(
-                    'EXECUTE LOGIN',
+                    locale.translate('EXECUTE_LOGIN'),
                     style: GoogleFonts.spaceGrotesk(
                       color: Colors.white,
                       fontSize: 16,

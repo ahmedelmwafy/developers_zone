@@ -143,7 +143,8 @@ class PostCard extends StatelessWidget {
             padding: const EdgeInsets.all(1),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
+              border:
+                  Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
             ),
             child: CircleAvatar(
               radius: 18,
@@ -152,7 +153,11 @@ class PostCard extends StatelessWidget {
                   ? NetworkImage(post.authorProfileImage)
                   : null,
               child: post.authorProfileImage.isEmpty
-                  ? const Icon(Icons.person, size: 18, color: Colors.white24)
+                  ? Text(post.authorInitials,
+                      style: GoogleFonts.spaceGrotesk(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800))
                   : null,
             ),
           ),
@@ -276,13 +281,30 @@ class PostCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFFF5F56), shape: BoxShape.circle)),
               const SizedBox(width: 5),
-              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
               const SizedBox(width: 5),
-              Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
-              Text('CODE_MANIFEST', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.1), fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              Text('CODE_MANIFEST',
+                  style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white.withOpacity(0.1),
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 16),
@@ -309,31 +331,25 @@ class PostCard extends StatelessWidget {
       AppLocalization locale,
       BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            _buildInteractionIcon(
-              isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
-              '${post.likes.length}',
-              isLiked ? Colors.redAccent : Colors.white.withOpacity(0.4),
-              () => currentUser == null
-                  ? null
-                  : postController.togglePostLike(
-                      post.id, currentUser.uid, !isLiked),
-            ),
-            const SizedBox(width: 20),
-            _buildInteractionIcon(
-              Icons.chat_bubble_outline_rounded,
-              '${post.commentCount}',
-              Colors.white.withOpacity(0.4),
-              () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => PostDetailsPage(post: post))),
-            ),
-          ],
+        _buildInteractionIcon(
+          isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
+          '${post.likes.length}',
+          isLiked ? Colors.redAccent : Colors.white.withOpacity(0.4),
+          () => currentUser == null
+              ? null
+              : postController.togglePostLike(
+                  post.id, currentUser.uid, !isLiked),
         ),
-        Icon(Icons.bookmark_outline_rounded,
-            color: Colors.white.withOpacity(0.4), size: 20),
+        const SizedBox(width: 24),
+        _buildInteractionIcon(
+          Icons.chat_bubble_outline_rounded,
+          '${post.commentCount}',
+          Colors.white.withOpacity(0.4),
+          () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => PostDetailsPage(post: post))),
+        ),
       ],
     );
   }

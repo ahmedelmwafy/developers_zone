@@ -6,6 +6,7 @@ class UserModel {
   final String email;
   final String profileImage;
   final String position;
+  final String company;
   final String bio;
   final String city;
   final String country;
@@ -16,6 +17,9 @@ class UserModel {
   final bool isBanned;
   final bool isVerified;
   final bool isApproved;
+  final bool isLocked;
+  final bool canPost;
+  final bool canComment;
   final List<String> blockedUsers;
   final List<String> followers; // uids who follow this user
   final List<String> following; // uids this user follows
@@ -25,6 +29,7 @@ class UserModel {
   final bool collabsNotifications;
   final List<String> mutedChats;   // chat IDs muted by this user
   final List<String> hiddenChats;  // chat IDs hidden/deleted by this user
+  final List<String> savedPosts;   // post IDs saved by this user
   final DateTime? lastSeen;
   final DateTime? createdAt;
 
@@ -34,6 +39,7 @@ class UserModel {
     required this.email,
     this.profileImage = '',
     this.position = '',
+    this.company = '',
     this.bio = '',
     this.city = '',
     this.country = '',
@@ -44,6 +50,9 @@ class UserModel {
     this.isBanned = false,
     this.isVerified = false,
     this.isApproved = false,
+    this.isLocked = false,
+    this.canPost = true,
+    this.canComment = true,
     this.blockedUsers = const [],
     this.followers = const [],
     this.following = const [],
@@ -53,6 +62,7 @@ class UserModel {
     this.collabsNotifications = true,
     this.mutedChats = const [],
     this.hiddenChats = const [],
+    this.savedPosts = const [],
     this.lastSeen,
     this.createdAt,
   });
@@ -80,6 +90,15 @@ class UserModel {
     return 'Joined ${(diff.inDays / 365).floor()} year${(diff.inDays / 365).floor() > 1 ? 's' : ''} ago';
   }
 
+  String get initials {
+    if (name.isEmpty) return '??';
+    final parts = name.trim().split(' ');
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
   factory UserModel.fromMap(Map<String, dynamic> data) {
     return UserModel(
       uid: data['uid'] ?? '',
@@ -87,6 +106,7 @@ class UserModel {
       email: data['email'] ?? '',
       profileImage: data['profileImage'] ?? '',
       position: data['position'] ?? '',
+      company: data['company'] ?? '',
       bio: data['bio'] ?? '',
       city: data['city'] ?? '',
       country: data['country'] ?? '',
@@ -97,6 +117,9 @@ class UserModel {
       isBanned: data['isBanned'] ?? false,
       isVerified: data['isVerified'] ?? false,
       isApproved: data['isApproved'] ?? false,
+      isLocked: data['isLocked'] ?? false,
+      canPost: data['canPost'] ?? true,
+      canComment: data['canComment'] ?? true,
       blockedUsers: data['blockedUsers'] != null ? List<String>.from(data['blockedUsers']) : [],
       followers: data['followers'] != null ? List<String>.from(data['followers']) : [],
       following: data['following'] != null ? List<String>.from(data['following']) : [],
@@ -106,6 +129,7 @@ class UserModel {
       collabsNotifications: data['collabsNotifications'] ?? true,
       mutedChats: data['mutedChats'] != null ? List<String>.from(data['mutedChats']) : [],
       hiddenChats: data['hiddenChats'] != null ? List<String>.from(data['hiddenChats']) : [],
+      savedPosts: data['savedPosts'] != null ? List<String>.from(data['savedPosts']) : [],
       lastSeen: (data['lastSeen'] as Timestamp?)?.toDate(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
     );
@@ -118,6 +142,7 @@ class UserModel {
       'email': email,
       'profileImage': profileImage,
       'position': position,
+      'company': company,
       'bio': bio,
       'city': city,
       'country': country,
@@ -128,6 +153,9 @@ class UserModel {
       'isBanned': isBanned,
       'isVerified': isVerified,
       'isApproved': isApproved,
+      'isLocked': isLocked,
+      'canPost': canPost,
+      'canComment': canComment,
       'blockedUsers': blockedUsers,
       'followers': followers,
       'following': following,
@@ -137,6 +165,7 @@ class UserModel {
       'collabsNotifications': collabsNotifications,
       'mutedChats': mutedChats,
       'hiddenChats': hiddenChats,
+      'savedPosts': savedPosts,
       'lastSeen': lastSeen != null ? Timestamp.fromDate(lastSeen!) : null,
       'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : FieldValue.serverTimestamp(),
     };
@@ -146,6 +175,7 @@ class UserModel {
     String? name,
     String? profileImage,
     String? position,
+    String? company,
     String? bio,
     String? city,
     String? country,
@@ -156,6 +186,9 @@ class UserModel {
     bool? isVerified,
     bool? isApproved,
     bool? isAdmin,
+    bool? isLocked,
+    bool? canPost,
+    bool? canComment,
     List<String>? blockedUsers,
     List<String>? followers,
     List<String>? following,
@@ -165,6 +198,7 @@ class UserModel {
     bool? collabsNotifications,
     List<String>? mutedChats,
     List<String>? hiddenChats,
+    List<String>? savedPosts,
     DateTime? lastSeen,
   }) {
     return UserModel(
@@ -173,6 +207,7 @@ class UserModel {
       email: email,
       profileImage: profileImage ?? this.profileImage,
       position: position ?? this.position,
+      company: company ?? this.company,
       bio: bio ?? this.bio,
       city: city ?? this.city,
       country: country ?? this.country,
@@ -183,6 +218,9 @@ class UserModel {
       isBanned: isBanned ?? this.isBanned,
       isVerified: isVerified ?? this.isVerified,
       isApproved: isApproved ?? this.isApproved,
+      isLocked: isLocked ?? this.isLocked,
+      canPost: canPost ?? this.canPost,
+      canComment: canComment ?? this.canComment,
       blockedUsers: blockedUsers ?? this.blockedUsers,
       followers: followers ?? this.followers,
       following: following ?? this.following,
@@ -192,6 +230,7 @@ class UserModel {
       collabsNotifications: collabsNotifications ?? this.collabsNotifications,
       mutedChats: mutedChats ?? this.mutedChats,
       hiddenChats: hiddenChats ?? this.hiddenChats,
+      savedPosts: savedPosts ?? this.savedPosts,
       lastSeen: lastSeen ?? this.lastSeen,
       createdAt: createdAt,
     );

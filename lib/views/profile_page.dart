@@ -9,7 +9,14 @@ import '../services/firestore_service.dart';
 import 'chat_detail_screen.dart';
 import 'network_page.dart';
 import 'settings_screen.dart';
+import 'admin_dashboard_page.dart';
+import 'splash_screen.dart';
 import '../providers/app_provider.dart';
+
+import '../services/notification_service.dart';
+import '../models/notification_model.dart';
+import 'components/shimmer_loading.dart';
+import 'components/post_card.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -21,13 +28,54 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authController =
+          Provider.of<AuthController>(context, listen: false);
+      final myUser = authController.currentUser;
+      if (widget.userId != null &&
+          widget.userId != myUser?.uid &&
+          myUser != null) {
+        _recordView(myUser);
+      }
+    });
+  }
+
+  Future<void> _recordView(UserModel myUser) async {
+    final firestore = FirestoreService();
+    await firestore.recordProfileView(myUser.uid, widget.userId!);
+
+    // Get target user for notification
+    final viewedUser = await firestore.getUser(widget.userId!);
+    if (viewedUser != null &&
+        viewedUser.fcmToken != null &&
+        viewedUser.pushNotifications) {
+      final locale = AppLocalization.of(context)!;
+      await NotificationService.sendNotification(
+        targetToken: viewedUser.fcmToken!,
+        targetUid: viewedUser.uid,
+        title: locale.translate('profile_view_title'),
+        body: locale
+            .translate('profile_view_body')
+            .replaceFirst('{}', myUser.name),
+        type: NotificationType.profileView,
+        relatedId: myUser.uid,
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authController = Provider.of<AuthController>(context);
     final myUser = authController.currentUser;
 
     if (widget.userId == null || widget.userId == myUser?.uid) {
       if (myUser == null) {
-        return const Scaffold(backgroundColor: Color(0xFF0D0D0D), body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+        return const Scaffold(
+            backgroundColor: Color(0xFF0D0D0D),
+            body: Center(
+                child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
       }
       return _ProfileView(user: myUser, isOwnProfile: true);
     }
@@ -36,10 +84,18 @@ class _ProfilePageState extends State<ProfilePage> {
       future: FirestoreService().getUser(widget.userId!),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(backgroundColor: Color(0xFF0D0D0D), body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+          return const Scaffold(
+              backgroundColor: Color(0xFF0D0D0D),
+              body: Center(
+                  child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
         }
         if (!snapshot.hasData || snapshot.data == null) {
-          return Scaffold(backgroundColor: const Color(0xFF0D0D0D), body: Center(child: Text(AppLocalization.of(context)!.translate('user_not_found'), style: const TextStyle(color: Colors.white24))));
+          return Scaffold(
+              backgroundColor: const Color(0xFF0D0D0D),
+              body: Center(
+                  child: Text(
+                      AppLocalization.of(context)!.translate('user_not_found'),
+                      style: const TextStyle(color: Colors.white24))));
         }
         return _ProfileView(user: snapshot.data!, isOwnProfile: false);
       },
@@ -55,7 +111,37 @@ class _ProfileView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
+    final locale = AppLocalization.of(context)!;
     final isFollowing = auth.currentUser?.following.contains(user.uid) ?? false;
+
+    if (isOwnProfile) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF060606),
+        body: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAccountManagement(context, auth, locale),
+              const SizedBox(height: 24),
+              _buildNetworkHubPanel(context, auth, locale),
+              const SizedBox(height: 24),
+              _buildZonePreferences(context, auth, locale),
+              const SizedBox(height: 32),
+              _buildSavedManifests(context, auth, locale),
+              if (auth.currentUser?.isAdmin ?? false) ...[
+                const SizedBox(height: 24),
+                _buildPrivilegedAccess(context, auth, locale),
+              ],
+              const SizedBox(height: 32),
+              _buildSystemLegalInfo(context, locale),
+              const SizedBox(height: 100),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
@@ -63,20 +149,19 @@ class _ProfileView extends StatelessWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF00E5FF), size: 24),
+          icon: const Icon(Icons.arrow_back_rounded,
+              color: const Color(0xFF00E5FF), size: 24),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           AppLocalization.of(context)!.translate('profile_caps'),
-          style: GoogleFonts.spaceGrotesk(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16, letterSpacing: 1.5),
+          style: GoogleFonts.spaceGrotesk(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+              letterSpacing: 1.5),
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: Colors.white, size: 22),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -88,6 +173,8 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(height: 48),
             _buildStatsHeader(context),
             const SizedBox(height: 40),
+            _buildNodalMetadata(locale),
+            const SizedBox(height: 40),
             _buildActionButtons(context, isFollowing, auth),
             const SizedBox(height: 48),
             _buildActivityFeed(Provider.of<PostController>(context)),
@@ -98,28 +185,173 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
+  Widget _buildNodalMetadata(AppLocalization locale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          locale.translate('NODE_METADATA'),
+          style: GoogleFonts.spaceGrotesk(
+              color: const Color(0xFF00E5FF).withOpacity(0.4),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF161616),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.03)),
+          ),
+          child: Column(
+            children: [
+              _buildMetadataRow(
+                locale.translate('location').toUpperCase(),
+                user.city.isNotEmpty && user.country.isNotEmpty
+                    ? '${user.city.toUpperCase()}, ${user.country.toUpperCase()}'
+                    : locale.translate('UNKNOWN_HUB'),
+                Icons.location_on_outlined,
+              ),
+              if (user.company.isNotEmpty)
+                _buildMetadataRow(
+                  locale.translate('company_label').toUpperCase(),
+                  user.company.toUpperCase(),
+                  Icons.business_rounded,
+                ),
+              _buildMetadataDivider(),
+              _buildMetadataRow(
+                locale.translate('birth_date').toUpperCase(),
+                user.birthDate != null
+                    ? '${user.age} ${locale.translate('YEAR_CYCLE')}'
+                    : locale.translate('UNDEFINED_GENESIS'),
+                Icons.history_toggle_off_rounded,
+              ),
+              _buildMetadataRow(
+                locale.translate('gender').toUpperCase(),
+                user.gender?.toUpperCase() ??
+                    locale.translate('UNKNOWN_VARIANT'),
+                Icons.fingerprint_rounded,
+              ),
+              if (user.socialLinks != null && user.socialLinks!.isNotEmpty) ...[
+                _buildMetadataDivider(),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    if (user.socialLinks!['github']?.isNotEmpty == true)
+                      _buildSocialChip('GITHUB', Icons.code_rounded),
+                    if (user.socialLinks!['linkedin']?.isNotEmpty == true)
+                      _buildSocialChip('LINKEDIN', Icons.link_rounded),
+                    if (user.socialLinks!['portfolio']?.isNotEmpty == true)
+                      _buildSocialChip('PORTFOLIO', Icons.language_rounded),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetadataRow(String label, String value, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.white24, size: 16),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white24,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 1),
+              ),
+            ],
+          ),
+          Text(
+            value,
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetadataDivider() => Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      height: 1,
+      color: Colors.white.withOpacity(0.03));
+
+  Widget _buildSocialChip(String label, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFF00E5FF), size: 14),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: GoogleFonts.spaceGrotesk(
+                color: const Color(0xFF00E5FF),
+                fontSize: 9,
+                fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildIdentityHeader(BuildContext context, bool isFollowing) {
     return Column(
       children: [
         Container(
-          width: 140, height: 140,
+          width: 140,
+          height: 140,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(28),
-            border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5), width: 3),
-            image: user.profileImage.isNotEmpty ? DecorationImage(image: NetworkImage(user.profileImage), fit: BoxFit.cover) : null,
+            border: Border.all(
+                color: const Color(0xFF00E5FF).withOpacity(0.5), width: 3),
+            image: user.profileImage.isNotEmpty
+                ? DecorationImage(
+                    image: NetworkImage(user.profileImage), fit: BoxFit.cover)
+                : null,
             color: Colors.white.withOpacity(0.05),
           ),
           child: Stack(
             children: [
-              if (user.profileImage.isEmpty) const Center(child: Icon(Icons.person, color: Colors.white10, size: 60)),
+              if (user.profileImage.isEmpty)
+                Center(
+                    child: Text(user.initials,
+                        style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white.withOpacity(0.1),
+                            fontSize: 48,
+                            fontWeight: FontWeight.w800))),
               Positioned(
-                bottom: 10, right: 10,
+                bottom: 10,
+                right: 10,
                 child: Container(
-                  width: 20, height: 20,
+                  width: 20,
+                  height: 20,
                   decoration: BoxDecoration(
                     color: const Color(0xFF00E5FF),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF0D0D0D), width: 4),
+                    border:
+                        Border.all(color: const Color(0xFF0D0D0D), width: 4),
                   ),
                 ),
               ),
@@ -132,16 +364,24 @@ class _ProfileView extends StatelessWidget {
           children: [
             Text(
               user.name,
-              style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800),
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white,
+                  fontSize: 32,
+                  fontWeight: FontWeight.w800),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.verified_rounded, color: Color(0xFF00E5FF), size: 20),
+            const Icon(Icons.verified_rounded,
+                color: Color(0xFF00E5FF), size: 20),
           ],
         ),
         const SizedBox(height: 8),
         Text(
-          '${user.position.toUpperCase()} @ OBSIDIANLABS',
-          style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+          '${user.position.toUpperCase()}${user.company.isNotEmpty ? ' @ ${user.company.toUpperCase()}' : ''}',
+          style: GoogleFonts.spaceGrotesk(
+              color: const Color(0xFF00E5FF).withOpacity(0.6),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1),
         ),
         const SizedBox(height: 24),
         Padding(
@@ -149,7 +389,10 @@ class _ProfileView extends StatelessWidget {
           child: Text(
             user.bio,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(color: Colors.white.withOpacity(0.5), fontSize: 14, height: 1.6),
+            style: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 14,
+                height: 1.6),
           ),
         ),
       ],
@@ -157,55 +400,120 @@ class _ProfileView extends StatelessWidget {
   }
 
   Widget _buildStatsHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildStatColumn(context, user.following.length.toString(), AppLocalization.of(context)!.translate('following').toUpperCase(), NetworkTab.following),
-          _buildDivider(),
-          _buildStatColumn(context, user.followers.length.toString(), AppLocalization.of(context)!.translate('followers').toUpperCase(), NetworkTab.followers),
-          _buildDivider(),
-          _buildStatColumn(context, '450', AppLocalization.of(context)!.translate('commits'), null),
-        ],
-      ),
+    final postController = Provider.of<PostController>(context);
+
+    return StreamBuilder<List<PostModel>>(
+      stream: postController.getUserPosts(user.uid),
+      builder: (context, snapshot) {
+        final posts = snapshot.data ?? [];
+        final totalLikes =
+            posts.fold<int>(0, (sum, post) => sum + post.likes.length);
+        final totalPosts = posts.length;
+
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF161616),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildStatColumn(
+                  context,
+                  user.following.length.toString(),
+                  AppLocalization.of(context)!
+                      .translate('following')
+                      .toUpperCase(),
+                  NetworkTab.following),
+              _buildDivider(),
+              _buildStatColumn(
+                  context,
+                  user.followers.length.toString(),
+                  AppLocalization.of(context)!
+                      .translate('followers')
+                      .toUpperCase(),
+                  NetworkTab.followers),
+              _buildDivider(),
+              _buildStatColumn(
+                  context,
+                  totalPosts.toString(),
+                  AppLocalization.of(context)!
+                      .translate('commits')
+                      .toUpperCase(),
+                  null),
+              _buildDivider(),
+              _buildStatColumn(
+                  context,
+                  totalLikes.toString(),
+                  AppLocalization.of(context)!.translate('likes').toUpperCase(),
+                  null),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildStatColumn(BuildContext context, String value, String label, NetworkTab? tab) {
+  Widget _buildStatColumn(
+      BuildContext context, String value, String label, NetworkTab? tab) {
     return GestureDetector(
-      onTap: tab != null ? () => Navigator.push(context, MaterialPageRoute(builder: (_) => NetworkPage(initialTab: tab))) : null,
+      onTap: tab != null
+          ? () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => NetworkPage(
+                        initialTab: tab,
+                        targetUserId: user.uid,
+                        isSingleMode: true,
+                      )))
+          : null,
       child: Column(
         children: [
-          Text(value, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+          Text(value,
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text(label, style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.3), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+          Text(label,
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.3),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1)),
         ],
       ),
     );
   }
 
-  Widget _buildDivider() => Container(width: 1, height: 32, color: Colors.white.withOpacity(0.05));
+  Widget _buildDivider() =>
+      Container(width: 1, height: 32, color: Colors.white.withOpacity(0.05));
 
-  Widget _buildActionButtons(BuildContext context, bool isFollowing, AuthController auth) {
+  Widget _buildActionButtons(
+      BuildContext context, bool isFollowing, AuthController auth) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
               child: _buildMainButton(
-                label: isFollowing ? AppLocalization.of(context)!.translate('following').toUpperCase() : AppLocalization.of(context)!.translate('follow').toUpperCase(),
+                label: isFollowing
+                    ? AppLocalization.of(context)!
+                        .translate('following')
+                        .toUpperCase()
+                    : AppLocalization.of(context)!
+                        .translate('follow')
+                        .toUpperCase(),
                 isActive: isFollowing,
                 onTap: () {
-                   if (isFollowing) {
-                     FirestoreService().unfollowUser(auth.currentUser!.uid, user.uid);
-                   } else {
-                     FirestoreService().followUser(auth.currentUser!.uid, user.uid);
-                   }
+                  if (isFollowing) {
+                    FirestoreService()
+                        .unfollowUser(auth.currentUser!.uid, user.uid);
+                  } else {
+                    FirestoreService()
+                        .followUser(auth.currentUser!.uid, user.uid);
+                  }
                 },
               ),
             ),
@@ -214,8 +522,13 @@ class _ProfileView extends StatelessWidget {
               child: _buildMainButton(
                 label: AppLocalization.of(context)!.translate('message_caps'),
                 onTap: () async {
-                   final chatId = await FirestoreService().getOrCreateChat(auth.currentUser!.uid, user.uid);
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => ChatDetailScreen(chatId: chatId, otherUserId: user.uid)));
+                  final chatId = await FirestoreService()
+                      .getOrCreateChat(auth.currentUser!.uid, user.uid);
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ChatDetailScreen(
+                              chatId: chatId, otherUserId: user.uid)));
                 },
               ),
             ),
@@ -225,20 +538,534 @@ class _ProfileView extends StatelessWidget {
         GestureDetector(
           onTap: () {},
           child: Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: const Color(0xFF161616),
               shape: BoxShape.circle,
               border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
-            child: const Icon(Icons.block_rounded, color: Colors.white24, size: 20),
+            child: const Icon(Icons.block_rounded,
+                color: Colors.white24, size: 20),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMainButton({required String label, bool isActive = false, required VoidCallback onTap}) {
+  Widget _buildAccountManagement(
+      BuildContext context, AuthController auth, AppLocalization locale) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                locale.translate('ACCOUNT_MANAGEMENT'),
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800),
+              ),
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                    color: Color(0xFF00E5FF), shape: BoxShape.circle),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            locale.translate('ACCOUNT_MANAGEMENT_SUB'),
+            style: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 13,
+                height: 1.4),
+          ),
+          const SizedBox(height: 32),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.edit_note_rounded,
+                      color: Colors.black, size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      locale.translate('edit_profile'),
+                      style: GoogleFonts.spaceGrotesk(
+                          color: Colors.black,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15),
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward_rounded,
+                      color: Colors.black, size: 20),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildConfigActionTile(
+            icon: Icons.visibility_rounded,
+            title: locale.translate('PREVIEW_PUBLIC_PROFILE'),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => Scaffold(
+                  backgroundColor: const Color(0xFF0D0D0D),
+                  appBar: AppBar(
+                    backgroundColor: Colors.transparent,
+                    elevation: 0,
+                    leading: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded,
+                          color: Color(0xFF00E5FF), size: 24),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    title: Text(
+                      locale.translate('PREVIEW_MODE'),
+                      style: GoogleFonts.spaceGrotesk(
+                          color: const Color(0xFF00E5FF).withOpacity(0.5),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          letterSpacing: 2),
+                    ),
+                    centerTitle: true,
+                  ),
+                  body: SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 32),
+                        _buildIdentityHeader(context, false),
+                        const SizedBox(height: 48),
+                        _buildStatsHeader(context),
+                        const SizedBox(height: 40),
+                        _buildNodalMetadata(locale),
+                        const SizedBox(height: 48),
+                        _buildActivityFeed(
+                            Provider.of<PostController>(context)),
+                        const SizedBox(height: 100),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildConfigActionTile(
+            icon: Icons.history_rounded,
+            title: locale.translate('change_password'),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+          const SizedBox(height: 12),
+          _buildConfigActionTile(
+            icon: Icons.logout_rounded,
+            title: locale.translate('LOGOUT_SESSION'),
+            titleColor: const Color(0xFFFF5252),
+            onTap: () async {
+              await auth.logout();
+              if (context.mounted)
+                Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const SplashScreen()),
+                    (route) => false);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigActionTile({
+    required IconData icon,
+    required String title,
+    required VoidCallback onTap,
+    Color? titleColor,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                color: titleColor?.withOpacity(0.6) ?? Colors.white30,
+                size: 20),
+            const SizedBox(width: 16),
+            Text(
+              title,
+              style: GoogleFonts.spaceGrotesk(
+                  color: titleColor ?? Colors.white.withOpacity(0.8),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNetworkHubPanel(
+      BuildContext context, AuthController auth, AppLocalization locale) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            locale.translate('NETWORK_HUB'),
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 24),
+          _buildNetworkRefTile(
+            context,
+            icon: Icons.people_rounded,
+            label: locale.translate('tab_following'),
+            value: '${(user.following.length / 1000).toStringAsFixed(1)}k',
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => NetworkPage(
+                        initialTab: NetworkTab.following,
+                        targetUserId: user.uid,
+                        isSingleMode: true))),
+          ),
+          const SizedBox(height: 2),
+          Container(height: 1, color: Colors.white.withOpacity(0.02)),
+          const SizedBox(height: 2),
+          _buildNetworkRefTile(
+            context,
+            icon: Icons.person_add_rounded,
+            label: locale.translate('tab_followers'),
+            value: user.followers.length.toString(),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => NetworkPage(
+                        initialTab: NetworkTab.followers,
+                        targetUserId: user.uid,
+                        isSingleMode: true))),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            locale.translate('LAST_SYNC').replaceFirst('{}', '14:32'),
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white.withOpacity(0.2),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNetworkRefTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        color: Colors.transparent,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: const Color(0xFF00E5FF), size: 20),
+            ),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.6),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14),
+            ),
+            const Spacer(),
+            Text(
+              value,
+              style: GoogleFonts.spaceGrotesk(
+                  color: const Color(0xFF00E5FF),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildZonePreferences(
+      BuildContext context, AuthController auth, AppLocalization locale) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF121212),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            locale.translate('ZONE_PREFERENCES'),
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 24),
+          _buildConfigToggleTile(context, locale),
+          const SizedBox(height: 24),
+          _buildConfigActionTile(
+            icon: Icons.do_not_disturb_on_rounded,
+            title: locale.translate('blocked_users'),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const NetworkPage(
+                        initialTab: NetworkTab.blocked, isSingleMode: true))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfigToggleTile(BuildContext context, AppLocalization locale) {
+    final appProvider = Provider.of<AppProvider>(context);
+    final isAr = appProvider.locale.languageCode == 'ar';
+
+    return Row(
+      children: [
+        Icon(Icons.translate_rounded,
+            color: Colors.white.withOpacity(0.3), size: 18),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Text(
+            locale.translate('INTERFACE_LANGUAGE'),
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white.withOpacity(0.8),
+                fontWeight: FontWeight.w700,
+                fontSize: 14),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            children: [
+              _buildLangOption(
+                  'EN', !isAr, () => appProvider.setLocale(const Locale('en'))),
+              _buildLangOption(
+                  'AR', isAr, () => appProvider.setLocale(const Locale('ar'))),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLangOption(String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF00E5FF).withOpacity(0.1) : null,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.spaceGrotesk(
+              color: isActive ? const Color(0xFF00E5FF) : Colors.white24,
+              fontSize: 10,
+              fontWeight: FontWeight.w800),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrivilegedAccess(
+      BuildContext context, AuthController auth, AppLocalization locale) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A141A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.1)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            top: -20,
+            child: Icon(Icons.admin_panel_settings_rounded,
+                size: 140, color: Colors.white.withOpacity(0.02)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: const BoxDecoration(
+                          color: Color(0xFF00E5FF), shape: BoxShape.circle),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      locale.translate('PRIVILEGED_ACCESS'),
+                      style: GoogleFonts.spaceGrotesk(
+                          color: const Color(0xFF00E5FF),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  locale.translate('admin_dashboard_title'),
+                  style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AdminDashboardPage())),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00E5FF).withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: const Color(0xFF00E5FF).withOpacity(0.1)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        locale.translate('INITIALIZE_TERMINAL'),
+                        style: GoogleFonts.spaceGrotesk(
+                            color: const Color(0xFF00E5FF),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            letterSpacing: 0.5),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSystemLegalInfo(BuildContext context, AppLocalization locale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          locale.translate('SYSTEM_LEGAL'),
+          style: GoogleFonts.spaceGrotesk(
+              color: Colors.white.withOpacity(0.4),
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.5),
+        ),
+        const SizedBox(height: 24),
+        _buildLegalLink(Icons.verified_user_rounded,
+            locale.translate('privacy_policy'), () {}),
+        const SizedBox(height: 16),
+        _buildLegalLink(
+            Icons.gavel_rounded, locale.translate('terms_conditions'), () {}),
+        const SizedBox(height: 48),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(locale.translate('stable_version'),
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white.withOpacity(0.1),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700)),
+            Text(locale.translate('COPYRIGHT'),
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white.withOpacity(0.1),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegalLink(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white.withOpacity(0.3), size: 16),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.6),
+                fontSize: 13,
+                fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMainButton(
+      {required String label,
+      bool isActive = false,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -246,13 +1073,22 @@ class _ProfileView extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive ? Colors.transparent : const Color(0xFFB2FEFA),
           borderRadius: BorderRadius.circular(12),
-          border: isActive ? Border.all(color: Colors.white.withOpacity(0.1)) : null,
-          gradient: isActive ? null : const LinearGradient(colors: [Color(0xFFB2FEFA), Color(0xFF0ED2F7)]),
+          border: isActive
+              ? Border.all(color: Colors.white.withOpacity(0.1))
+              : null,
+          gradient: isActive
+              ? null
+              : const LinearGradient(
+                  colors: [Color(0xFFB2FEFA), Color(0xFF0ED2F7)]),
         ),
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.spaceGrotesk(color: isActive ? Colors.white : Colors.black, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1),
+            style: GoogleFonts.spaceGrotesk(
+                color: isActive ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 1),
           ),
         ),
       ),
@@ -264,7 +1100,8 @@ class _ProfileView extends StatelessWidget {
       stream: postController.getUserPosts(user.uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
+          return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
         }
         final posts = snapshot.data ?? [];
         if (posts.isEmpty) {
@@ -273,7 +1110,11 @@ class _ProfileView extends StatelessWidget {
               padding: const EdgeInsets.only(top: 40),
               child: Text(
                 AppLocalization.of(context)!.translate('no_commit_history'),
-                style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.1), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 2),
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white.withOpacity(0.1),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 2),
               ),
             ),
           );
@@ -288,7 +1129,8 @@ class _ProfileView extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: _buildCommitCard(
-                status: AppLocalization.of(context)!.translate('committed_caps'),
+                status:
+                    AppLocalization.of(context)!.translate('committed_caps'),
                 time: _timeAgo(post.createdAt, context),
                 content: parts['body'] ?? post.text,
                 code: parts['code'],
@@ -318,13 +1160,30 @@ class _ProfileView extends StatelessWidget {
   String _timeAgo(DateTime dt, BuildContext context) {
     final locale = AppLocalization.of(context)!;
     final diff = DateTime.now().difference(dt);
-    if (diff.inDays > 0) return locale.translate('d_ago').replaceFirst('{}', diff.inDays.toString());
-    if (diff.inHours > 0) return locale.translate('h_ago').replaceFirst('{}', diff.inHours.toString());
-    if (diff.inMinutes > 0) return locale.translate('m_ago').replaceFirst('{}', diff.inMinutes.toString());
+    if (diff.inDays > 0)
+      return locale
+          .translate('d_ago')
+          .replaceFirst('{}', diff.inDays.toString());
+    if (diff.inHours > 0)
+      return locale
+          .translate('h_ago')
+          .replaceFirst('{}', diff.inHours.toString());
+    if (diff.inMinutes > 0)
+      return locale
+          .translate('m_ago')
+          .replaceFirst('{}', diff.inMinutes.toString());
     return locale.translate('just_now');
   }
 
-  Widget _buildCommitCard({required String status, required String time, required String content, String? code, bool hasImage = false, String? imageUrl, int likes = 0, int comments = 0}) {
+  Widget _buildCommitCard(
+      {required String status,
+      required String time,
+      required String content,
+      String? code,
+      bool hasImage = false,
+      String? imageUrl,
+      int likes = 0,
+      int comments = 0}) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -343,20 +1202,42 @@ class _ProfileView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(user.name, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700)),
+                      Text(user.name,
+                          style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700)),
                       const SizedBox(width: 8),
-                      Container(width: 4, height: 4, decoration: const BoxDecoration(color: Color(0xFF00E5FF), shape: BoxShape.circle)),
+                      Container(
+                          width: 4,
+                          height: 4,
+                          decoration: const BoxDecoration(
+                              color: Color(0xFF00E5FF),
+                              shape: BoxShape.circle)),
                       const SizedBox(width: 6),
-                      Text(status, style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.5), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                      Text(status,
+                          style: GoogleFonts.spaceGrotesk(
+                              color: Colors.white.withOpacity(0.5),
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 1)),
                     ],
                   ),
-                  Text(time, style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w700)),
+                  Text(time,
+                      style: GoogleFonts.spaceGrotesk(
+                          color: Colors.white.withOpacity(0.2),
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700)),
                 ],
               ),
             ],
           ),
           const SizedBox(height: 20),
-          Text(content, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.9), fontSize: 13, height: 1.6)),
+          Text(content,
+              style: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 13,
+                  height: 1.6)),
           if (code != null) ...[
             const SizedBox(height: 20),
             _buildCodeBlock(code),
@@ -372,7 +1253,8 @@ class _ProfileView extends StatelessWidget {
               const SizedBox(width: 24),
               _buildInteraction(Icons.chat_bubble_rounded, comments.toString()),
               const Spacer(),
-              Icon(Icons.share_rounded, color: Colors.white.withOpacity(0.2), size: 18),
+              Icon(Icons.share_rounded,
+                  color: Colors.white.withOpacity(0.2), size: 18),
             ],
           ),
         ],
@@ -382,10 +1264,14 @@ class _ProfileView extends StatelessWidget {
 
   Widget _buildSmallAvatar() {
     return Container(
-      width: 32, height: 32,
+      width: 32,
+      height: 32,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        image: user.profileImage.isNotEmpty ? DecorationImage(image: NetworkImage(user.profileImage), fit: BoxFit.cover) : null,
+        image: user.profileImage.isNotEmpty
+            ? DecorationImage(
+                image: NetworkImage(user.profileImage), fit: BoxFit.cover)
+            : null,
         color: Colors.white10,
       ),
     );
@@ -395,10 +1281,16 @@ class _ProfileView extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(color: const Color(0xFF0D0D0D), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withOpacity(0.04))),
+      decoration: BoxDecoration(
+          color: const Color(0xFF0D0D0D),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.04))),
       child: Text(
         code,
-        style: GoogleFonts.sourceCodePro(color: const Color(0xFF00E5FF).withOpacity(0.8), fontSize: 11, height: 1.5),
+        style: GoogleFonts.sourceCodePro(
+            color: const Color(0xFF00E5FF).withOpacity(0.8),
+            fontSize: 11,
+            height: 1.5),
       ),
     );
   }
@@ -421,7 +1313,102 @@ class _ProfileView extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.white.withOpacity(0.2), size: 18),
         const SizedBox(width: 8),
-        Text(count, style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.4), fontSize: 12, fontWeight: FontWeight.w700)),
+        Text(count,
+            style: GoogleFonts.spaceGrotesk(
+                color: Colors.white.withOpacity(0.4),
+                fontSize: 12,
+                fontWeight: FontWeight.w700)),
+      ],
+    );
+  }
+
+  Widget _buildSavedManifests(
+      BuildContext context, AuthController auth, AppLocalization locale) {
+    if (auth.currentUser == null || auth.currentUser!.savedPosts.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Column(
+          children: [
+            Icon(Icons.bookmark_outline_rounded,
+                color: Colors.white.withOpacity(0.1), size: 32),
+            const SizedBox(height: 12),
+            Text(
+              locale.translate('no_saved_posts'),
+              style: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.3), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final savedIds = auth.currentUser!.savedPosts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.bookmark_rounded,
+                color: Color(0xFF00E5FF), size: 18),
+            const SizedBox(width: 12),
+            Text(
+              locale.translate('SAVED_MANIFESTS_CAPS'),
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1),
+            ),
+            const Spacer(),
+            Text(
+              '${savedIds.length} NODES',
+              style: GoogleFonts.spaceGrotesk(
+                  color: Colors.white.withOpacity(0.2),
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        StreamBuilder<List<PostModel>>(
+          stream: FirestoreService().streamSavedPosts(savedIds),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Column(
+                children: [
+                  PostShimmer(),
+                  SizedBox(height: 16),
+                  PostShimmer(),
+                ],
+              );
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SizedBox();
+            }
+
+            final posts = snapshot.data!;
+            return ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final post = posts[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: PostCard(
+                    post: post,
+                  ),
+                );
+              },
+            );
+          },
+        ),
       ],
     );
   }

@@ -76,6 +76,14 @@ class NotificationService {
       case NotificationType.like:
         // Navigator to post details - typically requires mapping relatedId to post model first or a dedicated ID loader
         break;
+      case NotificationType.profileView:
+        navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => ProfilePage(userId: relatedId)));
+        break;
+      case NotificationType.system:
+      case NotificationType.ad:
+        // System and Ad notifications typically just open the app or a specific URL
+        break;
     }
   }
 
@@ -101,9 +109,10 @@ class NotificationService {
     required String title,
     required String body,
     required NotificationType type,
-    required String relatedId,
+    String? relatedId,
     Map<String, dynamic>? extraData,
   }) async {
+    final String rId = relatedId ?? '';
     try {
       final client = await _getAuthClient();
       const String projectId = 'developers-zone-33a66';
@@ -119,7 +128,7 @@ class NotificationService {
           },
           'data': {
             'type': type.toString().split('.').last,
-            'relatedId': relatedId,
+            'relatedId': rId,
             if (extraData != null) ...extraData,
           },
           'android': {
@@ -154,7 +163,7 @@ class NotificationService {
             title: title,
             body: body,
             type: type,
-            relatedId: relatedId,
+            relatedId: rId,
             createdAt: DateTime.now(),
           ));
     } catch (e) {

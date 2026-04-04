@@ -4,6 +4,8 @@ import '../models/post_model.dart';
 import '../models/chat_model.dart';
 import '../models/ad_model.dart';
 import '../models/notification_model.dart';
+import 'notification_service.dart';
+import '../models/report_model.dart';
 
 class FirestoreService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -80,6 +82,12 @@ class FirestoreService {
     await _db.collection('posts').doc(postId).delete();
   }
 
+  Future<PostModel?> getPost(String postId) async {
+    final doc = await _db.collection('posts').doc(postId).get();
+    if (!doc.exists) return null;
+    return PostModel.fromMap(doc.data()!, doc.id);
+  }
+
   Future<void> togglePostLike(String postId, String uid, bool isLiking) async {
     if (isLiking) {
       await _db.collection('posts').doc(postId).update({
@@ -102,6 +110,41 @@ class FirestoreService {
         .collection('posts')
         .doc(comment.postId)
         .update({'commentCount': FieldValue.increment(1)});
+
+    // Add notification logic if it's a reply
+    if (comment.parentCommentId != null) {
+      // Find parent comment to notify its author
+      final parentDoc = await _db
+          .collection('posts')
+          .doc(comment.postId)
+          .collection('comments')
+          .doc(comment.parentCommentId!)
+          .get();
+      if (parentDoc.exists) {
+        final parentComment = CommentModel.fromMap(parentDoc.data()!, parentDoc.id);
+        if (parentComment.authorId != comment.authorId) {
+           final author = await getUser(parentComment.authorId);
+           if (author?.fcmToken != null) {
+             await NotificationService.sendNotification(
+               targetToken: author!.fcmToken!, 
+               targetUid: parentComment.authorId,
+               title: 'New Reply!', 
+               body: '${comment.authorName} replied into your manifest thread.',
+               type: NotificationType.post,
+               relatedId: comment.postId,
+             );
+           }
+        }
+      }
+    }
+  }
+
+  Future<void> toggleSavedPost(String uid, String postId, bool isSaving) async {
+    await _db.collection('users').doc(uid).update({
+      'savedPosts': isSaving
+          ? FieldValue.arrayUnion([postId])
+          : FieldValue.arrayRemove([postId])
+    });
   }
 
   Future<void> deleteComment(String postId, String commentId) async {
@@ -140,6 +183,11 @@ class FirestoreService {
       final posts = snapshot.docs
           .map((doc) =>
               PostModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .where((post) {
+            // Visibility Rule: Show only if Verified OR (Complete AND Approved)
+            return post.isAuthorVerified || 
+                (post.authorProfileComplete && post.isAuthorApproved);
+          })
           .toList();
       if (blockedUsers.isNotEmpty) {
         return posts
@@ -401,6 +449,21 @@ class FirestoreService {
         .update({'isRead': true});
   }
 
+  Future<void> markAllNotificationsAsRead(String uid) async {
+    final batch = _db.batch();
+    final notifications = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in notifications.docs) {
+      batch.update(doc.reference, {'isRead': true});
+    }
+    await batch.commit();
+  }
+
   Future<void> toggleAdmin(String uid, bool isAdmin) async {
     await _db.collection('users').doc(uid).update({'isAdmin': isAdmin});
   }
@@ -427,6 +490,7 @@ class FirestoreService {
         .where((u) =>
             u.name.toLowerCase().contains(q) ||
             u.position.toLowerCase().contains(q) ||
+            u.uid.toLowerCase().contains(q) || // UID search support
             u.city.toLowerCase().contains(q) ||
             u.country.toLowerCase().contains(q))
         .toList();
@@ -438,5 +502,158 @@ class FirestoreService {
     final futures = me.blockedUsers.map(getUser).toList();
     final results = await Future.wait(futures);
     return results.whereType<UserModel>().toList();
+  }
+
+  Stream<int> streamUnreadNotificationsCount(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('notifications')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  // PROFILE VIEWS
+  Future<void> recordProfileView(String viewerId, String viewedId) async {
+    if (viewerId == viewedId) return;
+
+    final viewRef = _db
+        .collection('users')
+        .doc(viewedId)
+        .collection('profile_views')
+        .doc(viewerId);
+
+    final doc = await viewRef.get();
+    bool isNewView = true;
+
+    if (doc.exists) {
+      final lastView = (doc.data()?['createdAt'] as Timestamp).toDate();
+      // Only notify again if last view was more than 24 hours ago
+      if (DateTime.now().difference(lastView).inHours < 24) {
+        isNewView = false;
+      }
+    }
+
+    await viewRef.set({
+      'viewerId': viewerId,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    if (isNewView) {
+      final viewer = await getUser(viewerId);
+      final viewed = await getUser(viewedId);
+
+      if (viewer != null && viewed != null && viewed.fcmToken != null) {
+        // Send Notification
+        // We'll call this from the controller or view to avoid circular dependency if any,
+        // but here it's fine as long as we have the token.
+      }
+    }
+  }
+
+  Stream<List<Map<String, dynamic>>> streamProfileViewers(String uid) {
+    return _db
+        .collection('users')
+        .doc(uid)
+        .collection('profile_views')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  Stream<List<PostModel>> streamSavedPosts(List<String> postIds) {
+    if (postIds.isEmpty) return Stream.value([]);
+    // Firestore whereIn limit is 30 in modern versions
+    final ids = postIds.take(30).toList();
+    return _db
+        .collection('posts')
+        .where(FieldPath.documentId, whereIn: ids)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => PostModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  // AD SETTINGS
+  Stream<AdSettingsModel> streamAdSettings() {
+    return _db.collection('settings').doc('ads').snapshots().map((doc) {
+      if (!doc.exists) return AdSettingsModel();
+      return AdSettingsModel.fromMap(doc.data()!);
+    });
+  }
+
+  Future<void> updateAdSettings(AdSettingsModel settings) async {
+    await _db.collection('settings').doc('ads').set(settings.toMap());
+  }
+
+  // CONTENT MODERATION
+  Future<void> reportPost(ReportModel report) async {
+    await _db.collection('reports').add(report.toMap());
+  }
+
+  Stream<List<ReportModel>> streamReports() {
+    return _db.collection('reports').orderBy('createdAt', descending: true).snapshots().map(
+      (snapshot) => snapshot.docs.map((doc) => ReportModel.fromMap(doc.data(), doc.id)).toList()
+    );
+  }
+
+  Future<void> dismissReports(String postId) async {
+    final snapshot = await _db.collection('reports').where('postId', isEqualTo: postId).get();
+    for (var doc in snapshot.docs) {
+      await doc.reference.delete();
+    }
+  }
+
+  // SYSTEM ANALYTICS
+  Future<Map<String, int>> getCounts() async {
+    final users = await _db.collection('users').count().get();
+    final posts = await _db.collection('posts').count().get();
+    final reports = await _db.collection('reports').count().get();
+    return {
+      'users': users.count ?? 0,
+       'posts': posts.count ?? 0,
+       'reports': reports.count ?? 0,
+    };
+  }
+
+  // GRANULAR USER CONTROL
+  Future<void> toggleUserPermission(String uid, String field, bool value) async {
+    await _db.collection('users').doc(uid).update({field: value});
+    
+    // Notify user about the action
+    final user = await getUser(uid);
+    if (user?.fcmToken != null) {
+      String title = 'Security Update';
+      String body = 'An administrative manifestation has altered your transcript permissions.';
+      if (field == 'isLocked' && value) body = 'Your profile has been locked for review.';
+      if (field == 'isVerified' && value) body = 'Your manifest has been verified by an Architect.';
+      if (field == 'canPost' && !value) body = 'Your posting permissions have been restricted.';
+      
+      await NotificationService.sendNotification(
+        targetToken: user!.fcmToken!,
+        targetUid: uid,
+        title: title,
+        body: body,
+        type: NotificationType.system,
+      );
+    }
+  }
+
+  // GLOBAL PUSH
+  Future<void> sendGlobalNotification(String title, String body) async {
+    final snapshot = await _db.collection('users').get();
+    for (var doc in snapshot.docs) {
+      final user = UserModel.fromMap(doc.data());
+      if (user.fcmToken != null) {
+        await NotificationService.sendNotification(
+          targetToken: user.fcmToken!,
+          targetUid: user.uid,
+          title: title,
+          body: body,
+          type: NotificationType.system,
+        );
+      }
+    }
   }
 }

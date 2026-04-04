@@ -98,6 +98,19 @@ class FirebaseAuthService {
     await _auth.signOut();
   }
 
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await user.updatePassword(newPassword);
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('Update Password Error: $e');
+      rethrow;
+    }
+  }
+
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;

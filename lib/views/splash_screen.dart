@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../models/ad_model.dart';
@@ -9,6 +10,7 @@ import '../providers/app_provider.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'waiting_approval_page.dart';
+import 'incomplete_profile_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -56,20 +58,39 @@ class _SplashScreenState extends State<SplashScreen>
 
   void _loadData() async {
     final adminController = Provider.of<AdminController>(context, listen: false);
-    final adStream = adminController.getAds(type: 'splash');
-    final ads = await adStream.first;
-    if (ads.isNotEmpty) {
-      setState(() => _featuredAd = ads.first);
+    
+    // Check if splash ads are enabled
+    final settings = await adminController.getAdSettings().first;
+    if (settings.splashCustomAdActive) {
+      final adStream = adminController.getAds(type: 'splash');
+      final ads = await adStream.first;
+      if (ads.isNotEmpty) {
+        setState(() => _featuredAd = ads.first);
+      }
     }
 
     await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
 
     final authController = Provider.of<AuthController>(context, listen: false);
+    final appProvider = Provider.of<AppProvider>(context, listen: false);
+
+    // Wait for auth initialization to complete
+    int retries = 0;
+    while (!authController.isInitialized && retries < 10) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      retries++;
+    }
+
     if (authController.currentUser != null) {
       if (authController.currentUser!.isApproved) {
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()));
+        if (!authController.isProfileComplete && !appProvider.hasSeenProfilePrompt) {
+          Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const IncompleteProfilePage()));
+        } else {
+          Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => const HomeScreen()));
+        }
       } else {
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
@@ -328,7 +349,14 @@ class _SplashScreenState extends State<SplashScreen>
           ),
           const SizedBox(height: 20),
           GestureDetector(
-            onTap: () {}, // Link to Ad
+            onTap: () async {
+              if (ad.targetUrl != null) {
+                final url = Uri.parse(ad.targetUrl!);
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url);
+                }
+              }
+            },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(

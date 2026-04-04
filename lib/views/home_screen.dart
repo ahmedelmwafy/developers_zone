@@ -5,12 +5,12 @@ import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../providers/app_provider.dart';
 import '../models/ad_model.dart';
-import 'feed_page.dart';
-import 'chat_list_page.dart';
-import 'search_screen.dart';
 import 'profile_page.dart';
 import 'network_page.dart';
-import 'admin_dashboard_page.dart';
+import 'feed_page.dart';
+import 'search_screen.dart';
+import 'components/notification_badge.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,8 +20,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -47,6 +45,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showCompleteProfileDialog() {
     final locale = AppLocalization.of(context)!;
+    final appProps = Provider.of<AppProvider>(context, listen: false);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() => _currentIndex = 4); // Navigate to Profile
+              appProps.setTabIndex(3); // Navigate to Profile
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E5FF),
@@ -100,23 +100,58 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
+    final appProps = Provider.of<AppProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0D0D0D),
+        elevation: 0,
+        titleSpacing: 24,
+        centerTitle: false,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border:
+                    Border.all(color: const Color(0xFF00E5FF).withOpacity(0.2)),
+              ),
+              child: const Icon(Icons.terminal_rounded,
+                  color: Color(0xFF00E5FF), size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              locale.translate('REPOSITORY'),
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                letterSpacing: 1.5,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          const Center(child: NotificationBadge()),
+          const SizedBox(width: 16),
+        ],
+      ),
       body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          const FeedPage(),
-          const SearchScreen(),
-          const ChatListPage(),
-          const NetworkPage(), // Social Network Manifest
-          const ProfilePage(), // Profile
-          if (Provider.of<AuthController>(context).currentUser?.isAdmin == true)
-            const AdminDashboardPage(),
+        index: appProps.currentTabIndex,
+        children: const [
+          FeedPage(),
+          NetworkPage(),
+          SearchScreen(),
+          ProfilePage(),
         ],
       ),
       bottomNavigationBar: _DigitalBottomNav(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        currentIndex: appProps.currentTabIndex,
+        onTap: (i) => appProps.setTabIndex(i),
       ),
     );
   }
@@ -134,72 +169,73 @@ class _DigitalBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      Icons.grid_view_rounded,
-      Icons.explore_rounded,
-      Icons.chat_bubble_rounded,
-      Icons.analytics_rounded,
-      Icons.person_rounded,
-      if (Provider.of<AuthController>(context).currentUser?.isAdmin == true)
-        Icons.admin_panel_settings_rounded,
+      {'icon': Icons.dns_rounded, 'label': 'FEED'},
+      {'icon': Icons.people_alt_rounded, 'label': 'NETWORK'},
+      {'icon': Icons.search_rounded, 'label': 'SEARCH'},
+      {'icon': Icons.account_circle_rounded, 'label': 'PROFILE'},
     ];
 
     return Container(
-      height: 85,
       decoration: const BoxDecoration(
         color: Color(0xFF0D0D0D),
         border: Border(top: BorderSide(color: Colors.white12, width: 0.5)),
       ),
       child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: List.generate(items.length, (index) {
-            final isSelected = currentIndex == index;
-            return GestureDetector(
-              onTap: () => onTap(index),
-              behavior: HitTestBehavior.opaque,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF00E5FF).withOpacity(0.05)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      items[index],
-                      color: isSelected
-                          ? const Color(0xFF00E5FF)
-                          : Colors.white.withOpacity(0.2),
-                      size: 26,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (index) {
+              final isSelected = currentIndex == index;
+              final item = items[index];
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      gradient: isSelected
+                          ? const LinearGradient(
+                              colors: [Color(0xFF80DEEA), Color(0xFF00E5FF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            )
+                          : null,
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                    if (isSelected) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        width: 4,
-                        height: 4,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF00E5FF),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Color(0xFF00E5FF),
-                              blurRadius: 4,
-                              spreadRadius: 1,
-                            ),
-                          ],
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          item['icon'] as IconData,
+                          color: isSelected
+                              ? Colors.black
+                              : Colors.white.withOpacity(0.2),
+                          size: 24,
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 8),
+                        Text(
+                          item['label'] as String,
+                          style: GoogleFonts.spaceGrotesk(
+                            color: isSelected
+                                ? Colors.black
+                                : Colors.white.withOpacity(0.3),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          }),
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -213,59 +249,80 @@ class HomeAdsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final adminController = Provider.of<AdminController>(context);
 
-    return StreamBuilder<List<AdModel>>(
-      stream: adminController.getAds(type: 'home'),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+    return StreamBuilder<AdSettingsModel>(
+      stream: adminController.getAdSettings(),
+      builder: (context, settingsSnapshot) {
+        if (!settingsSnapshot.hasData ||
+            !settingsSnapshot.data!.homeCustomAdActive) {
           return const SizedBox.shrink();
         }
-        final ads = snapshot.data!;
 
-        return Container(
-          height: 90,
-          margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-          child: PageView.builder(
-            itemCount: ads.length,
-            itemBuilder: (context, index) {
-              final ad = ads[index];
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 4),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                      image: NetworkImage(ad.imageUrl), fit: BoxFit.cover),
-                  boxShadow: [
-                    BoxShadow(
-                        color: const Color(0xFF00E5FF).withOpacity(0.1),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4)),
-                  ],
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.6)
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
+        return StreamBuilder<List<AdModel>>(
+          stream: adminController.getAds(type: 'home'),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            final ads = snapshot.data!;
+
+            return Container(
+              height: 90,
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+              child: PageView.builder(
+                itemCount: ads.length,
+                itemBuilder: (context, index) {
+                  final ad = ads[index];
+                  return GestureDetector(
+                    onTap: () async {
+                      if (ad.targetUrl != null) {
+                        final url = Uri.parse(ad.targetUrl!);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url);
+                        }
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        image: DecorationImage(
+                            image: NetworkImage(ad.imageUrl),
+                            fit: BoxFit.cover),
+                        boxShadow: [
+                          BoxShadow(
+                              color: const Color(0xFF00E5FF).withOpacity(0.1),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.6)
+                            ],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                        ),
+                        alignment: Alignment.bottomLeft,
+                        padding: const EdgeInsets.all(12),
+                        child: Text(
+                          ad.title,
+                          style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13),
+                        ),
+                      ),
                     ),
-                  ),
-                  alignment: Alignment.bottomLeft,
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    ad.title,
-                    style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13),
-                  ),
-                ),
-              );
-            },
-          ),
+                  );
+                },
+              ),
+            );
+          },
         );
       },
     );

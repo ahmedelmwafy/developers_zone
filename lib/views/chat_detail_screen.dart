@@ -235,10 +235,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       ),
       actions: [
         IconButton(
-            icon: Icon(Icons.phone_outlined,
-                color: Colors.white.withOpacity(0.3), size: 18),
-            onPressed: () {}),
-        IconButton(
           icon: Icon(Icons.more_vert_rounded,
               color: Colors.white.withOpacity(0.3), size: 20),
           onPressed: () => Navigator.push(

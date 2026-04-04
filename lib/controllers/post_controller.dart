@@ -106,4 +106,9 @@ class PostController extends ChangeNotifier {
   Future<List<PostModel>> searchPosts(String query) async {
     return await _firestoreService.searchPosts(query);
   }
+
+  Future<void> toggleSavedPost(String uid, String postId, bool isSaving) async {
+    await _firestoreService.toggleSavedPost(uid, postId, isSaving);
+    notifyListeners();
+  }
 }

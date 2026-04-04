@@ -52,7 +52,7 @@ class DevelopersZoneApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Developers Zone',
+      onGenerateTitle: (context) => AppLocalization.of(context)!.translate('app_name'),
       theme: theme,
       locale: appProvider.locale,
       supportedLocales: const [

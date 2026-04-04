@@ -5,12 +5,21 @@ import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 import '../providers/app_provider.dart';
+import 'profile_page.dart';
 
 enum NetworkTab { following, followers, blocked }
 
 class NetworkPage extends StatefulWidget {
   final NetworkTab initialTab;
-  const NetworkPage({this.initialTab = NetworkTab.following, super.key});
+  final String? targetUserId;
+  final bool isSingleMode;
+
+  const NetworkPage({
+    this.initialTab = NetworkTab.following,
+    this.targetUserId,
+    this.isSingleMode = false,
+    super.key,
+  });
 
   @override
   State<NetworkPage> createState() => _NetworkPageState();
@@ -20,31 +29,52 @@ class _NetworkPageState extends State<NetworkPage> {
   late NetworkTab _activeTab;
   final TextEditingController _searchController = TextEditingController();
   final FirestoreService _firestore = FirestoreService();
+  UserModel? _targetUser;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
+    _fetchTargetUser();
+  }
+
+  Future<void> _fetchTargetUser() async {
+    final currentUid = Provider.of<AuthController>(context, listen: false).currentUser?.uid;
+    final uid = widget.targetUserId ?? currentUid;
+    if (uid != null) {
+      final user = await _firestore.getUser(uid);
+      if (mounted) {
+        setState(() {
+          _targetUser = user;
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Provider.of<AuthController>(context).currentUser;
-    if (user == null) return const Scaffold();
+    final currentUser = Provider.of<AuthController>(context).currentUser;
+    if (currentUser == null || _isLoading) return const Scaffold(backgroundColor: Color(0xFF0D0D0D), body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+    if (_targetUser == null) return const Scaffold();
+    
     final locale = AppLocalization.of(context)!;
+    final bool isMe = currentUser.uid == _targetUser!.uid;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
-      appBar: _buildTechnicalAppBar(user, locale),
+      appBar: _buildTechnicalAppBar(_targetUser!, locale),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: _buildTabSelector(),
-          ),
+          if (!widget.isSingleMode && isMe)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: _buildTabSelector(),
+            ),
           Expanded(
-            child: _buildActiveList(user),
+            child: _buildActiveList(_targetUser!, currentUser),
           ),
         ],
       ),
@@ -52,13 +82,16 @@ class _NetworkPageState extends State<NetworkPage> {
   }
 
   PreferredSizeWidget _buildTechnicalAppBar(UserModel user, AppLocalization locale) {
+    final canPop = Navigator.of(context).canPop();
     return AppBar(
       backgroundColor: const Color(0xFF0D0D0D),
       elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.menu_rounded, color: Color(0xFF00E5FF)),
-        onPressed: () => Scaffold.of(context).openDrawer(),
-      ),
+      leading: canPop
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back_rounded, color: Color(0xFF00E5FF)),
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
       title: Text(
         locale.translate('NETWORK_MANIFEST'),
         style: GoogleFonts.spaceGrotesk(
@@ -81,7 +114,12 @@ class _NetworkPageState extends State<NetworkPage> {
                 : null,
           ),
           child: user.profileImage.isEmpty
-              ? const Icon(Icons.person, size: 16, color: Colors.white30)
+              ? Center(
+                  child: Text(user.initials,
+                      style: GoogleFonts.spaceGrotesk(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800)))
               : null,
         ),
       ],
@@ -109,20 +147,20 @@ class _NetworkPageState extends State<NetworkPage> {
     );
   }
 
-  Widget _buildActiveList(UserModel user) {
+  Widget _buildActiveList(UserModel targetUser, UserModel currentUser) {
     switch (_activeTab) {
       case NetworkTab.following:
-        return _buildFollowingList(user);
+        return _buildFollowingList(targetUser, currentUser);
       case NetworkTab.followers:
-        return _buildFollowersList(user);
+        return _buildFollowersList(targetUser, currentUser);
       case NetworkTab.blocked:
-        return _buildBlockedList(user);
+        return _buildBlockedList(targetUser);
     }
   }
 
-  Widget _buildFollowingList(UserModel user) {
+  Widget _buildFollowingList(UserModel targetUser, UserModel currentUser) {
     return FutureBuilder<List<UserModel>>(
-      future: _loadUsers(user.following),
+      future: _loadUsers(targetUser.following),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return _buildLoading();
         final users = snapshot.data!;
@@ -132,8 +170,16 @@ class _NetworkPageState extends State<NetworkPage> {
           children: [
             _buildHeader(locale.translate('following'), '${users.length}'),
             const SizedBox(height: 24),
-            ...users.map((u) => _buildUserCard(
-                u, locale.translate('unfollow'), () => _unfollow(user.uid, u.uid))),
+            ...users.map((u) {
+              final isFollowing = currentUser.following.contains(u.uid);
+              final isMe = currentUser.uid == u.uid;
+              return _buildUserCard(
+                u,
+                isMe ? locale.translate('YOU') : (isFollowing ? locale.translate('unfollow') : locale.translate('follow')),
+                () => isMe ? null : (isFollowing ? _unfollow(currentUser.uid, u.uid) : _follow(currentUser.uid, u.uid)),
+                isOutline: isFollowing || isMe,
+              );
+            }),
             const SizedBox(height: 40),
           ],
         );
@@ -141,9 +187,9 @@ class _NetworkPageState extends State<NetworkPage> {
     );
   }
 
-  Widget _buildFollowersList(UserModel user) {
+  Widget _buildFollowersList(UserModel targetUser, UserModel currentUser) {
     return FutureBuilder<List<UserModel>>(
-      future: _loadUsers(user.followers),
+      future: _loadUsers(targetUser.followers),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return _buildLoading();
         final users = snapshot.data!;
@@ -157,14 +203,15 @@ class _NetworkPageState extends State<NetworkPage> {
             _buildSearchBar(locale.translate('QUERY_SYSTEM_NODES')),
             const SizedBox(height: 32),
             ...users.map((u) {
-              final isFollowing = user.following.contains(u.uid);
+              final isFollowing = currentUser.following.contains(u.uid);
+              final isMe = currentUser.uid == u.uid;
               return _buildUserCard(
                 u,
-                isFollowing ? locale.translate('following') : locale.translate('follow_back'),
-                () => isFollowing
-                    ? _unfollow(user.uid, u.uid)
-                    : _follow(user.uid, u.uid),
-                isOutline: isFollowing,
+                isMe ? locale.translate('YOU') : (isFollowing ? locale.translate('following') : locale.translate('follow_back')),
+                () => isMe ? null : (isFollowing
+                    ? _unfollow(currentUser.uid, u.uid)
+                    : _follow(currentUser.uid, u.uid)),
+                isOutline: isFollowing || isMe,
                 showTags: true,
               );
             }),
@@ -291,40 +338,51 @@ class _NetworkPageState extends State<NetworkPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              _buildAvatar(user.profileImage),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          GestureDetector(
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => ProfilePage(userId: user.uid))),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(user.name,
-                        style: GoogleFonts.spaceGrotesk(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 2),
-                    Text(user.position.toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
-                            color: Colors.white.withOpacity(0.35),
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1)),
+                    _buildAvatar(user.profileImage),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(user.name,
+                              style: GoogleFonts.spaceGrotesk(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(user.position.toUpperCase(),
+                              style: GoogleFonts.spaceGrotesk(
+                                  color: Colors.white.withOpacity(0.35),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1)),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            user.bio.isNotEmpty ? user.bio : locale.translate('SYNCING_NODAL_BIOGRAPHY'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-                color: Colors.white.withOpacity(0.5),
-                fontSize: 13,
-                height: 1.6),
+                const SizedBox(height: 20),
+                Text(
+                  user.bio.isNotEmpty ? user.bio : locale.translate('SYNCING_NODAL_BIOGRAPHY'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                      color: Colors.white.withOpacity(0.5),
+                      fontSize: 13,
+                      height: 1.6),
+                ),
+              ],
+            ),
           ),
           if (showTags) ...[
             const SizedBox(height: 16),

@@ -20,13 +20,18 @@ class AuthController extends ChangeNotifier {
 
   AuthController() {
     _authService.authStateChanges.listen((user) async {
-      if (user != null) {
-        _currentUser = await _firestoreService.getUser(user.uid);
-      } else {
+      try {
+        if (user != null) {
+          _currentUser = await _firestoreService.getUser(user.uid);
+        } else {
+          _currentUser = null;
+        }
+      } catch (e) {
         _currentUser = null;
+      } finally {
+        _isInitialized = true;
+        notifyListeners();
       }
-      _isInitialized = true;
-      notifyListeners();
     });
   }
 
@@ -147,12 +152,30 @@ class AuthController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updatePassword(String newPassword) async {
+    await _authService.updatePassword(newPassword);
+  }
+
   Future<void> deleteAccount() async {
     if (_currentUser != null) {
       await _firestoreService.deleteUserData(_currentUser!.uid);
       await _authService.deleteAccount();
       _currentUser = null;
       notifyListeners();
+    }
+  }
+
+  Future<void> sendPasswordReset(String email) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _authService.sendPasswordReset(email);
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
     }
   }
 
@@ -235,4 +258,40 @@ class AuthController extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  double get profileCompletionPercentage {
+    if (_currentUser == null) return 0.0;
+    int completedFields = 0;
+    int totalFields = 10;
+
+    // Identity (2)
+    if (_currentUser!.name.isNotEmpty) completedFields++;
+    if (_currentUser!.profileImage.isNotEmpty) completedFields++;
+
+    // Tech Profile (3)
+    if (_currentUser!.bio.isNotEmpty) completedFields++;
+    if (_currentUser!.position.isNotEmpty) completedFields++;
+    if (_currentUser!.company.isNotEmpty) completedFields++;
+
+    // Location (2)
+    if (_currentUser!.city.isNotEmpty) completedFields++;
+    if (_currentUser!.country.isNotEmpty) completedFields++;
+
+    // Social Nodes (3)
+    if (_currentUser!.socialLinks != null) {
+      if (_currentUser!.socialLinks!['github']?.isNotEmpty == true) {
+        completedFields++;
+      }
+      if (_currentUser!.socialLinks!['linkedin']?.isNotEmpty == true) {
+        completedFields++;
+      }
+      if (_currentUser!.socialLinks!['portfolio']?.isNotEmpty == true) {
+        completedFields++;
+      }
+    }
+
+    return (completedFields / totalFields);
+  }
+
+  bool get isProfileComplete => profileCompletionPercentage >= 0.8;
 }

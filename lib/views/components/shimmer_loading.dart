@@ -110,3 +110,38 @@ class UserTileShimmer extends StatelessWidget {
     );
   }
 }
+
+class NotificationShimmer extends StatelessWidget {
+  const NotificationShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShimmerLoading.circular(width: 48, height: 48),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ShimmerLoading.rectangular(height: 12, width: 100),
+                SizedBox(height: 12),
+                ShimmerLoading.rectangular(height: 14),
+                SizedBox(height: 8),
+                ShimmerLoading.rectangular(height: 14, width: 200),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

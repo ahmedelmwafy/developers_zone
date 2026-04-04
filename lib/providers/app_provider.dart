@@ -45,9 +45,23 @@ class AppLocalizationDelegate extends LocalizationsDelegate<AppLocalization> {
 class AppProvider extends ChangeNotifier {
   Locale _locale = const Locale('en');
   Locale get locale => _locale;
+  int _currentTabIndex = 0;
+  int get currentTabIndex => _currentTabIndex;
+  bool _hasSeenProfilePrompt = false;
+  bool get hasSeenProfilePrompt => _hasSeenProfilePrompt;
 
   AppProvider() {
     _loadLocale();
+  }
+
+  void setSeenProfilePrompt(bool val) {
+    _hasSeenProfilePrompt = val;
+    notifyListeners();
+  }
+
+  void setTabIndex(int index) {
+    _currentTabIndex = index;
+    notifyListeners();
   }
 
   void _loadLocale() async {

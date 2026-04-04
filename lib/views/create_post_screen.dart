@@ -7,6 +7,7 @@ import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
 import '../services/imgbb_service.dart';
+import '../providers/app_provider.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final PostModel? postToEdit;
@@ -20,33 +21,46 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final _titleController = TextEditingController();
   final _textController = TextEditingController();
   final _codeController = TextEditingController();
-  final List<dynamic> _images = []; 
+  final List<dynamic> _images = [];
   bool _isUploading = false;
-  final List<String> _tags = ['ARCHITECTURE', 'SYSTEM_DESIGN'];
+  final List<String> _tags = [];
 
   @override
   void initState() {
     super.initState();
+    
+    // Check post permissions
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final user = Provider.of<AuthController>(context, listen: false).currentUser;
+      if (user != null && !user.canPost) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalization.of(context)!.translate('posting_restricted'))),
+        );
+        Navigator.pop(context);
+      }
+    });
+
     if (widget.postToEdit != null) {
       final text = widget.postToEdit!.text;
       _images.addAll(widget.postToEdit!.images);
-      
+      _tags.addAll(widget.postToEdit!.tags);
+
       String body = text;
-      
+
       // Parse Title
       if (text.startsWith('# ')) {
         final lines = text.split('\n');
         _titleController.text = lines.first.replaceFirst('# ', '').trim();
         body = lines.skip(1).join('\n').trim();
       }
-      
+
       // Parse Code
       final codeMatch = RegExp(r'```(?:\w+)?\n([\s\S]*?)```').firstMatch(body);
       if (codeMatch != null) {
         _codeController.text = codeMatch.group(1)?.trim() ?? '';
         body = body.replaceFirst(codeMatch.group(0)!, '').trim();
       }
-      
+
       _textController.text = body;
     }
   }
@@ -60,7 +74,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   }
 
   void _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 80);
+    final pickedFile = await ImagePicker()
+        .pickImage(source: ImageSource.gallery, imageQuality: 80);
     if (pickedFile != null) setState(() => _images.add(File(pickedFile.path)));
   }
 
@@ -68,7 +83,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (_textController.text.trim().isEmpty && _images.isEmpty) return;
 
     setState(() => _isUploading = true);
-    final user = Provider.of<AuthController>(context, listen: false).currentUser!;
+    final user =
+        Provider.of<AuthController>(context, listen: false).currentUser!;
     final postController = Provider.of<PostController>(context, listen: false);
 
     List<String> imageUrls = [];
@@ -86,13 +102,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       finalContent = "# ${_titleController.text}\n\n$finalContent";
     }
     if (_codeController.text.isNotEmpty) {
-        finalContent = "$finalContent\n\n```python\n${_codeController.text}\n```";
+      finalContent = "$finalContent\n\n```python\n${_codeController.text}\n```";
     }
 
     if (widget.postToEdit != null) {
       final updatedPost = widget.postToEdit!.copyWith(
         text: finalContent,
         images: imageUrls,
+        tags: _tags,
       );
       await postController.updatePost(updatedPost);
     } else {
@@ -102,8 +119,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         authorName: user.name,
         authorProfileImage: user.profileImage,
         authorPosition: user.position,
+        isAuthorVerified: user.isVerified,
         text: finalContent,
         images: imageUrls,
+        tags: _tags,
         createdAt: DateTime.now(),
       );
       await postController.createPost(post);
@@ -112,8 +131,130 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  void _showAddTagDialog() {
+    final controller = TextEditingController();
+    final locale = AppLocalization.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        title: Text(locale.translate('TAGS_LABEL'),
+            style: GoogleFonts.spaceGrotesk(color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: locale.translate('ADD_TAG_PROMPT'),
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(locale.translate('cancel'),
+                style: const TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                setState(() => _tags.add(controller.text.trim().toUpperCase()));
+              }
+              Navigator.pop(context);
+            },
+            child: Text(locale.translate('ADD_ACTION'),
+                style: const TextStyle(color: Color(0xFF00E5FF))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLinkDialog() {
+    final textController = TextEditingController();
+    final urlController = TextEditingController();
+    final locale = AppLocalization.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        title: Text(locale.translate('INSERT_LINK'),
+            style: GoogleFonts.spaceGrotesk(color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: textController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                  hintText: locale.translate('LINK_TEXT'),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3))),
+            ),
+            TextField(
+              controller: urlController,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                  hintText: locale.translate('LINK_URL'),
+                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3))),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(locale.translate('cancel'),
+                style: const TextStyle(color: Colors.white38)),
+          ),
+          TextButton(
+            onPressed: () {
+              final linkText = textController.text.trim();
+              final linkUrl = urlController.text.trim();
+              if (linkUrl.isNotEmpty) {
+                final markdown = '[$linkText]($linkUrl)';
+                final selection = _textController.selection;
+                final newText = _textController.text.replaceRange(
+                  selection.start == -1
+                      ? _textController.text.length
+                      : selection.start,
+                  selection.end == -1
+                      ? _textController.text.length
+                      : selection.end,
+                  markdown,
+                );
+                _textController.text = newText;
+              }
+              Navigator.pop(context);
+            },
+            child: Text(locale.translate('ADD_ACTION'),
+                style: const TextStyle(color: Color(0xFF00E5FF))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _wrapSelection(String prefix, [String? suffix]) {
+    final selection = _textController.selection;
+    final text = _textController.text;
+    
+    if (selection.start == -1 || selection.end == -1) {
+      final newText = text + prefix + (suffix ?? prefix);
+      _textController.text = newText;
+      return;
+    }
+
+    final selectedText = selection.textInside(text);
+    final newText = text.replaceRange(
+      selection.start,
+      selection.end,
+      '$prefix$selectedText${suffix ?? prefix}',
+    );
+    _textController.text = newText;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       appBar: AppBar(
@@ -124,7 +265,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'DRAFT_NODE // OX-449',
+          widget.postToEdit != null
+              ? locale.translate('edit_post').toUpperCase()
+              : locale.translate('create_post').toUpperCase(),
           style: GoogleFonts.spaceGrotesk(
             color: Colors.white.withOpacity(0.3),
             fontWeight: FontWeight.w700,
@@ -139,6 +282,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               child: _PublishButton(
                 isLoading: _isUploading,
                 onPressed: _submitPost,
+                label: locale.translate('post_button').toUpperCase(),
               ),
             ),
           ),
@@ -151,7 +295,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 20),
-            _SectionLabel(text: 'CLASSIFICATION_NAME'),
+            _SectionLabel(text: locale.translate('CLASSIFICATION_NAME')),
             TextField(
               controller: _titleController,
               cursorColor: const Color(0xFF00E5FF),
@@ -161,7 +305,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 fontWeight: FontWeight.w800,
               ),
               decoration: InputDecoration(
-                hintText: 'Entry Title...',
+                hintText: locale.translate('ENTRY_TITLE'),
                 hintStyle: GoogleFonts.spaceGrotesk(
                   color: Colors.white.withOpacity(0.05),
                   fontSize: 28,
@@ -172,14 +316,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                ..._tags.map((tag) => _TagChip(text: tag)),
-                _AddTagButton(onPressed: () {}),
+                ..._tags.map((tag) => GestureDetector(
+                    onLongPress: () => setState(() => _tags.remove(tag)),
+                    child: _TagChip(text: tag))),
+                _AddTagButton(
+                    onPressed: _showAddTagDialog,
+                    label: locale.translate('ADD_ACTION')),
               ],
             ),
             const SizedBox(height: 48),
-            _SectionLabel(text: 'TECHNICAL_MANIFEST'),
+            _SectionLabel(text: locale.translate('TECHNICAL_MANIFEST')),
             const SizedBox(height: 16),
             _buildEditorToolbar(),
             TextField(
@@ -192,7 +342,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 height: 1.7,
               ),
               decoration: InputDecoration(
-                hintText: 'Detailed breakdown goes here...',
+                hintText: locale.translate('post_hint'),
                 hintStyle: GoogleFonts.inter(
                   color: Colors.white.withOpacity(0.1),
                   fontSize: 16,
@@ -201,13 +351,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               ),
             ),
             const SizedBox(height: 48),
-            _SectionLabel(text: 'VISUAL_DOCUMENTATION'),
+            _SectionLabel(
+                text: locale.translate('VISUAL_DOCUMENTATION')),
             const SizedBox(height: 20),
-            _buildGraphicSection(),
+            _buildGraphicSection(locale),
             const SizedBox(height: 48),
-            _SectionLabel(text: 'CODE_REPOSITORY'),
+            _SectionLabel(
+                text: locale.translate('CODE_REPOSITORY')),
             const SizedBox(height: 20),
-            _buildCodeEditor(),
+            _buildCodeEditor(locale),
             const SizedBox(height: 100),
           ],
         ),
@@ -227,18 +379,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const _ToolbarIcon(icon: Icons.format_bold_rounded),
-          const _ToolbarIcon(icon: Icons.format_italic_rounded),
-          const _ToolbarIcon(icon: Icons.link_rounded),
-          const _ToolbarIcon(icon: Icons.format_list_bulleted_rounded),
-          const _ToolbarIcon(icon: Icons.code_rounded, isActive: true),
-          Icon(Icons.help_outline_rounded, color: Colors.white.withOpacity(0.1), size: 18),
+          _ToolbarIcon(
+              icon: Icons.format_bold_rounded,
+              onPressed: () => _wrapSelection('**')),
+          _ToolbarIcon(
+              icon: Icons.format_italic_rounded,
+              onPressed: () => _wrapSelection('*')),
+          _ToolbarIcon(icon: Icons.link_rounded, onPressed: _showLinkDialog),
+          _ToolbarIcon(
+              icon: Icons.format_list_bulleted_rounded,
+              onPressed: () => _wrapSelection('\n- ')),
+          _ToolbarIcon(
+              icon: Icons.code_rounded,
+              isActive: true,
+              onPressed: () => _wrapSelection('`')),
+          Icon(Icons.help_outline_rounded,
+              color: Colors.white.withOpacity(0.1), size: 18),
         ],
       ),
     );
   }
 
-  Widget _buildGraphicSection() {
+  Widget _buildGraphicSection(AppLocalization locale) {
     return Row(
       children: [
         if (_images.isEmpty)
@@ -250,14 +412,22 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.01),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.04), style: BorderStyle.solid),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.04),
+                      style: BorderStyle.solid),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                     Icon(Icons.add_photo_alternate_outlined, color: Colors.white.withOpacity(0.05), size: 36),
-                     const SizedBox(height: 12),
-                     Text('UPLOAD_MEDIA', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                    Icon(Icons.add_photo_alternate_outlined,
+                        color: Colors.white.withOpacity(0.05), size: 36),
+                    const SizedBox(height: 12),
+                    Text(locale.translate('photo').toUpperCase(),
+                        style: GoogleFonts.spaceGrotesk(
+                            color: Colors.white.withOpacity(0.15),
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5)),
                   ],
                 ),
               ),
@@ -280,23 +450,45 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.03),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white.withOpacity(0.05)),
+                          border:
+                              Border.all(color: Colors.white.withOpacity(0.05)),
                         ),
-                        child: Icon(Icons.add_rounded, color: Colors.white.withOpacity(0.2)),
+                        child: Icon(Icons.add_rounded,
+                            color: Colors.white.withOpacity(0.2)),
                       ),
                     );
                   }
                   final img = _images[index];
-                  return Container(
-                    width: 240,
-                    margin: const EdgeInsets.only(right: 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      image: DecorationImage(
-                        image: img is String ? NetworkImage(img) : FileImage(img) as ImageProvider,
-                        fit: BoxFit.cover,
+                  return Stack(
+                    children: [
+                      Container(
+                        width: 240,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image: DecorationImage(
+                            image: img is String
+                                ? NetworkImage(img)
+                                : FileImage(img) as ImageProvider,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        top: 8,
+                        right: 20,
+                        child: GestureDetector(
+                          onTap: () => setState(() => _images.removeAt(index)),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                                color: Colors.black54, shape: BoxShape.circle),
+                            child: const Icon(Icons.close,
+                                color: Colors.white, size: 16),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -306,7 +498,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     );
   }
 
-  Widget _buildCodeEditor() {
+  Widget _buildCodeEditor(AppLocalization locale) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -327,21 +519,39 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.03))),
+              border: Border(
+                  bottom: BorderSide(color: Colors.white.withOpacity(0.03))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFF5F56), shape: BoxShape.circle)),
                     const SizedBox(width: 6),
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
                     const SizedBox(width: 6),
-                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
+                    Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                            color: Color(0xFF27C93F), shape: BoxShape.circle)),
                   ],
                 ),
-                Text('MANUAL_OVERRIDE.MD', style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1)),
+                Text(locale.translate('KERNEL_FILENAME'),
+                    style: GoogleFonts.spaceGrotesk(
+                        color: Colors.white.withOpacity(0.2),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1)),
               ],
             ),
           ),
@@ -351,10 +561,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               controller: _codeController,
               maxLines: 8,
               cursorColor: const Color(0xFF00E5FF),
-              style: GoogleFonts.sourceCodePro(color: const Color(0xFF00E5FF).withOpacity(0.8), fontSize: 13, height: 1.6),
+              style: GoogleFonts.sourceCodePro(
+                  color: const Color(0xFF00E5FF).withOpacity(0.8),
+                  fontSize: 13,
+                  height: 1.6),
               decoration: InputDecoration(
-                hintText: '# Insert code snippet...',
-                hintStyle: GoogleFonts.sourceCodePro(color: Colors.white.withOpacity(0.05)),
+                hintText: locale.translate('INSERT_CODE_HINT'),
+                hintStyle: GoogleFonts.sourceCodePro(
+                    color: Colors.white.withOpacity(0.05)),
                 border: InputBorder.none,
               ),
             ),
@@ -389,7 +603,9 @@ class _SectionLabel extends StatelessWidget {
 class _PublishButton extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onPressed;
-  const _PublishButton({required this.isLoading, required this.onPressed});
+  final String label;
+  const _PublishButton(
+      {required this.isLoading, required this.onPressed, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -414,9 +630,18 @@ class _PublishButton extends StatelessWidget {
           ],
         ),
         child: Center(
-          child: isLoading 
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : Text('PUBLISH', style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          child: isLoading
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : Text(label,
+                  style: GoogleFonts.spaceGrotesk(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5)),
         ),
       ),
     );
@@ -430,21 +655,25 @@ class _TagChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF00E5FF).withOpacity(0.08),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.12)),
       ),
-      child: Text('#$text', style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 10, fontWeight: FontWeight.w800)),
+      child: Text('#$text',
+          style: GoogleFonts.spaceGrotesk(
+              color: const Color(0xFF00E5FF).withOpacity(0.6),
+              fontSize: 10,
+              fontWeight: FontWeight.w800)),
     );
   }
 }
 
 class _AddTagButton extends StatelessWidget {
   final VoidCallback onPressed;
-  const _AddTagButton({required this.onPressed});
+  final String? label;
+  const _AddTagButton({required this.onPressed, this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -457,10 +686,15 @@ class _AddTagButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.add, color: Colors.white30, size: 12),
             const SizedBox(width: 6),
-            Text('ADD_TAG', style: GoogleFonts.spaceGrotesk(color: Colors.white30, fontSize: 10, fontWeight: FontWeight.w800)),
+            Text(label ?? 'ADD',
+                style: GoogleFonts.spaceGrotesk(
+                    color: Colors.white30,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800)),
           ],
         ),
       ),
@@ -471,10 +705,21 @@ class _AddTagButton extends StatelessWidget {
 class _ToolbarIcon extends StatelessWidget {
   final IconData icon;
   final bool isActive;
-  const _ToolbarIcon({required this.icon, this.isActive = false});
+  final VoidCallback onPressed;
+  const _ToolbarIcon(
+      {required this.icon, required this.onPressed, this.isActive = false});
 
   @override
   Widget build(BuildContext context) {
-    return Icon(icon, color: isActive ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.2), size: 20);
+    return IconButton(
+      icon: Icon(icon,
+          color: isActive
+              ? const Color(0xFF00E5FF)
+              : Colors.white.withOpacity(0.2),
+          size: 20),
+      onPressed: onPressed,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+    );
   }
 }

@@ -8,7 +8,6 @@ import '../controllers/auth_controller.dart';
 import 'create_post_screen.dart';
 import 'components/post_card.dart';
 import 'components/shimmer_loading.dart';
-import 'profile_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -33,7 +32,6 @@ class _FeedPageState extends State<FeedPage> {
           CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              _buildDigitalAppBar(context, user, locale),
               _buildFeedTabs(locale),
               _buildFeedContent(postController, user, locale),
             ],
@@ -41,70 +39,6 @@ class _FeedPageState extends State<FeedPage> {
           _buildFloatingActionButton(context),
         ],
       ),
-    );
-  }
-
-  Widget _buildDigitalAppBar(
-      BuildContext context, dynamic user, AppLocalization locale) {
-    return SliverAppBar(
-      floating: true,
-      snap: true,
-      backgroundColor: const Color(0xFF0D0D0D),
-      elevation: 0,
-      titleSpacing: 24,
-      centerTitle: false,
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF00E5FF).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: const Color(0xFF00E5FF).withOpacity(0.2)),
-            ),
-            child: const Icon(Icons.terminal_rounded,
-                color: Color(0xFF00E5FF), size: 20),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            locale.translate('REPOSITORY'),
-            style: GoogleFonts.spaceGrotesk(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
-              letterSpacing: 1.5,
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(
-                builder: (_) => ProfilePage(userId: user?.uid ?? '')),
-          ),
-          child: Container(
-            margin: const EdgeInsets.only(right: 24),
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white12),
-            ),
-            child: CircleAvatar(
-              radius: 16,
-              backgroundColor: const Color(0xFF161616),
-              backgroundImage: (user?.profileImage?.isNotEmpty ?? false)
-                  ? NetworkImage(user!.profileImage)
-                  : null,
-              child: (user?.profileImage?.isEmpty ?? true)
-                  ? const Icon(Icons.person_rounded,
-                      color: Colors.white30, size: 18)
-                  : null,
-            ),
-          ),
-        ),
-      ],
     );
   }
 
@@ -119,29 +53,36 @@ class _FeedPageState extends State<FeedPage> {
         height: 60,
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: List.generate(tabs.length, (index) {
             final isSelected = _selectedTab == index;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedTab = index),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? const Color(0xFF00E5FF).withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  tabs[index].toUpperCase(),
-                  style: GoogleFonts.spaceGrotesk(
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => setState(() => _selectedTab = index),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF00E5FF)
-                        : Colors.white.withOpacity(0.4),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1,
+                        ? const Color(0xFF00E5FF).withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Center(
+                    child: Text(
+                      tabs[index].toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.spaceGrotesk(
+                        color: isSelected
+                            ? const Color(0xFF00E5FF)
+                            : Colors.white.withOpacity(0.4),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -155,7 +96,7 @@ class _FeedPageState extends State<FeedPage> {
   Widget _buildFeedContent(
       PostController postController, dynamic user, AppLocalization locale) {
     Stream<List<PostModel>> feedStream;
-    
+
     if (_selectedTab == 1 && user != null) {
       feedStream = postController.getFollowingFeed(
         userId: user.uid,
@@ -171,15 +112,24 @@ class _FeedPageState extends State<FeedPage> {
       stream: feedStream,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) => const PostShimmer(),
-              childCount: 4,
+          return SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            sliver: SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (context, index) => const PostShimmer(),
+                childCount: 4,
+              ),
             ),
           );
         }
 
-        final posts = snapshot.data ?? [];
+        List<PostModel> posts = List.from(snapshot.data ?? []);
+
+        // Sort by Trending (Likes) if tab is selected
+        if (_selectedTab == 2) {
+          posts.sort((a, b) => b.likes.length.compareTo(a.likes.length));
+        }
+
         if (posts.isEmpty) {
           return SliverFillRemaining(
             child: Center(
