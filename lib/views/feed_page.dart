@@ -74,7 +74,7 @@ class _FeedPageState extends State<FeedPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                         color: isSelected
                             ? const Color(0xFF00E5FF)
                             : Colors.white.withOpacity(0.4),
@@ -143,7 +143,7 @@ class _FeedPageState extends State<FeedPage> {
                     _selectedTab == 1
                         ? locale.translate('NO_CONNECTIONS_FOUND')
                         : locale.translate('NO_COMMITS_FOUND'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.2),
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
@@ -160,7 +160,15 @@ class _FeedPageState extends State<FeedPage> {
           padding: const EdgeInsets.only(top: 8, bottom: 100),
           sliver: SliverList(
             delegate: SliverChildBuilderDelegate(
-              (context, index) => PostCard(post: posts[index]),
+              (context, index) => AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: PostCard(
+                  key: ValueKey(posts[index].id),
+                  post: posts[index],
+                ),
+              ),
               childCount: posts.length,
             ),
           ),

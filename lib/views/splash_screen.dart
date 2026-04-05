@@ -88,7 +88,11 @@ class _SplashScreenState extends State<SplashScreen>
     }
 
     if (authController.currentUser != null) {
-      if (authController.currentUser!.isApproved) {
+      if (authController.currentUser!.isBanned || !authController.currentUser!.isApproved) {
+        AdService.showInterstitialAd(settings: settings);
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
+      } else {
         if (!authController.isProfileComplete && !appProvider.hasSeenProfilePrompt) {
           AdService.showInterstitialAd(settings: settings);
           Navigator.of(context).pushReplacement(
@@ -98,10 +102,6 @@ class _SplashScreenState extends State<SplashScreen>
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const HomeScreen()));
         }
-      } else {
-        AdService.showInterstitialAd(settings: settings);
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
       }
     } else {
       AdService.showInterstitialAd(settings: settings);
@@ -214,7 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
         const SizedBox(height: 32),
         Text(
           locale.translate('DEVELOPERS_ZONE').split(' ')[0],
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white,
             fontWeight: FontWeight.w900,
             fontSize: 44,
@@ -224,7 +224,7 @@ class _SplashScreenState extends State<SplashScreen>
         ),
         Text(
           locale.translate('DEVELOPERS_ZONE').split(' ').last,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF),
             fontWeight: FontWeight.w900,
             fontSize: 44,
@@ -236,7 +236,7 @@ class _SplashScreenState extends State<SplashScreen>
         Text(
           locale.translate('architecting_future'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.3),
             fontSize: 11,
             fontWeight: FontWeight.w700,
@@ -267,7 +267,7 @@ class _SplashScreenState extends State<SplashScreen>
           children: [
             Text(
               AppLocalization.of(context)!.translate(_statusKey),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                 color: const Color(0xFF00E5FF).withOpacity(0.8),
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
@@ -276,7 +276,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             Text(
               '${(_percent * 100).toInt()}%',
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.3),
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -326,7 +326,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
                 child: Text(
                   AppLocalization.of(context)!.translate('promoted'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                     color: Colors.white,
                     fontSize: 8,
                     fontWeight: FontWeight.w900,
@@ -336,7 +336,7 @@ class _SplashScreenState extends State<SplashScreen>
               const SizedBox(width: 8),
               Text(
                 ad.title.toUpperCase(),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.8),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -350,7 +350,7 @@ class _SplashScreenState extends State<SplashScreen>
             ad.description,
             textAlign: TextAlign.center,
             maxLines: 2,
-            style: GoogleFonts.inter(
+            style: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.4),
               fontSize: 12,
               height: 1.5,
@@ -374,7 +374,7 @@ class _SplashScreenState extends State<SplashScreen>
               ),
               child: Text(
                 AppLocalization.of(context)!.translate('deploy_now'),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
@@ -396,7 +396,7 @@ class _SplashScreenState extends State<SplashScreen>
         const SizedBox(width: 8),
         Text(
           AppLocalization.of(context)!.translate('stable_version'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.2),
             fontSize: 9,
             fontWeight: FontWeight.w800,
@@ -408,7 +408,7 @@ class _SplashScreenState extends State<SplashScreen>
         const SizedBox(width: 8),
         Text(
           AppLocalization.of(context)!.translate('e2e_encryption'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.2),
             fontSize: 9,
             fontWeight: FontWeight.w800,

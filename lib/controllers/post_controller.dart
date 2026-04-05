@@ -66,7 +66,6 @@ class PostController extends ChangeNotifier {
           );
        }
     }
-    notifyListeners();
   }
 
   Future<void> addComment(CommentModel comment) async {
@@ -83,7 +82,6 @@ class PostController extends ChangeNotifier {
          relatedId: comment.postId,
        );
     }
-    notifyListeners();
   }
 
   Stream<List<CommentModel>> getPostComments(String postId) {

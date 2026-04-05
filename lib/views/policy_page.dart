@@ -27,7 +27,7 @@ class PolicyPage extends StatelessWidget {
         ),
         title: Text(
           title,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 18,
@@ -48,7 +48,7 @@ class PolicyPage extends StatelessWidget {
               ),
               child: Text(
                 locale.translate(contentKey),
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
                   height: 1.8,
@@ -59,7 +59,7 @@ class PolicyPage extends StatelessWidget {
             Center(
               child: Text(
                 'END OF PROTOCOL',
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.1),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,

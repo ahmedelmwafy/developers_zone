@@ -62,7 +62,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         centerTitle: true,
         title: Text(
           '${locale.translate('MANIFEST_ENTRY')} // ${post.id.substring(0, 8).toUpperCase()}',
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF).withOpacity(0.4),
             fontWeight: FontWeight.w700,
             fontSize: 10,
@@ -101,9 +101,10 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                   const SizedBox(height: 32),
                   _buildAuthorCard(post),
                   const SizedBox(height: 48),
+                  const SizedBox(height: 48),
                   _buildDetailedContent(post, parts),
                   const SizedBox(height: 48),
-                  _buildActionBar(post, isLiked, currentUser, postController),
+                  _buildActionBar(post, isLiked, currentUser, postController, authController),
                   const SizedBox(height: 48),
                   _buildCommentSection(post, postController),
                   const SizedBox(height: 40),
@@ -144,12 +145,12 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       children: [
         Text(
           locale.translate('NODAL_MANIFEST_DECAP'),
-          style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
+          style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 2),
         ),
         const SizedBox(height: 12),
         Text(
           parts['title'] ?? locale.translate('TRANSCRIPT_NODE'),
-          style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.25),
+          style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 32, fontWeight: FontWeight.w800, height: 1.25),
         ),
       ],
     );
@@ -183,8 +184,8 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(post.authorName, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
-                Text(post.authorPosition.toUpperCase(), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                Text(post.authorName, style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                Text(post.authorPosition.toUpperCase(), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
               ],
             ),
           ),
@@ -197,7 +198,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.15)),
               ),
-              child: Text(AppLocalization.of(context)!.translate('VIEW_NODE'), style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              child: Text(AppLocalization.of(context)!.translate('VIEW_NODE'), style: AppLocalization.digitalFont(context, color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ),
         ],
@@ -221,7 +222,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               if (href != null) launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
             },
             styleSheet: MarkdownStyleSheet(
-              p: GoogleFonts.inter(color: Colors.white.withOpacity(0.7), fontSize: 17, height: 1.8),
+              p: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.7), fontSize: 17, height: 1.8),
               strong: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
               a: const TextStyle(color: Color(0xFF00E5FF), decoration: TextDecoration.underline),
               listBullet: TextStyle(color: Colors.white.withOpacity(0.3)),
@@ -258,7 +259,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               const SizedBox(width: 8),
               Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
-              Text(AppLocalization.of(context)!.translate('MAIN_TRANSCRIPT'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
+              Text(AppLocalization.of(context)!.translate('MAIN_TRANSCRIPT'), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1)),
             ],
           ),
           const SizedBox(height: 24),
@@ -275,9 +276,20 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     );
   }
 
-  Widget _buildActionBar(PostModel post, bool isLiked, UserModel? currentUser, PostController postController) {
+  Widget _buildActionBar(PostModel post, bool isLiked, UserModel? currentUser, PostController postController, AuthController authController) {
     return Row(
       children: [
+        _InteractionNode(
+          icon: isLiked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+          count: post.likes.length.toString(),
+          color: isLiked ? Colors.redAccent : Colors.white.withOpacity(0.2),
+          onTap: () {
+            if (currentUser != null) {
+              postController.togglePostLike(post.id, currentUser.uid, !isLiked);
+            }
+          },
+        ),
+        const SizedBox(width: 24),
         _InteractionNode(
           icon: Icons.chat_bubble_outline_rounded,
           count: post.commentCount.toString(),
@@ -287,22 +299,28 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
           },
         ),
         const Spacer(),
-        IconButton(
-          icon: Icon(
-            currentUser?.savedPosts.contains(post.id) ?? false
-                ? Icons.bookmark_rounded
-                : Icons.bookmark_outline_rounded,
-            color: currentUser?.savedPosts.contains(post.id) ?? false
-                ? const Color(0xFF00E5FF)
-                : Colors.white.withOpacity(0.2),
-            size: 24,
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+          child: IconButton(
+            key: ValueKey(currentUser?.savedPosts.contains(post.id)),
+            icon: Icon(
+              currentUser?.savedPosts.contains(post.id) ?? false
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_outline_rounded,
+              color: currentUser?.savedPosts.contains(post.id) ?? false
+                  ? const Color(0xFF00E5FF)
+                  : Colors.white.withOpacity(0.2),
+              size: 24,
+            ),
+            onPressed: currentUser == null
+                ? null
+                : () async {
+                    final isSaving = !currentUser.savedPosts.contains(post.id);
+                    await postController.toggleSavedPost(currentUser.uid, post.id, isSaving);
+                    await authController.refreshUser();
+                  },
           ),
-          onPressed: currentUser == null
-              ? null
-              : () {
-                  final isSaving = !currentUser.savedPosts.contains(post.id);
-                  postController.toggleSavedPost(currentUser.uid, post.id, isSaving);
-                },
         ),
       ],
     );
@@ -315,7 +333,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       children: [
         Text(
           locale.translate('TRANSMISSION_THREAD'),
-          style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2),
+          style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15), fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 2),
         ),
         const SizedBox(height: 24),
         StreamBuilder<List<CommentModel>>(
@@ -341,7 +359,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 40),
-        child: Text(locale.translate('WAITING_FOR_UPLINK'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+        child: Text(locale.translate('WAITING_FOR_UPLINK'), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.05), fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
       ),
     );
   }
@@ -361,7 +379,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         child: Center(
           child: Text(
             locale.translate('commenting_restricted'),
-            style: GoogleFonts.spaceGrotesk(color: Colors.white24, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
+            style: AppLocalization.digitalFont(context, color: Colors.white24, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1),
           ),
         ),
       );
@@ -384,7 +402,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                 Expanded(
                   child: Text(
                     '${locale.translate('REPLYING_TO')} @${_replyingTo!.authorName}',
-                    style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
+                    style: AppLocalization.digitalFont(context, color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
                 GestureDetector(
@@ -414,10 +432,10 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
                     controller: _commentController,
                     focusNode: _focusNode,
                     cursorColor: const Color(0xFF00E5FF),
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                    style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: locale.translate('ADD_TO_MANIFEST'),
-                      hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.1), fontSize: 14),
+                      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.1), fontSize: 14),
                       border: InputBorder.none,
                     ),
                   ),
@@ -488,9 +506,20 @@ class _InteractionNode extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, color: color, size: 22),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+            child: Icon(icon, key: ValueKey(icon), color: color, size: 22),
+          ),
           const SizedBox(width: 8),
-          Text(count, style: GoogleFonts.spaceGrotesk(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              count,
+              key: ValueKey(count),
+              style: AppLocalization.digitalFont(context, color: color, fontSize: 13, fontWeight: FontWeight.w800),
+            ),
+          ),
         ],
       ),
     );
@@ -526,8 +555,8 @@ class _CommentNode extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(comment.authorName, style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
-                    Text(AppLocalization.of(context)!.translate('NODE_RX'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.05), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    Text(comment.authorName, style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 13, fontWeight: FontWeight.w800)),
+                    Text(AppLocalization.of(context)!.translate('NODE_RX'), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.05), fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -536,14 +565,14 @@ class _CommentNode extends StatelessWidget {
                     padding: const EdgeInsets.only(bottom: 4),
                     child: Text(
                       '@${comment.replyToName}',
-                      style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
+                      style: AppLocalization.digitalFont(context, color: const Color(0xFF00E5FF), fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                   ),
-                Text(comment.text, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.6)),
+                Text(comment.text, style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.6), fontSize: 14, height: 1.6)),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Text(timeago.format(comment.createdAt), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w600)),
+                    Text(timeago.format(comment.createdAt), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2), fontSize: 9, fontWeight: FontWeight.w600)),
                     const SizedBox(width: 16),
                     GestureDetector(
                       onTap: () {
@@ -553,7 +582,7 @@ class _CommentNode extends StatelessWidget {
                           state.setReply(comment);
                         }
                       },
-                      child: Text(AppLocalization.of(context)!.translate('REPLY_ACTION'), style: GoogleFonts.spaceGrotesk(color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+                      child: Text(AppLocalization.of(context)!.translate('REPLY_ACTION'), style: AppLocalization.digitalFont(context, color: const Color(0xFF00E5FF).withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                     ),
                   ],
                 ),

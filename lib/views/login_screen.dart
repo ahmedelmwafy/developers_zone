@@ -113,8 +113,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'DEVELOPERS',
-                                style: GoogleFonts.spaceGrotesk(
+                                locale.translate('DEVELOPERS'),
+                                style: AppLocalization.digitalFont(context, 
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
@@ -122,8 +122,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                               ),
                               Text(
-                                'ZONE',
-                                style: GoogleFonts.spaceGrotesk(
+                                locale.translate('ZONE'),
+                                style: AppLocalization.digitalFont(context, 
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 18,
@@ -136,25 +136,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                       
                       // Language Switcher
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.language, color: Colors.white70, size: 16),
-                            const SizedBox(width: 8),
-                            Text(
-                              'EN / AR',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
+                      GestureDetector(
+                        onTap: () {
+                          final provider = Provider.of<AppProvider>(context, listen: false);
+                          final next = provider.locale.languageCode == 'en' ? 'ar' : 'en';
+                          provider.setLocale(Locale(next));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.language, color: Colors.white70, size: 16),
+                              const SizedBox(width: 8),
+                              Text(
+                                locale.translate('EN_AR'),
+                                style: AppLocalization.digitalFont(context, 
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -186,7 +193,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         const SizedBox(width: 10),
                         Text(
                           locale.translate('ELITE_NODE_ACTIVE'),
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.7),
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.5,
@@ -203,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   Text(
                     locale.translate('HERO_TITLE'),
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 42,
                       fontWeight: FontWeight.w700,
@@ -219,7 +226,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     child: Text(
                       locale.translate('HERO_SUBTITLE'),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(
+                      style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 15,
                         height: 1.6,
@@ -269,8 +276,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Initialize Session',
-                                    style: GoogleFonts.spaceGrotesk(
+                                    locale.translate('INITIALIZE_SESSION'),
+                                    style: AppLocalization.digitalFont(context, 
                                       color: Colors.white,
                                       fontSize: 24,
                                       fontWeight: FontWeight.w700,
@@ -279,7 +286,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   const SizedBox(height: 4),
                                   Text(
                                     locale.translate('AUTH_METHOD_SUB'),
-                                    style: GoogleFonts.inter(
+                                    style: AppLocalization.digitalFont(context, 
                                       color: Colors.white.withOpacity(0.5),
                                       fontSize: 13,
                                     ),
@@ -300,13 +307,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           children: [
                             Expanded(child: _SocialButton(
                               icon: FontAwesomeIcons.google,
-                              label: 'Google',
+                              label: locale.translate('GOOGLE'),
                               onPressed: _signInWithGoogle,
                             )),
                             const SizedBox(width: 12),
                             Expanded(child: _SocialButton(
                               icon: FontAwesomeIcons.github,
-                              label: 'GitHub',
+                              label: locale.translate('GITHUB'),
                               onPressed: _signInWithGitHub,
                             )),
                           ],
@@ -317,7 +324,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         Center(
                           child: Text(
                             locale.translate('OR_VIA_TERMINAL'),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.3),
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -332,7 +339,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         _TerminalLabel(locale.translate('EMAIL_ADDRESS_CAPS')),
                         TextField(
                           controller: _emailController,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                          style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                           decoration: _terminalInputDecoration(Icons.mail_outline, locale.translate('email_hint')),
                         ),
                         
@@ -347,7 +354,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
                                child: Text(
                                  locale.translate('FORGOT_CAPS'),
-                                 style: GoogleFonts.spaceGrotesk(
+                                 style: AppLocalization.digitalFont(context, 
                                    color: Colors.white.withOpacity(0.4),
                                    fontSize: 10,
                                    fontWeight: FontWeight.w700,
@@ -360,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         TextField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                          style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                           decoration: _terminalInputDecoration(Icons.lock_outline, '••••••••••••', 
                              suffix: GestureDetector(
                                onTap: () => setState(() => _obscurePassword = !_obscurePassword),
@@ -392,7 +399,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             const SizedBox(width: 12),
                             Text(
                               locale.translate('MAINTAIN_SESSION'),
-                              style: GoogleFonts.inter(
+                              style: AppLocalization.digitalFont(context, 
                                 color: Colors.white.withOpacity(0.6),
                                 fontSize: 13,
                               ),
@@ -414,15 +421,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         Center(
                           child: RichText(
                             text: TextSpan(
-                              style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6), fontSize: 14),
+                              style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.6), fontSize: 14),
                               children: [
-                                const TextSpan(text: 'New operator? '),
+                                TextSpan(text: locale.translate('NEW_OPERATOR')),
                                 WidgetSpan(
                                   child: GestureDetector(
                                     onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
                                     child: Text(
                                       locale.translate('CREATE_ACCOUNT'),
-                                      style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700),
+                                      style: AppLocalization.digitalFont(context, color: Colors.white, fontWeight: FontWeight.w700),
                                     ),
                                   ),
                                 ),
@@ -461,7 +468,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.5), size: 18),
       suffixIcon: suffix,
       hintText: hint,
-      hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.2)),
+      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2)),
       filled: true,
       fillColor: Colors.black.withOpacity(0.2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
@@ -491,7 +498,7 @@ class _StatBox extends StatelessWidget {
         children: [
           Text(
             value,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF),
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -500,7 +507,7 @@ class _StatBox extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             label,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.4),
               fontSize: 9,
               fontWeight: FontWeight.w700,
@@ -538,7 +545,7 @@ class _SocialButton extends StatelessWidget {
             const SizedBox(width: 12),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: AppLocalization.digitalFont(context, 
                 color: Colors.white,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -561,7 +568,7 @@ class _TerminalLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: GoogleFonts.spaceGrotesk(
+        style: AppLocalization.digitalFont(context, 
           color: Colors.white.withOpacity(0.7),
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -614,7 +621,7 @@ class _ExecuteLoginButton extends StatelessWidget {
                   )
                 : Text(
                     locale.translate('EXECUTE_LOGIN'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -636,7 +643,7 @@ class _BottomNavLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.spaceGrotesk(
+      style: AppLocalization.digitalFont(context, 
         color: Colors.white.withOpacity(0.3),
         fontSize: 10,
         fontWeight: FontWeight.w700,

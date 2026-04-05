@@ -133,11 +133,12 @@ class AdManagementPage extends StatelessWidget {
               top: 20,
               bottom: MediaQuery.of(context).viewInsets.bottom + 24,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
                   child: Container(
                     width: 40,
                     height: 4,
@@ -340,10 +341,10 @@ class AdManagementPage extends StatelessWidget {
                         },
                 ),
               ],
-            ),
-          ),
-        );
-      },
+            ), // Column
+          ), // SingleChildScrollView
+        )); // Container
+      }, // builder
     );
   }
 }

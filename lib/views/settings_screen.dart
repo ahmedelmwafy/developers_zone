@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/app_provider.dart';
 import 'splash_screen.dart';
@@ -50,33 +49,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (user.isAdmin) ...[
                       _SectionTitle(
                           icon: Icons.admin_panel_settings_outlined,
-                          title: locale.translate('MANAGEMENT_PROTOCOLS').toUpperCase()),
+                          title: locale
+                              .translate('MANAGEMENT_PROTOCOLS')
+                              .toUpperCase()),
                       _buildAdminCard(context, locale),
                       const SizedBox(height: 48),
                     ],
                     _SectionTitle(
                         icon: Icons.person_outline_rounded,
-                        title: locale.translate('ACCOUNT_MANAGEMENT').toUpperCase()),
+                        title: locale
+                            .translate('ACCOUNT_MANAGEMENT')
+                            .toUpperCase()),
                     _buildNavCard(
                       icon: Icons.edit_note_rounded,
                       title: locale.translate('edit_profile'),
                       subtitle: locale.translate('edit_profile_sub'),
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage())),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const EditProfilePage())),
                     ),
                     const SizedBox(height: 16),
                     _buildNavCard(
                       icon: Icons.bookmark_rounded,
                       title: locale.translate('SAVED_MANIFESTS_CAPS'),
-                      subtitle: locale.translate('no_saved_posts').replaceFirst('No ', 'View your '),
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPostsPage())),
+                      subtitle: locale
+                          .translate('no_saved_posts')
+                          .replaceFirst('No ', 'View your '),
+                      onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SavedPostsPage())),
                     ),
                     const SizedBox(height: 48),
                     _SectionTitle(
-                        icon: Icons.shield_outlined, title: locale.translate('SECURITY_LOGS').toUpperCase()),
+                        icon: Icons.shield_outlined,
+                        title: locale.translate('SECURITY_LOGS').toUpperCase()),
                     _buildSecurityCard(locale),
                     const SizedBox(height: 48),
                     _SectionTitle(
-                        icon: Icons.tune_rounded, title: locale.translate('ZONE_PREFERENCES').toUpperCase()),
+                        icon: Icons.tune_rounded,
+                        title:
+                            locale.translate('ZONE_PREFERENCES').toUpperCase()),
                     _buildPreferencesCard(locale),
                     const SizedBox(height: 48),
                     _SectionTitle(
@@ -165,7 +179,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       color: Color(0xFF00E5FF), shape: BoxShape.circle)),
               const SizedBox(width: 8),
               Text(
-                'CORE CONFIG',
+                locale.translate('CORE_CONFIG'),
                 style: AppLocalization.digitalFont(
                   context,
                   color: Colors.white.withOpacity(0.5),
@@ -190,7 +204,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         Text(
           locale.translate('ACCOUNT_MANAGEMENT_SUB'),
-          style: GoogleFonts.inter(
+          style: AppLocalization.digitalFont(
+            context,
             color: Colors.white.withOpacity(0.5),
             fontSize: 14,
             height: 1.5,
@@ -200,7 +215,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildNavCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+  Widget _buildNavCard(
+      {required IconData icon,
+      required String title,
+      required String subtitle,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -225,12 +244,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text(subtitle, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+                  Text(title,
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold)),
+                  Text(subtitle,
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white.withOpacity(0.4), fontSize: 13)),
                 ],
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withOpacity(0.2), size: 14),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: Colors.white.withOpacity(0.2), size: 14),
           ],
         ),
       ),
@@ -271,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               fontWeight: FontWeight.bold,
                               fontSize: 14)),
                       Text(locale.translate('admin_dashboard_sub'),
-                          style: GoogleFonts.inter(
+                          style: AppLocalization.digitalFont(context,
                               color: Colors.white.withOpacity(0.4),
                               fontSize: 12),
                           overflow: TextOverflow.ellipsis),
@@ -372,7 +398,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontSize: 14,
                       fontWeight: FontWeight.bold)),
               Text(locale.translate('INTERFACE_LANGUAGE'),
-                  style: GoogleFonts.inter(
+                  style: AppLocalization.digitalFont(context,
                       color: Colors.white.withOpacity(0.4), fontSize: 12)),
             ],
           ),
@@ -385,12 +411,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Row(
               children: [
                 _LangBtn(
-                  label: 'EN',
+                  label: locale.translate('EN'),
                   isActive: !isAr,
                   onTap: () => appProvider.setLocale(const Locale('en')),
                 ),
+                const SizedBox(width: 8),
                 _LangBtn(
-                  label: 'AR',
+                  label: locale.translate('AR'),
                   isActive: isAr,
                   onTap: () => appProvider.setLocale(const Locale('ar')),
                 ),
@@ -427,8 +454,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'DISCONNECT NODE SESSION',
-              style: GoogleFonts.spaceGrotesk(
+              locale.translate('DISCONNECT_NODE_SESSION'),
+              style: AppLocalization.digitalFont(
+                context,
                 color: Colors.red.withOpacity(0.3),
                 fontWeight: FontWeight.bold,
                 fontSize: 9,
@@ -445,7 +473,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => TerminalDialog(
-        headerTag: 'ENCRYPTED_LOGOUT_PROTOCOL',
+        headerTag: locale.translate('ENCRYPTED_LOGOUT_PROTOCOL'),
         title: locale.translate('TERMINATE_SESSION'),
         body: locale.translate('logout_confirm_body'),
         confirmLabel: locale.translate('disconnect_cap'),
@@ -474,13 +502,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(
         children: [
           GestureDetector(
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const PrivacyPolicyScreen())),
+            onTap: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen())),
             child: _SecurityItem(
               title: locale.translate('privacy_policy'),
-              subtitle: 'Read our data protection protocols',
+              subtitle: locale.translate('DATA_PROTECTION_SUB'),
               trailing: const Icon(Icons.arrow_forward_ios_rounded,
                   color: Colors.white24, size: 14),
             ),
@@ -493,7 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     builder: (_) => const TermsConditionsScreen())),
             child: _SecurityItem(
               title: locale.translate('terms_conditions'),
-              subtitle: 'Platform usage agreement',
+              subtitle: locale.translate('USAGE_AGREEMENT_SUB'),
               trailing: const Icon(Icons.arrow_forward_ios_rounded,
                   color: Colors.white24, size: 14),
             ),
@@ -522,12 +548,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text(locale.translate('cancel'))),
-          TextButton(onPressed: () async {
-            if (controller.text.trim().length < 6) return;
-            await Provider.of<AuthController>(context, listen: false).updatePassword(controller.text.trim());
-            Navigator.pop(context);
-          }, child: Text(locale.translate('update_button'))),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(locale.translate('cancel'))),
+          TextButton(
+              onPressed: () async {
+                if (controller.text.trim().length < 6) return;
+                await Provider.of<AuthController>(context, listen: false)
+                    .updatePassword(controller.text.trim());
+                Navigator.pop(context);
+              },
+              child: Text(locale.translate('update_button'))),
         ],
       ),
     );
@@ -538,14 +569,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => TerminalDialog(
-        headerTag: 'DESTRUCTION_PROTOCOL',
+        headerTag: locale.translate('DESTRUCTION_PROTOCOL'),
         title: locale.translate('delete_account'),
         body: locale.translate('delete_account_confirm'),
         confirmLabel: locale.translate('delete'),
         cancelLabel: locale.translate('cancel'),
         isDestructive: true,
         onConfirm: () async {
-          await Provider.of<AuthController>(context, listen: false).deleteAccount();
+          await Provider.of<AuthController>(context, listen: false)
+              .deleteAccount();
           if (mounted) {
             Navigator.of(context).pushAndRemoveUntil(
               MaterialPageRoute(builder: (_) => const SplashScreen()),
@@ -611,7 +643,7 @@ class _SecurityItem extends StatelessWidget {
                         fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(subtitle,
-                    style: GoogleFonts.inter(
+                    style: AppLocalization.digitalFont(context,
                         color: Colors.white.withOpacity(0.3), fontSize: 12)),
               ],
             ),
@@ -640,7 +672,9 @@ class _OutlineButton extends StatelessWidget {
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
         side: BorderSide(
-            color: isDanger ? Colors.redAccent.withOpacity(0.3) : const Color(0xFF00E5FF).withOpacity(0.3)),
+            color: isDanger
+                ? Colors.redAccent.withOpacity(0.3)
+                : const Color(0xFF00E5FF).withOpacity(0.3)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),

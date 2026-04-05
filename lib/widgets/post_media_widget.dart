@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../views/components/zoomable_image_page.dart';
 
 class PostMediaWidget extends StatefulWidget {
   final List<String> images;
@@ -48,28 +49,46 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                     });
                   },
                   itemBuilder: (context, index) {
-                    return Image.network(
-                      widget.images[index],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: Colors.white.withOpacity(0.02),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF00E5FF),
-                              strokeWidth: 2,
+                    final imageUrl = widget.images[index];
+                    final heroTag = 'media_${imageUrl.hashCode}_${index}';
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ZoomableImagePage(
+                              imageUrl: imageUrl,
+                              heroTag: heroTag,
                             ),
                           ),
                         );
                       },
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: Colors.red.withOpacity(0.1),
-                          child: const Icon(Icons.error_outline, color: Colors.red),
-                        );
-                      },
+                      child: Hero(
+                        tag: heroTag,
+                        child: Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return Container(
+                              color: Colors.white.withOpacity(0.02),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF00E5FF),
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.red.withOpacity(0.1),
+                              child: const Icon(Icons.error_outline, color: Colors.red),
+                            );
+                          },
+                        ),
+                      ),
                     );
                   },
                 ),

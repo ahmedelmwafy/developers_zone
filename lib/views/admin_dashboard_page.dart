@@ -4,7 +4,6 @@ import '../controllers/admin_controller.dart';
 import '../models/user_model.dart';
 import '../models/report_model.dart';
 import '../providers/app_provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import 'ad_management_page.dart';
 import 'post_details_page.dart';
@@ -131,7 +130,8 @@ class _NavButton extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               label,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(
+                context,
                 color: color,
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
@@ -145,12 +145,21 @@ class _NavButton extends StatelessWidget {
   }
 }
 
-class _ModerationView extends StatelessWidget {
+enum UserFilter { all, approved, pending, verified, banned, locked, admins }
+
+class _ModerationView extends StatefulWidget {
   final Function(String) onSearchChanged;
   final String searchQuery;
 
   const _ModerationView(
       {required this.onSearchChanged, required this.searchQuery});
+
+  @override
+  State<_ModerationView> createState() => _ModerationViewState();
+}
+
+class _ModerationViewState extends State<_ModerationView> {
+  UserFilter _currentFilter = UserFilter.all;
 
   @override
   Widget build(BuildContext context) {
@@ -166,14 +175,14 @@ class _ModerationView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(locale.translate('TERMINAL_ACCESS'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context,
                         color: AppColors.primary,
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
                         letterSpacing: 2)),
                 const SizedBox(height: 8),
                 Text(locale.translate('reported_content'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context,
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
                         fontSize: 28)),
@@ -197,7 +206,7 @@ class _ModerationView extends StatelessWidget {
                                 color: Colors.red, size: 32),
                             const SizedBox(height: 12),
                             Text('PERMISSION_DENIED',
-                                style: GoogleFonts.spaceGrotesk(
+                                style: AppLocalization.digitalFont(context,
                                     color: Colors.red,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 14)),
@@ -205,7 +214,7 @@ class _ModerationView extends StatelessWidget {
                             Text(
                                 'Ensure "reports" collection exists & rules are updated.',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
+                                style: AppLocalization.digitalFont(context,
                                     color: Colors.white24, fontSize: 12)),
                           ],
                         ),
@@ -220,7 +229,7 @@ class _ModerationView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(20)),
                         child: Center(
                           child: Text(locale.translate('all_clear'),
-                              style: GoogleFonts.spaceGrotesk(
+                              style: AppLocalization.digitalFont(context,
                                   color: Colors.white24,
                                   fontWeight: FontWeight.w700)),
                         ),
@@ -238,20 +247,21 @@ class _ModerationView extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
                 Text(locale.translate('user_management'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context,
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
                         fontSize: 28)),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 TextField(
-                  onChanged: onSearchChanged,
+                  onChanged: widget.onSearchChanged,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: AppColors.surface,
                     hintText: locale.translate('search_users_hint'),
                     hintStyle:
-                        GoogleFonts.inter(color: Colors.white24, fontSize: 14),
+                        AppLocalization.digitalFont(context,
+                            color: Colors.white24, fontSize: 14),
                     prefixIcon: const Icon(Icons.search,
                         color: Colors.white24, size: 20),
                     border: OutlineInputBorder(
@@ -259,6 +269,8 @@ class _ModerationView extends StatelessWidget {
                         borderSide: BorderSide.none),
                   ),
                 ),
+                const SizedBox(height: 24),
+                _buildFilterBar(locale),
                 const SizedBox(height: 24),
               ],
             ),
@@ -273,7 +285,7 @@ class _ModerationView extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text('USER_STREAM_PERMISSION_ERR',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.red.withValues(alpha: 0.3),
                             fontWeight: FontWeight.w700)),
                   ),
@@ -282,10 +294,31 @@ class _ModerationView extends StatelessWidget {
             }
             final users = (snapshot.data ?? [])
                 .where((u) =>
-                    searchQuery.isEmpty ||
-                    u.name.toLowerCase().contains(searchQuery.toLowerCase()) ||
-                    u.email.toLowerCase().contains(searchQuery.toLowerCase()))
-                .toList();
+                    widget.searchQuery.isEmpty ||
+                    u.name
+                        .toLowerCase()
+                        .contains(widget.searchQuery.toLowerCase()) ||
+                    u.email
+                        .toLowerCase()
+                        .contains(widget.searchQuery.toLowerCase()))
+                .where((u) {
+              switch (_currentFilter) {
+                case UserFilter.all:
+                  return true;
+                case UserFilter.approved:
+                  return u.isApproved;
+                case UserFilter.pending:
+                  return !u.isApproved;
+                case UserFilter.verified:
+                  return u.isVerified;
+                case UserFilter.banned:
+                  return u.isBanned;
+                case UserFilter.locked:
+                  return u.isLocked;
+                case UserFilter.admins:
+                  return u.isAdmin;
+              }
+            }).toList();
 
             return SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -303,6 +336,43 @@ class _ModerationView extends StatelessWidget {
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 40)),
       ],
+    );
+  }
+
+  Widget _buildFilterBar(AppLocalization locale) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: UserFilter.values.map((f) {
+          final isSelected = _currentFilter == f;
+          return GestureDetector(
+            onTap: () => setState(() => _currentFilter = f),
+            child: Container(
+              margin: const EdgeInsets.only(right: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : Colors.white.withValues(alpha: 0.05),
+                ),
+              ),
+              child: Text(
+                locale.translate('filter_${f.name}').toUpperCase(),
+                style: AppLocalization.digitalFont(
+                  context,
+                  color: isSelected ? Colors.black : Colors.white38,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
     );
   }
 }
@@ -346,14 +416,14 @@ class _ReportCard extends StatelessWidget {
                         color: Colors.red.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4)),
                     child: Text(report.id.substring(0, 8).toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.red,
                             fontSize: 10,
                             fontWeight: FontWeight.w900)),
                   ),
                   const Spacer(),
                   Text(locale.translate('just_now'),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white24,
                           fontSize: 10,
                           fontWeight: FontWeight.w700)),
@@ -366,13 +436,13 @@ class _ReportCard extends StatelessWidget {
                     TextSpan(
                         text:
                             '${locale.translate('reason_text').replaceFirst('{}', '')} ',
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.red.withValues(alpha: 0.5),
                             fontSize: 12,
                             fontWeight: FontWeight.bold)),
                     TextSpan(
                         text: report.reason,
-                        style: GoogleFonts.inter(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white, fontSize: 14)),
                   ],
                 ),
@@ -385,7 +455,7 @@ class _ReportCard extends StatelessWidget {
                     minHeight: 1)
               else if (isDeleted)
                 Text('POST_MANIFEST_TERMINATED',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white10,
                         fontSize: 12,
                         fontWeight: FontWeight.w900))
@@ -400,7 +470,7 @@ class _ReportCard extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style:
-                        GoogleFonts.inter(color: Colors.white60, fontSize: 12),
+                        AppLocalization.digitalFont(context, color: Colors.white60, fontSize: 12),
                   ),
                 ),
               const SizedBox(height: 20),
@@ -495,7 +565,7 @@ class _DetailedUserCard extends StatelessWidget {
                         Flexible(
                           child: Text(
                             user.name,
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                                 color: Colors.white,
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800),
@@ -509,7 +579,7 @@ class _DetailedUserCard extends StatelessWidget {
                       ],
                     ),
                     Text(user.email,
-                        style: GoogleFonts.inter(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white38, fontSize: 12)),
                   ],
                 ),
@@ -602,7 +672,7 @@ class _ModerationToggle extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label,
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: isActive ? activeColor : Colors.white24,
                     fontSize: 10,
                     fontWeight: FontWeight.w800)),
@@ -639,7 +709,7 @@ class _UserStatusBadge extends StatelessWidget {
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6)),
       child: Text(text.toUpperCase(),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: color, fontSize: 10, fontWeight: FontWeight.w900)),
     );
   }
@@ -736,12 +806,12 @@ class _MetricCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(value,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.w900)),
               Text(label,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white38,
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -779,14 +849,14 @@ class _BroadcastViewState extends State<_BroadcastView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('COMMUNICATION_HUB',
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 2)),
           const SizedBox(height: 8),
           Text(widget.locale.translate('broadcast_notification'),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
                   fontSize: 28)),
@@ -823,7 +893,7 @@ class _BroadcastViewState extends State<_BroadcastView> {
           ),
           const SizedBox(height: 60),
           Text('SYSTEM_CONTROL',
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white24,
                   fontWeight: FontWeight.w800,
                   fontSize: 11,
@@ -852,7 +922,7 @@ class _BroadcastViewState extends State<_BroadcastView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white38,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -897,7 +967,7 @@ class _SystemActionRow extends StatelessWidget {
               color: isDestructive ? Colors.red : Colors.white24, size: 20),
           const SizedBox(width: 16),
           Text(label,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: isDestructive ? Colors.red : Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w700)),
@@ -932,14 +1002,14 @@ class _AdMobView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('SYSTEM_CONTROL',
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: AppColors.primary,
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 2)),
           const SizedBox(height: 8),
           Text(locale.translate('admob_control'),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontWeight: FontWeight.w900,
                   fontSize: 28)),
@@ -1024,7 +1094,7 @@ class _PlatformCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.w700)),
@@ -1071,7 +1141,7 @@ class _ToggleTile extends StatelessWidget {
             Icon(icon, color: Colors.white24, size: 20),
             const SizedBox(width: 12),
             Text(label,
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white70,
                     fontSize: 14,
                     fontWeight: FontWeight.w500)),
@@ -1118,7 +1188,7 @@ class _ActionBtn extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.black))
               : Text(label.toUpperCase(),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: textColor,
                       fontSize: 13,
                       fontWeight: FontWeight.w900,

@@ -95,7 +95,7 @@ class TerminalDialog extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     body,
-                    style: GoogleFonts.inter(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.5),
                       fontSize: 14,
                       height: 1.5,

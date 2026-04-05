@@ -33,7 +33,7 @@ class _ChatListPageState extends State<ChatListPage> {
         body: Center(
           child: Text(
             locale.translate('login_to_chat'),
-            style: GoogleFonts.inter(color: AppColors.onSurfaceVariant),
+            style: AppLocalization.digitalFont(context, color: AppColors.onSurfaceVariant),
           ),
         ),
       );
@@ -57,11 +57,11 @@ class _ChatListPageState extends State<ChatListPage> {
               ),
               child: TextField(
                 controller: _searchController,
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+                style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: locale.translate('search_conversations'),
                   hintStyle:
-                      GoogleFonts.inter(color: Colors.white.withOpacity(0.15)),
+                      AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15)),
                   prefixIcon: Icon(Icons.search_rounded,
                       color: Colors.white.withOpacity(0.3), size: 20),
                   border: InputBorder.none,
@@ -158,7 +158,7 @@ class _ChatListPageState extends State<ChatListPage> {
           const SizedBox(height: 16),
           Text(
             locale.translate('no_chats_yet'),
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: AppColors.onSurface,
                 fontSize: 18,
                 fontWeight: FontWeight.w600),
@@ -263,7 +263,7 @@ class _ChatTileState extends State<_ChatTile> {
                             (user?.name != null)
                                 ? '@${user!.name.toLowerCase().replaceAll(' ', '_')}'
                                 : '...',
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
                               fontSize: 18,
@@ -271,7 +271,7 @@ class _ChatTileState extends State<_ChatTile> {
                           ),
                           Text(
                             timeStr,
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.3),
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -287,7 +287,7 @@ class _ChatTileState extends State<_ChatTile> {
                               widget.chat.lastMessage.isNotEmpty
                                   ? widget.chat.lastMessage
                                   : '...',
-                              style: GoogleFonts.inter(
+                              style: AppLocalization.digitalFont(context, 
                                 color: Colors.white.withOpacity(0.5),
                                 fontSize: 13,
                                 height: 1.4,
@@ -307,7 +307,7 @@ class _ChatTileState extends State<_ChatTile> {
                               ),
                               child: Text(
                                 '3',
-                                style: GoogleFonts.spaceGrotesk(
+                                style: AppLocalization.digitalFont(context, 
                                   color: Colors.black,
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,

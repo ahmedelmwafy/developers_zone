@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
@@ -70,6 +69,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Future<void> _pickAndUploadImage() async {
+    final locale = AppLocalization.of(context)!;
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
@@ -85,21 +85,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
           _imageController.text = url;
           _isUploadingImage = false;
         });
-        AppWidgets.showSnackBar(context, 'Profile image uploaded successfully.', type: SnackBarType.success);
+        AppWidgets.showSnackBar(context, locale.translate('profile_image_uploaded'), type: SnackBarType.success);
       } else {
         setState(() => _isUploadingImage = false);
-        AppWidgets.showSnackBar(context, 'Failed to upload image.', type: SnackBarType.error);
+        AppWidgets.showSnackBar(context, locale.translate('profile_image_failed'), type: SnackBarType.error);
       }
     }
   }
 
   Future<void> _updateProfile() async {
+    final locale = AppLocalization.of(context)!;
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthController>(context, listen: false);
     final user = auth.currentUser!;
 
     if (_nameController.text.trim().isEmpty) {
-      AppWidgets.showSnackBar(context, 'Name field is required.', type: SnackBarType.error);
+      AppWidgets.showSnackBar(context, locale.translate('name_required'), type: SnackBarType.error);
       setState(() => _isLoading = false);
       return;
     }
@@ -123,7 +124,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       await auth.updateProfile(updated);
       if (mounted) {
-        AppWidgets.showSnackBar(context, 'Profile records synchronized successfully.', type: SnackBarType.success);
+        AppWidgets.showSnackBar(context, locale.translate('profile_sync_success'), type: SnackBarType.success);
         Navigator.pop(context);
       }
     } catch (e) {
@@ -198,9 +199,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
             const SizedBox(height: 16),
             _TerminalField(label: 'GITHUB', controller: _githubController, hint: 'github.com/username'),
             const SizedBox(height: 16),
-            _TerminalField(label: 'LINKEDIN', controller: _linkedinController, hint: 'linkedin.com/in/username'),
+            _TerminalField(label: locale.translate('LINKEDIN').toUpperCase(), controller: _linkedinController, hint: 'linkedin.com/in/username'),
             const SizedBox(height: 16),
-            _TerminalField(label: 'PORTFOLIO', controller: _portfolioController, hint: 'https://website.com'),
+            _TerminalField(label: locale.translate('PORTFOLIO').toUpperCase(), controller: _portfolioController, hint: 'https://website.com'),
             const SizedBox(height: 100),
           ],
         ),
@@ -271,7 +272,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             },
             child: AbsorbPointer(
               child: _TerminalField(
-                label: 'BIRTH_DATE',
+                label: locale.translate('BIRTH_DATE').toUpperCase(),
                 controller: TextEditingController(
                   text: _selectedBirthDate == null ? '' : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
                 ),
@@ -303,7 +304,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     value: _selectedGender,
                     isExpanded: true,
                     dropdownColor: const Color(0xFF161616),
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                    style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                     items: [
                       DropdownMenuItem(
                           value: 'Male', child: Text(locale.translate('male'))),
@@ -355,7 +356,7 @@ class _TerminalField extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: isMultiline ? 4 : 1,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+          style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),

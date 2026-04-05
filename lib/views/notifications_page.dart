@@ -30,8 +30,8 @@ class NotificationsPage extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'NOTIFICATIONS',
-          style: GoogleFonts.spaceGrotesk(
+          locale.translate('NOTIFICATIONS_CAPS'),
+          style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF),
             fontWeight: FontWeight.w800,
             fontSize: 14,
@@ -43,8 +43,8 @@ class NotificationsPage extends StatelessWidget {
             padding: const EdgeInsets.only(right: 16),
             child: Center(
               child: Text(
-                'DEV_ZONE',
-                style: GoogleFonts.spaceGrotesk(
+                locale.translate('DEV_ZONE'),
+                style: AppLocalization.digitalFont(context, 
                   color: const Color(0xFF00E5FF),
                   fontWeight: FontWeight.w900,
                   fontSize: 14,
@@ -71,7 +71,7 @@ class NotificationsPage extends StatelessWidget {
                         children: [
                           Text(
                             locale.translate('latest_logs').toUpperCase(),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: const Color(0xFF00E5FF),
                               fontWeight: FontWeight.w800,
                               fontSize: 11,
@@ -81,7 +81,7 @@ class NotificationsPage extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             locale.translate('stream_activity'),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white,
                               fontWeight: FontWeight.w800,
                               fontSize: 32,
@@ -99,7 +99,7 @@ class NotificationsPage extends StatelessWidget {
                           ),
                           child: Text(
                             locale.translate('mark_all_read'),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.7),
                               fontWeight: FontWeight.w800,
                               fontSize: 10,
@@ -132,7 +132,7 @@ class NotificationsPage extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 Text(
                                   locale.translate('all_clear'),
-                                  style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.1), fontWeight: FontWeight.w800, letterSpacing: 2),
+                                  style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.1), fontWeight: FontWeight.w800, letterSpacing: 2),
                                 ),
                               ],
                             ),
@@ -199,7 +199,7 @@ class NotificationCard extends StatelessWidget {
                         ),
                       Text(
                         _getTypeLabel(notification.type, locale).toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                           color: Colors.white.withOpacity(0.6),
                           fontWeight: FontWeight.w800,
                           fontSize: 10,
@@ -210,7 +210,7 @@ class NotificationCard extends StatelessWidget {
                   ),
                   Text(
                     _timeAgo(notification.createdAt, locale).toUpperCase(),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.2),
                       fontWeight: FontWeight.w800,
                       fontSize: 10,
@@ -230,7 +230,7 @@ class NotificationCard extends StatelessWidget {
                       children: [
                         RichText(
                           text: TextSpan(
-                            style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.8), fontSize: 13, height: 1.5),
+                            style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.8), fontSize: 13, height: 1.5),
                             children: _parseBody(notification.body),
                           ),
                         ),
@@ -280,20 +280,20 @@ class NotificationCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: GoogleFonts.spaceGrotesk(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+        style: AppLocalization.digitalFont(context, color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
       ),
     );
   }
 
   String _getTypeLabel(NotificationType type, AppLocalization locale) {
     switch (type) {
-      case NotificationType.message: return 'MESSAGE_INBOUND';
+      case NotificationType.message: return locale.translate('MESSAGE_INBOUND');
       case NotificationType.like: return locale.translate('social_reaction');
       case NotificationType.follow: return locale.translate('new_connection');
       case NotificationType.profileView: return locale.translate('profile_interact');
-      case NotificationType.verify: return 'NODE_VERIFIED';
-      case NotificationType.approve: return 'ACCESS_GRANTED';
-      default: return 'LOG_ENTRY';
+      case NotificationType.verify: return locale.translate('NODE_VERIFIED');
+      case NotificationType.approve: return locale.translate('ACCESS_GRANTED');
+      default: return locale.translate('LOG_ENTRY');
     }
   }
 
@@ -319,9 +319,9 @@ class NotificationCard extends StatelessWidget {
 
   String _timeAgo(DateTime dt, AppLocalization locale) {
     final diff = DateTime.now().difference(dt);
-    if (diff.inDays > 0) return locale.translate('d_ago').replaceFirst('{}', diff.inDays.toString());
-    if (diff.inHours > 0) return '${diff.inHours}H AGO';
-    if (diff.inMinutes > 0) return '${diff.inMinutes}M AGO';
+    if (diff.inDays > 0) return locale.translate('days_ago').replaceFirst('{}', diff.inDays.toString());
+    if (diff.inHours > 0) return locale.translate('H_AGO').replaceFirst('{}', diff.inHours.toString());
+    if (diff.inMinutes > 0) return locale.translate('M_AGO').replaceFirst('{}', diff.inMinutes.toString());
     return locale.translate('just_now');
   }
 

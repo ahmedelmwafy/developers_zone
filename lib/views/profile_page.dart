@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
 import '../models/user_model.dart';
@@ -8,7 +9,6 @@ import '../models/post_model.dart';
 import '../services/firestore_service.dart';
 import 'chat_detail_screen.dart';
 import 'network_page.dart';
-import 'settings_screen.dart';
 import 'admin_dashboard_page.dart';
 import 'edit_profile_page.dart';
 import '../providers/app_provider.dart';
@@ -148,7 +148,7 @@ class _ProfileView extends StatelessWidget {
         ),
         title: Text(
           AppLocalization.of(context)!.translate('profile_caps'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: Colors.white,
               fontWeight: FontWeight.w800,
               fontSize: 16,
@@ -166,7 +166,7 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(height: 48),
             _buildStatsHeader(context),
             const SizedBox(height: 40),
-            _buildNodalMetadata(locale),
+            _buildNodalMetadata(context, locale),
             const SizedBox(height: 40),
             _buildActionButtons(context, isFollowing, auth),
             const SizedBox(height: 48),
@@ -178,13 +178,13 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildNodalMetadata(AppLocalization locale) {
+  Widget _buildNodalMetadata(BuildContext context, AppLocalization locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           locale.translate('NODE_METADATA'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF).withOpacity(0.4),
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -201,6 +201,7 @@ class _ProfileView extends StatelessWidget {
           child: Column(
             children: [
               _buildMetadataRow(
+                context,
                 locale.translate('location').toUpperCase(),
                 user.city.isNotEmpty && user.country.isNotEmpty
                     ? '${user.city.toUpperCase()}, ${user.country.toUpperCase()}'
@@ -209,12 +210,14 @@ class _ProfileView extends StatelessWidget {
               ),
               if (user.company.isNotEmpty)
                 _buildMetadataRow(
-                  locale.translate('company_label').toUpperCase(),
+                  context,
+                  locale.translate('company').toUpperCase(),
                   user.company.toUpperCase(),
-                  Icons.business_rounded,
+                  Icons.business_center_outlined,
                 ),
               _buildMetadataDivider(),
               _buildMetadataRow(
+                context,
                 locale.translate('birth_date').toUpperCase(),
                 user.birthDate != null
                     ? '${user.age} ${locale.translate('YEAR_CYCLE')}'
@@ -222,6 +225,7 @@ class _ProfileView extends StatelessWidget {
                 Icons.history_toggle_off_rounded,
               ),
               _buildMetadataRow(
+                context,
                 locale.translate('gender').toUpperCase(),
                 user.gender?.toUpperCase() ??
                     locale.translate('UNKNOWN_VARIANT'),
@@ -234,13 +238,13 @@ class _ProfileView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (user.socialLinks!['github']?.isNotEmpty == true)
-                      _buildSocialChip('GITHUB', Icons.code_rounded,
+                      _buildSocialChip(context, 'GITHUB', Icons.code_rounded,
                           user.socialLinks!['github']!),
                     if (user.socialLinks!['linkedin']?.isNotEmpty == true)
-                      _buildSocialChip('LINKEDIN', Icons.link_rounded,
+                      _buildSocialChip(context, 'LINKEDIN', Icons.link_rounded,
                           user.socialLinks!['linkedin']!),
                     if (user.socialLinks!['portfolio']?.isNotEmpty == true)
-                      _buildSocialChip('PORTFOLIO', Icons.language_rounded,
+                      _buildSocialChip(context, 'PORTFOLIO', Icons.language_rounded,
                           user.socialLinks!['portfolio']!),
                   ],
                 ),
@@ -252,7 +256,8 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildMetadataRow(String label, String value, IconData icon) {
+  Widget _buildMetadataRow(
+      BuildContext context, String label, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
       child: Row(
@@ -264,7 +269,7 @@ class _ProfileView extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 label,
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white24,
                     fontSize: 10,
                     fontWeight: FontWeight.w800,
@@ -274,7 +279,7 @@ class _ProfileView extends StatelessWidget {
           ),
           Text(
             value,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
           ),
         ],
@@ -287,7 +292,8 @@ class _ProfileView extends StatelessWidget {
       height: 1,
       color: Colors.white.withOpacity(0.03));
 
-  Widget _buildSocialChip(String label, IconData icon, String url) {
+  Widget _buildSocialChip(
+      BuildContext context, String label, IconData icon, String url) {
     return GestureDetector(
       onTap: () async {
         final uri = Uri.parse(url);
@@ -309,7 +315,7 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(width: 8),
             Text(
               label,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: const Color(0xFF00E5FF),
                   fontSize: 9,
                   fontWeight: FontWeight.w800),
@@ -341,7 +347,7 @@ class _ProfileView extends StatelessWidget {
               if (user.profileImage.isEmpty)
                 Center(
                     child: Text(user.initials,
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.1),
                             fontSize: 48,
                             fontWeight: FontWeight.w800))),
@@ -368,7 +374,7 @@ class _ProfileView extends StatelessWidget {
           children: [
             Text(
               user.name,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontSize: 32,
                   fontWeight: FontWeight.w800),
@@ -381,7 +387,7 @@ class _ProfileView extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           '${user.position.toUpperCase()}${user.company.isNotEmpty ? ' @ ${user.company.toUpperCase()}' : ''}',
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF).withOpacity(0.6),
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -393,7 +399,7 @@ class _ProfileView extends StatelessWidget {
           child: Text(
             user.bio,
             textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.5),
                 fontSize: 14,
                 height: 1.6),
@@ -475,13 +481,13 @@ class _ProfileView extends StatelessWidget {
       child: Column(
         children: [
           Text(value,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           Text(label,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.3),
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
@@ -502,6 +508,7 @@ class _ProfileView extends StatelessWidget {
           children: [
             Expanded(
               child: _buildMainButton(
+                context,
                 label: isFollowing
                     ? AppLocalization.of(context)!
                         .translate('following')
@@ -524,6 +531,7 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: _buildMainButton(
+                context,
                 label: AppLocalization.of(context)!.translate('message_caps'),
                 onTap: () async {
                   final chatId = await FirestoreService()
@@ -573,7 +581,7 @@ class _ProfileView extends StatelessWidget {
             children: [
               Text(
                 locale.translate('ACCOUNT_MANAGEMENT'),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white,
                     fontSize: 20,
                     fontWeight: FontWeight.w800),
@@ -589,7 +597,7 @@ class _ProfileView extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             locale.translate('ACCOUNT_MANAGEMENT_SUB'),
-            style: GoogleFonts.inter(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.5),
                 fontSize: 13,
                 height: 1.4),
@@ -612,7 +620,7 @@ class _ProfileView extends StatelessWidget {
                   Expanded(
                     child: Text(
                       locale.translate('edit_profile'),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.black,
                           fontWeight: FontWeight.w800,
                           fontSize: 15),
@@ -626,6 +634,7 @@ class _ProfileView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildConfigActionTile(
+            context,
             icon: Icons.visibility_rounded,
             title: locale.translate('PREVIEW_PUBLIC_PROFILE'),
             onTap: () => Navigator.of(context).push(
@@ -642,7 +651,7 @@ class _ProfileView extends StatelessWidget {
                     ),
                     title: Text(
                       locale.translate('PREVIEW_MODE'),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: const Color(0xFF00E5FF).withOpacity(0.5),
                           fontWeight: FontWeight.w800,
                           fontSize: 12,
@@ -660,7 +669,7 @@ class _ProfileView extends StatelessWidget {
                         const SizedBox(height: 48),
                         _buildStatsHeader(context),
                         const SizedBox(height: 40),
-                        _buildNodalMetadata(locale),
+                        _buildNodalMetadata(context, locale),
                         const SizedBox(height: 48),
                         _buildActivityFeed(
                             Provider.of<PostController>(context)),
@@ -672,19 +681,20 @@ class _ProfileView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          _buildConfigActionTile(
-            icon: Icons.history_rounded,
-            title: locale.translate('change_password'),
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
+          // const SizedBox(height: 12),
+          // _buildConfigActionTile(
+          //   icon: Icons.history_rounded,
+          //   title: locale.translate('change_password'),
+          //   onTap: () => Navigator.of(context).push(
+          //       MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          // ),
         ],
       ),
     );
   }
 
-  Widget _buildConfigActionTile({
+  Widget _buildConfigActionTile(
+    BuildContext context, {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
@@ -706,7 +716,7 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               title,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: titleColor ?? Colors.white.withOpacity(0.8),
                   fontWeight: FontWeight.w700,
                   fontSize: 14),
@@ -730,7 +740,7 @@ class _ProfileView extends StatelessWidget {
         children: [
           Text(
             locale.translate('NETWORK_HUB'),
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 24),
@@ -766,7 +776,7 @@ class _ProfileView extends StatelessWidget {
           const SizedBox(height: 32),
           Text(
             locale.translate('LAST_SYNC').replaceFirst('{}', '14:32'),
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.2),
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
@@ -802,7 +812,7 @@ class _ProfileView extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               label,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.6),
                   fontWeight: FontWeight.w700,
                   fontSize: 14),
@@ -810,7 +820,7 @@ class _ProfileView extends StatelessWidget {
             const Spacer(),
             Text(
               value,
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: const Color(0xFF00E5FF),
                   fontWeight: FontWeight.w800,
                   fontSize: 18),
@@ -820,7 +830,6 @@ class _ProfileView extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildPrivilegedAccess(
       BuildContext context, AuthController auth, AppLocalization locale) {
@@ -855,7 +864,7 @@ class _ProfileView extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       locale.translate('PRIVILEGED_ACCESS'),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: const Color(0xFF00E5FF),
                           fontSize: 10,
                           fontWeight: FontWeight.w800,
@@ -866,7 +875,7 @@ class _ProfileView extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   locale.translate('admin_dashboard_title'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 18,
                       fontWeight: FontWeight.w800),
@@ -889,7 +898,7 @@ class _ProfileView extends StatelessWidget {
                     child: Center(
                       child: Text(
                         locale.translate('INITIALIZE_TERMINAL'),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: const Color(0xFF00E5FF),
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -906,8 +915,7 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-
-  Widget _buildMainButton(
+  Widget _buildMainButton(BuildContext context,
       {required String label,
       bool isActive = false,
       required VoidCallback onTap}) {
@@ -929,7 +937,7 @@ class _ProfileView extends StatelessWidget {
         child: Center(
           child: Text(
             label,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: isActive ? Colors.white : Colors.black,
                 fontWeight: FontWeight.w900,
                 fontSize: 13,
@@ -955,7 +963,7 @@ class _ProfileView extends StatelessWidget {
               padding: const EdgeInsets.only(top: 40),
               child: Text(
                 AppLocalization.of(context)!.translate('no_commit_history'),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white.withOpacity(0.1),
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
@@ -974,6 +982,7 @@ class _ProfileView extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
               child: _buildCommitCard(
+                context,
                 status:
                     AppLocalization.of(context)!.translate('committed_caps'),
                 time: _timeAgo(post.createdAt, context),
@@ -1019,7 +1028,7 @@ class _ProfileView extends StatelessWidget {
     return locale.translate('just_now');
   }
 
-  Widget _buildCommitCard(
+  Widget _buildCommitCard(BuildContext context,
       {required String status,
       required String time,
       required String content,
@@ -1046,7 +1055,7 @@ class _ProfileView extends StatelessWidget {
                   Row(
                     children: [
                       Text(user.name,
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(context, 
                               color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w700)),
@@ -1059,7 +1068,7 @@ class _ProfileView extends StatelessWidget {
                               shape: BoxShape.circle)),
                       const SizedBox(width: 6),
                       Text(status,
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.5),
                               fontSize: 9,
                               fontWeight: FontWeight.w800,
@@ -1067,7 +1076,7 @@ class _ProfileView extends StatelessWidget {
                     ],
                   ),
                   Text(time,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white.withOpacity(0.2),
                           fontSize: 9,
                           fontWeight: FontWeight.w700)),
@@ -1085,7 +1094,7 @@ class _ProfileView extends StatelessWidget {
               }
             },
             styleSheet: MarkdownStyleSheet(
-              p: GoogleFonts.inter(
+              p: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 13,
                 height: 1.6,
@@ -1108,9 +1117,11 @@ class _ProfileView extends StatelessWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              _buildInteraction(Icons.favorite_rounded, likes.toString()),
+              _buildInteraction(
+                  context, Icons.favorite_rounded, likes.toString()),
               const SizedBox(width: 24),
-              _buildInteraction(Icons.chat_bubble_rounded, comments.toString()),
+              _buildInteraction(
+                  context, Icons.chat_bubble_rounded, comments.toString()),
               const Spacer(),
               Icon(Icons.share_rounded,
                   color: Colors.white.withOpacity(0.2), size: 18),
@@ -1184,13 +1195,13 @@ class _ProfileView extends StatelessWidget {
 
   // Removed unused _buildImagePayload in favor of PostMediaWidget
 
-  Widget _buildInteraction(IconData icon, String count) {
+  Widget _buildInteraction(BuildContext context, IconData icon, String count) {
     return Row(
       children: [
         Icon(icon, color: Colors.white.withOpacity(0.2), size: 18),
         const SizedBox(width: 8),
         Text(count,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.4),
                 fontSize: 12,
                 fontWeight: FontWeight.w700)),

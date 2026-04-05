@@ -11,6 +11,7 @@ import '../models/user_model.dart';
 import '../services/imgbb_service.dart';
 import 'chat_config_page.dart';
 import '../providers/app_provider.dart';
+import 'components/zoomable_image_page.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -37,6 +38,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _loadOtherUser() async {
+    if (widget.otherUserId.isEmpty) return;
     final user = await FirestoreService().getUser(widget.otherUserId);
     if (mounted) setState(() => _otherUser = user);
   }
@@ -213,7 +215,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   Text(
                     _otherUser?.name.toUpperCase() ?? AppLocalization.of(context)!.translate('loading_dots'),
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white,
                         fontSize: 13,
                         fontWeight: FontWeight.w800,
@@ -221,7 +223,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   ),
                   Text(
                     '${AppLocalization.of(context)!.translate('active_now')} • ${_otherUser?.position.toUpperCase() ?? AppLocalization.of(context)!.translate('contributor')}',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.3),
                         fontSize: 8,
                         fontWeight: FontWeight.w700,
@@ -282,17 +284,33 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (message.image != null) ...[
-                          ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(message.image!,
-                                  fit: BoxFit.cover)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ZoomableImagePage(
+                                    imageUrl: message.image!,
+                                    heroTag: 'chat_img_${message.id}',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Hero(
+                              tag: 'chat_img_${message.id}',
+                              child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.network(message.image!,
+                                      fit: BoxFit.cover)),
+                            ),
+                          ),
                           if (message.text.isNotEmpty)
                             const SizedBox(height: 12),
                         ],
                         if (message.text.isNotEmpty)
                           Text(
                             message.text,
-                            style: GoogleFonts.inter(
+                            style: AppLocalization.digitalFont(context, 
                                 color: Colors.white.withOpacity(0.85),
                                 fontSize: 14,
                                 height: 1.55),
@@ -315,7 +333,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               children: [
                 Text(
                   _formatTime(message.createdAt),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.2),
                       fontSize: 8,
                       fontWeight: FontWeight.w800),
@@ -334,7 +352,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   isMe ? (message.isSeen ? AppLocalization.of(context)!.translate('delivered') : AppLocalization.of(context)!.translate('sent')) : AppLocalization.of(context)!.translate('encrypted'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.2),
                       fontSize: 8,
                       fontWeight: FontWeight.w800),
@@ -448,10 +466,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     child: TextField(
                       controller: _messageController,
                       style:
-                          GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                          AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                       decoration: InputDecoration(
                           hintText: AppLocalization.of(context)!.translate('initialize_message_sequence'),
-                          hintStyle: GoogleFonts.inter(
+                          hintStyle: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.1),
                               fontSize: 13),
                           border: InputBorder.none),
@@ -495,7 +513,7 @@ class _ActionTile extends StatelessWidget {
       leading:
           Icon(icon, color: color ?? Colors.white.withOpacity(0.4), size: 22),
       title: Text(label,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: color ?? Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w700)),

@@ -58,14 +58,14 @@ class PostCard extends StatelessWidget {
                 _buildDynamicContent(parts, context),
                 if (parts['code'] != null) ...[
                   const SizedBox(height: 16),
-                  _buildCodeManifest(parts['code']!),
+                  _buildCodeManifest(context, parts['code']!),
                 ],
                 if (post.images.isNotEmpty) ...[
                   const SizedBox(height: 16),
                   PostMediaWidget(images: post.images),
                 ],
                 const SizedBox(height: 24),
-                _buildActionRow(post, isLiked, currentUser, postController,
+                _buildActionRow(post, isLiked, currentUser, authController, postController,
                     locale, context),
               ],
             ),
@@ -104,7 +104,7 @@ class PostCard extends StatelessWidget {
         if (parts['title'] != null) ...[
           Text(
             parts['title']!,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -125,7 +125,8 @@ class PostCard extends StatelessWidget {
                 }
               },
               styleSheet: MarkdownStyleSheet(
-                p: GoogleFonts.inter(
+                p: AppLocalization.digitalFont(
+                  context,
                   color: Colors.white.withOpacity(0.7),
                   fontSize: 14,
                   height: 1.6,
@@ -172,7 +173,7 @@ class PostCard extends StatelessWidget {
                   : null,
               child: post.authorProfileImage.isEmpty
                   ? Text(post.authorInitials,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w800))
@@ -187,7 +188,8 @@ class PostCard extends StatelessWidget {
             children: [
               Text(
                 post.authorName,
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(
+                  context,
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
@@ -196,7 +198,7 @@ class PostCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 'COMMITTED ${_timeAgo(post.createdAt, locale).toUpperCase()} • ${post.authorPosition.toUpperCase()}',
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.35),
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
@@ -234,33 +236,33 @@ class PostCard extends StatelessWidget {
       },
       itemBuilder: (_) => isMe
           ? [
-              _buildMenuItem('delete', Icons.delete_outline_rounded,
+              _buildMenuItem(context, 'delete', Icons.delete_outline_rounded,
                   locale.translate('delete'), Colors.redAccent),
             ]
           : [
-              _buildMenuItem('block', Icons.block_rounded,
+              _buildMenuItem(context, 'block', Icons.block_rounded,
                   locale.translate('block'), Colors.redAccent),
             ],
     );
   }
 
   PopupMenuItem<String> _buildMenuItem(
-      String value, IconData icon, String text, Color color) {
+      BuildContext context, String value, IconData icon, String text, Color color) {
     return PopupMenuItem(
       value: value,
       child: Row(
         children: [
           Icon(icon, color: color, size: 18),
           const SizedBox(width: 10),
-          Text(text, style: GoogleFonts.inter(color: color, fontSize: 13)),
+          Text(text,
+              style: AppLocalization.digitalFont(context,
+                  color: color, fontSize: 13)),
         ],
       ),
     );
   }
 
-  // Removed unused _buildPostMedia in favor of PostMediaWidget
-
-  Widget _buildCodeManifest(String code) {
+  Widget _buildCodeManifest(BuildContext context, String code) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -299,7 +301,7 @@ class PostCard extends StatelessWidget {
                       color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
               Text('CODE_MANIFEST',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.1),
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
@@ -325,13 +327,18 @@ class PostCard extends StatelessWidget {
       PostModel post,
       bool isLiked,
       dynamic currentUser,
+      AuthController authController,
       PostController postController,
       AppLocalization locale,
       BuildContext context) {
+    
+    final isSaved = currentUser != null && currentUser.savedPosts.contains(post.id);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         _buildInteractionIcon(
+          context,
           isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
           '${post.likes.length}',
           isLiked ? Colors.redAccent : Colors.white.withOpacity(0.4),
@@ -342,32 +349,56 @@ class PostCard extends StatelessWidget {
         ),
         const SizedBox(width: 24),
         _buildInteractionIcon(
+          context,
           Icons.chat_bubble_outline_rounded,
           '${post.commentCount}',
           Colors.white.withOpacity(0.4),
           () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => PostDetailsPage(post: post))),
         ),
+        const Spacer(),
+        _buildInteractionIcon(
+          context,
+          isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
+          '',
+          isSaved ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.4),
+          () async {
+            if (currentUser != null) {
+              await postController.toggleSavedPost(currentUser.uid, post.id, !isSaved);
+              await authController.refreshUser();
+            }
+          },
+        ),
       ],
     );
   }
 
-  Widget _buildInteractionIcon(
-      IconData icon, String label, Color color, VoidCallback onTap) {
+  Widget _buildInteractionIcon(BuildContext context, IconData icon,
+      String label, Color color, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Row(
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: GoogleFonts.spaceGrotesk(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+            child: Icon(icon, key: ValueKey(icon), color: color, size: 20),
           ),
+          if (label.isNotEmpty) ...[
+            const SizedBox(width: 6),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: Text(
+                label,
+                key: ValueKey(label),
+                style: AppLocalization.digitalFont(context, 
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

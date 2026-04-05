@@ -151,9 +151,10 @@ class NotificationService {
               if (extraData != null) ...extraData,
             },
             'android': {
+              'priority': 'HIGH',
               'notification': {
                 'channel_id': 'high_importance_channel',
-                'priority': 'high',
+                'notification_priority': 'PRIORITY_HIGH',
               }
             },
             'apns': {

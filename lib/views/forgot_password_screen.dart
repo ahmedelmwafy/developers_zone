@@ -56,7 +56,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ),
         title: Text(
           locale.translate('RECOVER_ACCESS'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF),
             fontWeight: FontWeight.w700,
             fontSize: 14,
@@ -75,7 +75,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               // Title
               Text(
                 locale.translate('RECOVER_ACCESS'),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white,
                   fontSize: 42,
                   fontWeight: FontWeight.w700,
@@ -88,7 +88,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               
               Text(
                 locale.translate('RECOVERY_DESC'),
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.6),
                   fontSize: 15,
                   height: 1.6,
@@ -111,7 +111,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     _TerminalLabel(locale.translate('TERMINAL_AUTH_INPUT')),
                     TextField(
                       controller: _emailController,
-                      style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+                      style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
                       decoration: _terminalInputDecoration(Icons.mail_outline, 'user@devzone.node'),
                     ),
                     
@@ -144,7 +144,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         const SizedBox(width: 12),
                         Text(
                           locale.translate('ENCRYPTION_NODE_ACTIVE'),
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.4),
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
@@ -181,7 +181,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: Text(
                    '© 2024 DEVELOPERS ZONE TERMINAL.\nAUTHORIZED ACCESS ONLY.',
                    textAlign: TextAlign.center,
-                   style: GoogleFonts.spaceGrotesk(
+                   style: AppLocalization.digitalFont(context, 
                      color: Colors.white.withOpacity(0.15),
                      fontSize: 9,
                      fontWeight: FontWeight.w600,
@@ -203,7 +203,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return InputDecoration(
       prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.5), size: 18),
       hintText: hint,
-      hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.2)),
+      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2)),
       filled: true,
       fillColor: Colors.black.withOpacity(0.2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
@@ -224,7 +224,7 @@ class _TerminalLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8),
       child: Text(
         text,
-        style: GoogleFonts.spaceGrotesk(
+        style: AppLocalization.digitalFont(context, 
           color: const Color(0xFF00E5FF).withOpacity(0.8),
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -277,7 +277,7 @@ class _ExecuteButton extends StatelessWidget {
                   )
                 : Text(
                     label,
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                       color: Colors.black.withOpacity(0.8),
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -305,7 +305,7 @@ class _DiagnosticItem extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.4),
             fontSize: 9,
             fontWeight: FontWeight.w700,
@@ -315,7 +315,7 @@ class _DiagnosticItem extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           value,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.8),
             fontSize: 12,
             fontWeight: FontWeight.w700,

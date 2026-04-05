@@ -95,7 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 child: Row(
                   children: [
                     Text(_selectedRole == 'ALL' ? locale.translate('SORT_BY_RELEVANCE') : _selectedRole.toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: const Color(0xFF00E5FF),
                             fontSize: 10,
                             fontWeight: FontWeight.w700)),
@@ -135,10 +135,10 @@ class _SearchScreenState extends State<SearchScreen> {
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
+        style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: locale.translate('search_hint'),
-          hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.15)),
+          hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15)),
           prefixIcon: Icon(Icons.search_rounded,
               color: Colors.white.withOpacity(0.3), size: 20),
           border: InputBorder.none,
@@ -191,7 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   const SizedBox(height: 16),
                   Text(
                     locale.translate('no_developers_found').replaceAll('\"{}\"', ''),
-                    style: GoogleFonts.inter(color: Colors.white30),
+                    style: AppLocalization.digitalFont(context, color: Colors.white30),
                   ),
                 ],
               ),
@@ -257,7 +257,7 @@ class _SearchScreenState extends State<SearchScreen> {
               const SizedBox(height: 16),
               Text(
                   locale.translate('no_developers_found').replaceAll('\"{}\"', ''),
-                  style: GoogleFonts.inter(color: Colors.white.withOpacity(0.3))),
+                  style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.3))),
             ],
           ),
         ),
@@ -303,12 +303,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(locale.translate('FILTER_TRANSCRIPT'), style: GoogleFonts.spaceGrotesk(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(locale.translate('FILTER_TRANSCRIPT'), style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(locale.translate('verified_only'), style: GoogleFonts.inter(color: Colors.white.withOpacity(0.7))),
+                      Text(locale.translate('verified_only'), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.7))),
                       Switch(
                         value: _isVerifiedOnly,
                         activeColor: const Color(0xFF00E5FF),
@@ -320,7 +320,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text(locale.translate('ROLE_FILTER'), style: GoogleFonts.spaceGrotesk(color: Colors.white.withOpacity(0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  Text(locale.translate('ROLE_FILTER'), style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -341,7 +341,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           ),
                           child: Text(
                             role.toUpperCase(),
-                            style: GoogleFonts.spaceGrotesk(color: isSelected ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.w800),
+                            style: AppLocalization.digitalFont(context, color: isSelected ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.3), fontSize: 10, fontWeight: FontWeight.w800),
                           ),
                         ),
                       );
@@ -371,7 +371,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.5),
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -450,14 +450,14 @@ class _ContributorCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold),
                     ),
                     Text(
                       title,
-                      style: GoogleFonts.inter(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white.withOpacity(0.4), fontSize: 12),
                     ),
                   ],
@@ -467,12 +467,12 @@ class _ContributorCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(locale.translate('followers').toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white.withOpacity(0.3),
                           fontSize: 8,
                           fontWeight: FontWeight.w700)),
                   Text(followers,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold)),
@@ -493,7 +493,7 @@ class _ContributorCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(tag.toUpperCase(),
-                            style: GoogleFonts.spaceGrotesk(
+                            style: AppLocalization.digitalFont(context, 
                                 color: Colors.white.withOpacity(0.5),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700)),
@@ -516,7 +516,7 @@ class _ContributorCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   locale.translate('VIEW_PROFILE_CAPS'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                     color: Colors.black,
                     fontWeight: FontWeight.w800,
                     fontSize: 12,

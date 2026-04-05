@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/app_provider.dart';
+import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 
@@ -44,12 +45,10 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             MaterialPageRoute(builder: (_) => const HomeScreen()));
       } else {
         setState(() => _isRefreshing = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalization.of(context)!
-                .translate('VERIFICATION_PENDING')),
-            backgroundColor: const Color(0xFF161616),
-          ),
+        AppWidgets.showSnackBar(
+          context,
+          AppLocalization.of(context)!.translate('VERIFICATION_PENDING'),
+          type: SnackBarType.error,
         );
       }
     }
@@ -78,13 +77,13 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
                   const SizedBox(height: 20),
                   _buildHeader(),
                   const SizedBox(height: 60),
-                  _buildMainStatus(locale),
+                  _buildMainStatus(locale, user?.isBanned ?? false),
                   const SizedBox(height: 48),
                   _buildDetailsCard(
                       user?.uid.substring(0, 8).toUpperCase() ?? '8842-AX',
                       locale),
                   const SizedBox(height: 48),
-                  _buildActionButtons(locale),
+                  _buildActionButtons(locale, user?.isBanned ?? false),
                   const SizedBox(height: 60),
                   _buildSecurityLogs(),
                   const SizedBox(height: 40),
@@ -115,7 +114,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             const SizedBox(width: 12),
             Text(
               'Obsidian.Dev',
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -136,7 +135,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
     );
   }
 
-  Widget _buildMainStatus(AppLocalization locale) {
+  Widget _buildMainStatus(AppLocalization locale, bool isBanned) {
+    final statusColor = isBanned ? const Color(0xFFFF3D00) : const Color(0xFF00E5FF);
     return Column(
       children: [
         ScaleTransition(
@@ -146,22 +146,22 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
           child: Container(
             width: 16,
             height: 16,
-            decoration: const BoxDecoration(
-              color: Color(0xFF00E5FF),
+            decoration: BoxDecoration(
+              color: statusColor,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                    color: Color(0xFF00E5FF), blurRadius: 20, spreadRadius: 2),
+                    color: statusColor.withOpacity(0.5), blurRadius: 20, spreadRadius: 2),
               ],
             ),
           ),
         ),
         const SizedBox(height: 32),
         Text(
-          locale.translate('REVIEWING_NODE_CREDENTIALS'),
+          isBanned ? locale.translate('PROTOCOL_VIOLATION') : locale.translate('REVIEWING_NODE_CREDENTIALS'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.spaceGrotesk(
-            color: const Color(0xFF00E5FF),
+          style: AppLocalization.digitalFont(context, 
+            color: statusColor,
             fontSize: 12,
             fontWeight: FontWeight.w800,
             letterSpacing: 2,
@@ -169,8 +169,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 48),
         Text(
-          locale.translate('ACCESS_PENDING'),
-          style: GoogleFonts.spaceGrotesk(
+          isBanned ? locale.translate('ACCESS_REVOKED') : locale.translate('ACCESS_PENDING'),
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white,
             fontSize: 42,
             fontWeight: FontWeight.w900,
@@ -179,9 +179,9 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 24),
         Text(
-          locale.translate('ACCESS_PENDING_DESC'),
+          isBanned ? locale.translate('BANNED_DESC') : locale.translate('ACCESS_PENDING_DESC'),
           textAlign: TextAlign.center,
-          style: GoogleFonts.inter(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.5),
             fontSize: 15,
             height: 1.6,
@@ -222,7 +222,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       children: [
         Text(
           label,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF),
             fontSize: 10,
             fontWeight: FontWeight.w700,
@@ -232,7 +232,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         const SizedBox(height: 4),
         Text(
           value,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -242,43 +242,80 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
     );
   }
 
-  Widget _buildActionButtons(AppLocalization locale) {
+  Widget _buildActionButtons(AppLocalization locale, bool isBanned) {
     return Column(
       children: [
-        GestureDetector(
-          onTap: _isRefreshing ? null : _handleRefresh,
-          child: Container(
-            width: double.infinity,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00E5FF),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                    color: const Color(0xFF00E5FF).withOpacity(0.2),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8)),
-              ],
-            ),
-            child: Center(
-              child: _isRefreshing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                          color: Colors.black, strokeWidth: 3))
-                  : Text(
-                      locale.translate('REFRESH_STATUS'),
-                      style: GoogleFonts.spaceGrotesk(
-                        color: Colors.black,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 14,
-                        letterSpacing: 1,
-                      ),
-                    ),
+        if (isBanned) ...[
+          GestureDetector(
+            onTap: () {
+              AppWidgets.showSnackBar(
+                context,
+                locale.translate('contact_support_init'),
+                type: SnackBarType.success,
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF3D00),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFFFF3D00).withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8)),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  locale.translate('CONTACT_SUPPORT'),
+                  style: AppLocalization.digitalFont(context, 
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
             ),
           ),
-        ),
+        ] else ...[
+          GestureDetector(
+            onTap: _isRefreshing ? null : _handleRefresh,
+            child: Container(
+              width: double.infinity,
+              height: 60,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                      color: const Color(0xFF00E5FF).withOpacity(0.2),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8)),
+                ],
+              ),
+              child: Center(
+                child: _isRefreshing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.black, strokeWidth: 3))
+                    : Text(
+                        locale.translate('REFRESH_STATUS'),
+                        style: AppLocalization.digitalFont(context, 
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14,
+                          letterSpacing: 1,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
         GestureDetector(
           onTap: () async {
@@ -302,8 +339,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             ),
             child: Center(
               child: Text(
-                'LOGOUT_SESSION',
-                style: GoogleFonts.spaceGrotesk(
+                locale.translate('LOGOUT_SESSION'),
+                style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.5),
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
@@ -322,7 +359,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       children: [
         Text(
           AppLocalization.of(context)!.translate('SECURITY_LOGS'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.2),
             fontSize: 10,
             fontWeight: FontWeight.w700,

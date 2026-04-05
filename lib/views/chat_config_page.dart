@@ -53,7 +53,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         ),
         title: Text(
           AppLocalization.of(context)!.translate('chat_config'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF),
               fontWeight: FontWeight.w800,
               fontSize: 18,
@@ -165,13 +165,13 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         Text(
           _otherUser?.name ??
               AppLocalization.of(context)!.translate('loading_dots'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 4),
         Text(
           '${AppLocalization.of(context)!.translate('active_now')} • ${_otherUser?.position.toUpperCase() ?? AppLocalization.of(context)!.translate('kernel_contributor')}',
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.4),
               fontSize: 10,
               fontWeight: FontWeight.w800,
@@ -208,13 +208,13 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: color ?? Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w700)),
                   if (subLabel != null)
                     Text(subLabel,
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: color?.withOpacity(0.5) ??
                                 Colors.white.withOpacity(0.2),
                             fontSize: 9,
@@ -236,7 +236,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
       children: [
         Text(
           AppLocalization.of(context)!.translate('COMMIT_HISTORY'),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF).withOpacity(0.4),
               fontSize: 11,
               fontWeight: FontWeight.w800,
@@ -292,7 +292,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                   msg.text.isNotEmpty
                       ? msg.text
                       : '📷 ${AppLocalization.of(context)!.translate('image_payload')}',
-                  style: GoogleFonts.inter(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.8),
                       fontSize: 14,
                       height: 1.5),
@@ -305,7 +305,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                             .translate('seen_at')
                             .replaceFirst('{}',
                                 '${msg.createdAt.hour}:${msg.createdAt.minute}'),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.2),
                             fontSize: 8,
                             fontWeight: FontWeight.w800)),
@@ -317,7 +317,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                             color: Color(0xFF00E5FF), shape: BoxShape.circle)),
                     const SizedBox(width: 8),
                     Text(AppLocalization.of(context)!.translate('delivered'),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.2),
                             fontSize: 8,
                             fontWeight: FontWeight.w800)),
@@ -347,7 +347,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
               children: [
                 Text(
                   AppLocalization.of(context)!.translate('shared_assets'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: const Color(0xFF00E5FF).withOpacity(0.4),
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
@@ -357,7 +357,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                   AppLocalization.of(context)!
                       .translate('files_count')
                       .replaceFirst('{}', imageMessages.length.toString()),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.3),
                       fontSize: 10,
                       fontWeight: FontWeight.w800),
@@ -377,7 +377,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                 child: Center(
                   child: Text(
                     AppLocalization.of(context)!.translate('no_assets_found'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.2),
                         fontSize: 12,
                         fontWeight: FontWeight.w700),
@@ -427,12 +427,12 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         backgroundColor: const Color(0xFF161616),
         title: Text(
             AppLocalization.of(context)!.translate('purge_repo_confirm_title'),
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white, fontWeight: FontWeight.w800)),
         content: Text(
             AppLocalization.of(context)!
                 .translate('purge_repo_confirm_content'),
-            style: GoogleFonts.inter(color: Colors.white70)),
+            style: AppLocalization.digitalFont(context, color: Colors.white70)),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context),
@@ -440,7 +440,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                   AppLocalization.of(context)!
                       .translate('cancel')
                       .toUpperCase(),
-                  style: GoogleFonts.spaceGrotesk(color: Colors.white38))),
+                  style: AppLocalization.digitalFont(context, color: Colors.white38))),
           TextButton(
             onPressed: () {
               chatController.deleteChat(widget.chatId);
@@ -449,7 +449,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
               Navigator.pop(context); // Exit chat
             },
             child: Text(AppLocalization.of(context)!.translate('purge'),
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.redAccent, fontWeight: FontWeight.w800)),
           ),
         ],

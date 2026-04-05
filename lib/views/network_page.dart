@@ -94,7 +94,7 @@ class _NetworkPageState extends State<NetworkPage> {
           : null,
       title: Text(
         locale.translate('NETWORK_MANIFEST'),
-        style: GoogleFonts.spaceGrotesk(
+        style: AppLocalization.digitalFont(context, 
             color: const Color(0xFF00E5FF),
             fontWeight: FontWeight.w800,
             fontSize: 18,
@@ -116,7 +116,7 @@ class _NetworkPageState extends State<NetworkPage> {
           child: user.profileImage.isEmpty
               ? Center(
                   child: Text(user.initials,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w800)))
@@ -218,7 +218,7 @@ class _NetworkPageState extends State<NetworkPage> {
             const SizedBox(height: 32),
             Center(
                 child: Text(locale.translate('LOAD_MORE_NODES'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.2),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
@@ -264,14 +264,14 @@ class _NetworkPageState extends State<NetworkPage> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(title,
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white,
                     fontSize: 32,
                     fontWeight: FontWeight.w800)),
             if (count != null) ...[
               const SizedBox(width: 12),
               Text('($count)',
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.2),
                       fontSize: 24,
                       fontWeight: FontWeight.w700)),
@@ -281,7 +281,7 @@ class _NetworkPageState extends State<NetworkPage> {
         if (sub != null) ...[
           const SizedBox(height: 8),
           Text(sub,
-              style: GoogleFonts.inter(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.4),
                   fontSize: 14,
                   height: 1.5)),
@@ -307,10 +307,10 @@ class _NetworkPageState extends State<NetworkPage> {
       ),
       child: TextField(
         controller: _searchController,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.spaceGrotesk(
+          hintStyle: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.1),
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -355,13 +355,13 @@ class _NetworkPageState extends State<NetworkPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(user.name,
-                              style: GoogleFonts.spaceGrotesk(
+                              style: AppLocalization.digitalFont(context, 
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w800)),
                           const SizedBox(height: 2),
                           Text(user.position.toUpperCase(),
-                              style: GoogleFonts.spaceGrotesk(
+                              style: AppLocalization.digitalFont(context, 
                                   color: Colors.white.withOpacity(0.35),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
@@ -376,7 +376,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   user.bio.isNotEmpty ? user.bio : locale.translate('SYNCING_NODAL_BIOGRAPHY'),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.5),
                       fontSize: 13,
                       height: 1.6),
@@ -411,7 +411,7 @@ class _NetworkPageState extends State<NetworkPage> {
                     child: Center(
                       child: Text(
                         btnLabel,
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                           color: isOutline
                               ? Colors.white.withOpacity(0.6)
                               : Colors.black,
@@ -473,12 +473,12 @@ class _NetworkPageState extends State<NetworkPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('@${user.uid.substring(0, 8).toUpperCase()}',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w800)),
                 Text(locale.translate('blocked_relative_time').replaceFirst('{}', '3'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.2),
                         fontSize: 8,
                         fontWeight: FontWeight.w800)),
@@ -493,7 +493,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   border: Border.all(color: Colors.white.withOpacity(0.1)),
                   borderRadius: BorderRadius.circular(8)),
               child: Text(locale.translate('unblock'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white.withOpacity(0.6),
                       fontSize: 10,
                       fontWeight: FontWeight.w900)),
@@ -513,7 +513,7 @@ class _NetworkPageState extends State<NetworkPage> {
       child: Row(
         children: [
           Text(locale.translate('ACTIVE_RESTRICTIONS'),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
@@ -525,7 +525,7 @@ class _NetworkPageState extends State<NetworkPage> {
                 color: Colors.white.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(4)),
             child: Text('${count.toString().padLeft(2, '0')} ${locale.translate('total')}',
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: const Color(0xFF00E5FF).withOpacity(0.6),
                     fontSize: 8,
                     fontWeight: FontWeight.w900)),
@@ -537,7 +537,7 @@ class _NetworkPageState extends State<NetworkPage> {
           Flexible(
             child: Text('${locale.translate('filter_hint')}...',
                 overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white.withOpacity(0.1), fontSize: 10)),
           ),
         ],
@@ -562,7 +562,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   color: Color(0xFF00E5FF), size: 24),
               const SizedBox(width: 16),
               Text(locale.translate('PROTOCOL_ENFORCEMENT'),
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w800)),
@@ -571,7 +571,7 @@ class _NetworkPageState extends State<NetworkPage> {
           const SizedBox(height: 16),
           Text(
             locale.translate('protocol_enforcement_desc'),
-            style: GoogleFonts.inter(
+            style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.4),
                 fontSize: 12,
                 height: 1.6),
@@ -605,7 +605,7 @@ class _NetworkPageState extends State<NetworkPage> {
           color: Colors.white.withOpacity(0.05),
           borderRadius: BorderRadius.circular(6)),
       child: Text(text,
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.3),
               fontSize: 8,
               fontWeight: FontWeight.w900)),
@@ -654,7 +654,7 @@ class _TabItem extends StatelessWidget {
         children: [
           Text(
             label,
-            style: GoogleFonts.spaceGrotesk(
+            style: AppLocalization.digitalFont(context, 
               color: isActive
                   ? const Color(0xFF00E5FF)
                   : Colors.white.withOpacity(0.2),

@@ -139,7 +139,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF161616),
         title: Text(locale.translate('TAGS_LABEL'),
-            style: GoogleFonts.spaceGrotesk(color: Colors.white)),
+            style: AppLocalization.digitalFont(context, color: Colors.white)),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -179,7 +179,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF161616),
         title: Text(locale.translate('INSERT_LINK'),
-            style: GoogleFonts.spaceGrotesk(color: Colors.white)),
+            style: AppLocalization.digitalFont(context, color: Colors.white)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -268,7 +268,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           widget.postToEdit != null
               ? locale.translate('edit_post').toUpperCase()
               : locale.translate('create_post').toUpperCase(),
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
             color: Colors.white.withOpacity(0.3),
             fontWeight: FontWeight.w700,
             fontSize: 11,
@@ -299,14 +299,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             TextField(
               controller: _titleController,
               cursorColor: const Color(0xFF00E5FF),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(context, 
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
               ),
               decoration: InputDecoration(
                 hintText: locale.translate('ENTRY_TITLE'),
-                hintStyle: GoogleFonts.spaceGrotesk(
+                hintStyle: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.05),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -336,14 +336,14 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               controller: _textController,
               maxLines: null,
               cursorColor: const Color(0xFF00E5FF),
-              style: GoogleFonts.inter(
+              style: AppLocalization.digitalFont(context, 
                 color: Colors.white.withOpacity(0.8),
                 fontSize: 16,
                 height: 1.7,
               ),
               decoration: InputDecoration(
                 hintText: locale.translate('post_hint'),
-                hintStyle: GoogleFonts.inter(
+                hintStyle: AppLocalization.digitalFont(context, 
                   color: Colors.white.withOpacity(0.1),
                   fontSize: 16,
                 ),
@@ -423,7 +423,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         color: Colors.white.withOpacity(0.05), size: 36),
                     const SizedBox(height: 12),
                     Text(locale.translate('photo').toUpperCase(),
-                        style: GoogleFonts.spaceGrotesk(
+                        style: AppLocalization.digitalFont(context, 
                             color: Colors.white.withOpacity(0.15),
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
@@ -547,7 +547,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ],
                 ),
                 Text(locale.translate('KERNEL_FILENAME'),
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.2),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
@@ -589,7 +589,7 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         text.toUpperCase(),
-        style: GoogleFonts.spaceGrotesk(
+        style: AppLocalization.digitalFont(context, 
           color: const Color(0xFF00E5FF).withOpacity(0.4),
           fontSize: 9,
           fontWeight: FontWeight.w800,
@@ -637,7 +637,7 @@ class _PublishButton extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
               : Text(label,
-                  style: GoogleFonts.spaceGrotesk(
+                  style: AppLocalization.digitalFont(context, 
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -662,7 +662,7 @@ class _TagChip extends StatelessWidget {
         border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.12)),
       ),
       child: Text('#$text',
-          style: GoogleFonts.spaceGrotesk(
+          style: AppLocalization.digitalFont(context, 
               color: const Color(0xFF00E5FF).withOpacity(0.6),
               fontSize: 10,
               fontWeight: FontWeight.w800)),
@@ -691,7 +691,7 @@ class _AddTagButton extends StatelessWidget {
             const Icon(Icons.add, color: Colors.white30, size: 12),
             const SizedBox(width: 6),
             Text(label ?? 'ADD',
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white30,
                     fontSize: 10,
                     fontWeight: FontWeight.w800)),

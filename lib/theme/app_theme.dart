@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../providers/app_provider.dart';
+
 
 enum SnackBarType { success, error, warning, info }
 
@@ -37,7 +39,7 @@ class AppColors {
   static const Color accentSecondary = secondary;
   static const Color textPrimary = onSurface;
   static const Color textSecondary = onSurfaceVariant;
-  static const Color textMuted = onSurfaceVariant; 
+  static const Color textMuted = onSurfaceVariant;
   static const Color card = surfaceContainerLow;
   static const Color cardLight = surfaceContainer;
   static const Color primaryLight = primary;
@@ -58,15 +60,16 @@ class AppColors {
 class AppTheme {
   static ThemeData get darkTheme {
     final baseTheme = ThemeData.dark();
-    final interTheme = GoogleFonts.interTextTheme(baseTheme.textTheme);
-    final spaceGroteskTheme = GoogleFonts.spaceGroteskTextTheme(baseTheme.textTheme);
+    final spaceGroteskTheme =
+        GoogleFonts.spaceGroteskTextTheme(baseTheme.textTheme);
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: GoogleFonts.spaceGrotesk().fontFamily,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.surface,
-      textTheme: interTheme.copyWith(
+      textTheme: spaceGroteskTheme.copyWith(
         displayLarge: spaceGroteskTheme.displayLarge?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w700,
@@ -84,12 +87,14 @@ class AppTheme {
           color: AppColors.onSurface,
           fontWeight: FontWeight.w600,
         ),
-        titleMedium: interTheme.titleMedium?.copyWith(
+        titleMedium: spaceGroteskTheme.titleMedium?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w500,
         ),
-        bodyLarge: interTheme.bodyLarge?.copyWith(color: AppColors.onSurface),
-        bodyMedium: interTheme.bodyMedium?.copyWith(color: AppColors.onSurfaceVariant),
+        bodyLarge:
+            spaceGroteskTheme.bodyLarge?.copyWith(color: AppColors.onSurface),
+        bodyMedium: spaceGroteskTheme.bodyMedium
+            ?.copyWith(color: AppColors.onSurfaceVariant),
       ),
       colorScheme: ColorScheme.dark(
         primary: AppColors.primary,
@@ -161,41 +166,50 @@ class AppTheme {
 
   static ThemeData arabicTheme() {
     final base = darkTheme;
-    final cairoTheme = GoogleFonts.cairoTextTheme(base.textTheme);
-    final cairoDisplayTheme = GoogleFonts.cairoTextTheme(base.textTheme);
+    final changaTheme = GoogleFonts.changaTextTheme(base.textTheme);
 
-    return base.copyWith(
-      textTheme: cairoTheme.copyWith(
-        displayLarge: cairoDisplayTheme.displayLarge?.copyWith(
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      fontFamily: GoogleFonts.changa().fontFamily,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.surface,
+      textTheme: changaTheme.copyWith(
+        displayLarge: changaTheme.displayLarge?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w900,
           letterSpacing: 0,
         ),
-        headlineLarge: cairoDisplayTheme.headlineLarge?.copyWith(
+        headlineLarge: changaTheme.headlineLarge?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w800,
         ),
-        headlineMedium: cairoDisplayTheme.headlineMedium?.copyWith(
+        headlineMedium: changaTheme.headlineMedium?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w700,
         ),
-        titleLarge: cairoDisplayTheme.titleLarge?.copyWith(
+        titleLarge: changaTheme.titleLarge?.copyWith(
           color: AppColors.onSurface,
           fontWeight: FontWeight.w700,
         ),
-        bodyLarge: cairoTheme.bodyLarge?.copyWith(
+        bodyLarge: changaTheme.bodyLarge?.copyWith(
           color: AppColors.onSurface,
           height: 1.6,
         ),
-        bodyMedium: cairoTheme.bodyMedium?.copyWith(
+        bodyMedium: changaTheme.bodyMedium?.copyWith(
           color: AppColors.onSurfaceVariant,
           height: 1.5,
         ),
       ),
+      colorScheme: base.colorScheme,
+      appBarTheme: base.appBarTheme,
+      cardTheme: base.cardTheme,
+      inputDecorationTheme: base.inputDecorationTheme,
+      elevatedButtonTheme: base.elevatedButtonTheme,
+      dividerTheme: base.dividerTheme,
     );
   }
 }
-
 
 // Reusable UI helpers
 class AppWidgets {
@@ -395,10 +409,15 @@ class AppWidgets {
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500),
+                  style: context != null
+                      ? AppLocalization.digitalFont(context,
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500)
+                      : const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500),
                 ),
               ),
             ],

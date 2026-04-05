@@ -43,11 +43,22 @@ class FirebaseAuthService {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      // Ensure GoogleSignIn is initialized once
+      await _googleSignIn.initialize();
+      
       final googleUser = await _googleSignIn.authenticate();
+      if (googleUser == null) return null; // User cancelled
       
       final googleAuth = await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      // In v7.0.0+, accessToken is obtained via authorizationClient
+      final authorization = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
+      final String? accessToken = authorization.accessToken;
+      
       final OAuthCredential credential = GoogleAuthProvider.credential(
-        idToken: googleAuth.idToken,
+        idToken: idToken,
+        accessToken: accessToken,
       );
 
       return await _auth.signInWithCredential(credential);

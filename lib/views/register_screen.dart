@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/app_provider.dart';
@@ -94,6 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.surface,
       body: Stack(
@@ -120,8 +120,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'OBSIDIAN_CORE',
-                        style: GoogleFonts.spaceGrotesk(
+                        locale.translate('OBSIDIAN_CORE'),
+                        style: AppLocalization.digitalFont(context, 
                           color: const Color(0xFF00E5FF),
                           fontWeight: FontWeight.w700,
                           fontSize: 18,
@@ -157,8 +157,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'LIVE CONNECTION SECURE',
-                            style: GoogleFonts.spaceGrotesk(
+                            locale.translate('LIVE_CONNECTION_SECURE'),
+                            style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.5),
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5,
@@ -175,9 +175,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Headline
                   Center(
                     child: Text(
-                      'Join the Obsidian\nCore',
+                      locale.translate('JOIN_THE_CORE'),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.spaceGrotesk(
+                      style: AppLocalization.digitalFont(context, 
                         color: Colors.white,
                         fontSize: 42,
                         fontWeight: FontWeight.w800,
@@ -192,9 +192,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
-                        'Create your elite operator profile to access the developer network.',
+                        locale.translate('CREATE_ELITE_PROFILE'),
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inter(
+                        style: AppLocalization.digitalFont(context, 
                           color: Colors.white.withOpacity(0.5),
                           fontSize: 16,
                           height: 1.5,
@@ -206,13 +206,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 60),
 
                   // Form
-                  const _TerminalLabel('DISPLAY NAME'),
+                  _TerminalLabel(locale.translate('DISPLAY_NAME')),
                   _TerminalInput(
                       controller: _nameController, hint: 'e.g. Neo_Operator'),
 
                   const SizedBox(height: 32),
 
-                  const _TerminalLabel('EMAIL ADDRESS'),
+                  _TerminalLabel(locale.translate('EMAIL_ADDRESS_CAPS')),
                   _TerminalInput(
                       controller: _emailController,
                       hint: 'dev@obsidian.io',
@@ -220,7 +220,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 32),
 
-                  const _TerminalLabel('ACCESS KEY'),
+                  _TerminalLabel(locale.translate('ACCESS_KEY')),
                   _TerminalInput(
                       controller: _passwordController,
                       hint: '••••••••••••',
@@ -228,7 +228,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   const SizedBox(height: 32),
 
-                  const _TerminalLabel('CONFIRM ACCESS KEY'),
+                  _TerminalLabel(locale.translate('CONFIRM_ACCESS_KEY')),
                   _TerminalInput(
                       controller: _confirmPasswordController,
                       hint: '••••••••••••',
@@ -246,8 +246,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // Auth Divider
                   Center(
                     child: Text(
-                      'OR AUTHENTICATE WITH',
-                      style: GoogleFonts.spaceGrotesk(
+                      locale.translate('OR_AUTHENTICATE_WITH'),
+                      style: AppLocalization.digitalFont(context, 
                         color: Colors.white.withOpacity(0.2),
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -264,14 +264,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Expanded(
                           child: _SocialButton(
                         icon: FontAwesomeIcons.google,
-                        label: 'Google',
+                        label: locale.translate('GOOGLE'),
                         onPressed: _signInWithGoogle,
                       )),
                       const SizedBox(width: 12),
                       Expanded(
                           child: _SocialButton(
                         icon: FontAwesomeIcons.github,
-                        label: 'GitHub',
+                        label: locale.translate('GITHUB'),
                         onPressed: _signInWithGitHub,
                       )),
                     ],
@@ -285,14 +285,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onTap: () => Navigator.pop(context),
                       child: RichText(
                         text: TextSpan(
-                          style: GoogleFonts.inter(
+                          style: AppLocalization.digitalFont(context, 
                               color: Colors.white.withOpacity(0.6),
                               fontSize: 14),
                           children: [
-                            const TextSpan(text: 'Already an operator? '),
+                            TextSpan(text: locale.translate('ALREADY_OPERATOR')),
                             TextSpan(
-                              text: 'Login',
-                              style: GoogleFonts.inter(
+                              text: locale.translate('LOGIN'),
+                              style: AppLocalization.digitalFont(context, 
                                   color: const Color(0xFF00E5FF),
                                   fontWeight: FontWeight.w700),
                             ),
@@ -305,39 +305,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 80),
 
                   // Footer Links
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _FooterLink('PRIVACY PROTOCOL'),
-                      _FooterLink('TERMS OF SERVICE'),
-                      _FooterLink('VER 4.0.2-STABLE'),
+                      _FooterLink(locale.translate('PRIVACY_PROTOCOL')),
+                      _FooterLink(locale.translate('TERMS_CONDITIONS')),
+                      _FooterLink(locale.translate('VERSION_STABLE')),
                     ],
                   ),
 
                   const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-
-          // Bottom Navigation Bar (Visual Only for now)
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 100,
-              decoration: const BoxDecoration(
-                color: Color(0xFF0D0D0D),
-                border: Border(top: BorderSide(color: Colors.white10)),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _NavIcon(Icons.login_rounded, isActive: false),
-                  _NavIcon(Icons.person_add_rounded, isActive: true),
-                  _NavIcon(Icons.shield_outlined, isActive: false),
-                  _NavIcon(Icons.help_outline_rounded, isActive: false),
                 ],
               ),
             ),
@@ -358,7 +335,7 @@ class _TerminalLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         text,
-        style: GoogleFonts.spaceGrotesk(
+        style: AppLocalization.digitalFont(context, 
           color: const Color(0xFF00E5FF),
           fontSize: 10,
           fontWeight: FontWeight.w700,
@@ -393,10 +370,10 @@ class _TerminalInput extends StatelessWidget {
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
+        style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: GoogleFonts.inter(
+          hintStyle: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.1), fontSize: 13),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -418,6 +395,7 @@ class _InitializeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return Container(
       width: double.infinity,
       height: 60,
@@ -444,8 +422,8 @@ class _InitializeButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: Center(
             child: Text(
-              'INITIALIZE ACCOUNT',
-              style: GoogleFonts.spaceGrotesk(
+              locale.translate('INITIALIZE_ACCOUNT'),
+              style: AppLocalization.digitalFont(context, 
                 color: const Color(0xFF006064),
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -489,7 +467,7 @@ class _SocialButton extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: AppLocalization.digitalFont(context, 
                     color: Colors.white, fontWeight: FontWeight.w600),
               ),
             ],
@@ -508,7 +486,7 @@ class _FooterLink extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: GoogleFonts.spaceGrotesk(
+      style: AppLocalization.digitalFont(context, 
         color: Colors.white.withOpacity(0.2),
         fontSize: 9,
         fontWeight: FontWeight.w700,
@@ -518,26 +496,3 @@ class _FooterLink extends StatelessWidget {
   }
 }
 
-class _NavIcon extends StatelessWidget {
-  final IconData icon;
-  final bool isActive;
-  const _NavIcon(this.icon, {this.isActive = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: isActive
-          ? BoxDecoration(
-              color: const Color(0xFF00E5FF).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            )
-          : null,
-      child: Icon(icon,
-          color: isActive
-              ? const Color(0xFF00E5FF)
-              : Colors.white.withOpacity(0.2),
-          size: 24),
-    );
-  }
-}

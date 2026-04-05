@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../../providers/app_provider.dart';
 import '../../controllers/auth_controller.dart';
+
 import '../../services/firestore_service.dart';
 import '../notifications_page.dart';
 
@@ -47,7 +48,7 @@ class NotificationBadge extends StatelessWidget {
                       child: Center(
                         child: Text(
                           count > 99 ? '99+' : count.toString(),
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(context, 
                             color: Colors.white,
                             fontSize: 8,
                             fontWeight: FontWeight.w900,

@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../providers/app_provider.dart';
 import '../models/ad_model.dart';
 import 'profile_page.dart';
-import 'network_page.dart';
+import 'chat_list_page.dart';
 import 'feed_page.dart';
 import 'search_screen.dart';
 import 'components/notification_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/banner_ad_widget.dart';
-import 'admin_dashboard_page.dart';
 import 'settings_screen.dart';
 import '../widgets/terminal_dialog.dart';
 
@@ -71,7 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final locale = AppLocalization.of(context)!;
     final appProps = Provider.of<AppProvider>(context);
-    final auth = Provider.of<AuthController>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
@@ -124,10 +121,9 @@ class _HomeScreenState extends State<HomeScreen> {
               index: appProps.currentTabIndex,
               children: [
                 const FeedPage(),
-                const NetworkPage(),
+                const ChatListPage(),
                 const SearchScreen(),
                 const ProfilePage(),
-                if (auth.currentUser?.isAdmin == true) const AdminDashboardPage(),
               ],
             ),
           ),
@@ -159,7 +155,7 @@ class _DigitalBottomNav extends StatelessWidget {
 
     final items = [
       {'icon': Icons.dns_rounded, 'label': locale.translate('nav_feed').toUpperCase()},
-      {'icon': Icons.people_alt_rounded, 'label': locale.translate('nav_network').toUpperCase()},
+      {'icon': Icons.chat_bubble_rounded, 'label': locale.translate('MESSAGE_INBOUND').toUpperCase()},
       {'icon': Icons.search_rounded, 'label': locale.translate('nav_search').toUpperCase()},
       {
         'icon': Icons.account_circle_rounded,
@@ -167,13 +163,6 @@ class _DigitalBottomNav extends StatelessWidget {
         'isProfile': true
       },
     ];
-
-    if (user?.isAdmin == true) {
-      items.add({
-        'icon': Icons.admin_panel_settings_rounded,
-        'label': locale.translate('admin').toUpperCase(),
-      });
-    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -339,7 +328,7 @@ class HomeAdsSection extends StatelessWidget {
                         padding: const EdgeInsets.all(12),
                         child: Text(
                           ad.title,
-                          style: GoogleFonts.inter(
+                          style: AppLocalization.digitalFont(context,
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                               fontSize: 13),

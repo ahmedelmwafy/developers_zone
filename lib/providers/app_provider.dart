@@ -61,7 +61,7 @@ class AppLocalization {
   }) {
     final isAr = isArabic(context);
     if (isAr) {
-      return GoogleFonts.cairo(
+      return GoogleFonts.changa(
         fontSize: fontSize,
         color: color,
         fontWeight: fontWeight ?? FontWeight.w700,

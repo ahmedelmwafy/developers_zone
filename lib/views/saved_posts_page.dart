@@ -70,7 +70,7 @@ class SavedPostsPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Bookmarks will appear here in your local cache.',
-            style: GoogleFonts.inter(
+            style: AppLocalization.digitalFont(context, 
               color: Colors.white.withOpacity(0.2),
               fontSize: 12,
             ),
@@ -104,7 +104,15 @@ class SavedPostsPage extends StatelessWidget {
           itemBuilder: (context, index) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 24),
-              child: PostCard(post: posts[index]),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: PostCard(
+                  key: ValueKey(posts[index].id),
+                  post: posts[index],
+                ),
+              ),
             );
           },
         );
