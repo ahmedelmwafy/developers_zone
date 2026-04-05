@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../models/post_model.dart';
 import '../services/firestore_service.dart';
@@ -52,17 +51,17 @@ class SavedPostsPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFF161616),
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Icon(Icons.bookmark_outline_rounded,
-                color: Colors.white.withOpacity(0.1), size: 48),
+                color: Colors.white.withValues(alpha: 0.1), size: 48),
           ),
           const SizedBox(height: 24),
           Text(
             locale.translate('no_saved_posts'),
             style: AppLocalization.digitalFont(
               context,
-              color: Colors.white.withOpacity(0.5),
+              color: Colors.white.withValues(alpha: 0.5),
               fontSize: 16,
               fontWeight: FontWeight.w700,
             ),
@@ -71,7 +70,7 @@ class SavedPostsPage extends StatelessWidget {
           Text(
             'Bookmarks will appear here in your local cache.',
             style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               fontSize: 12,
             ),
           ),

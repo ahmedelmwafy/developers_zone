@@ -97,8 +97,47 @@ class PostController extends ChangeNotifier {
     return await _firestoreService.searchPosts(query);
   }
 
+  Future<void> repostPost(PostModel originalPost, String currentUserId, String currentUserName, String currentUserProfileImage, String currentUserPosition) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final repost = PostModel(
+        id: '',
+        authorId: currentUserId,
+        authorName: currentUserName,
+        authorProfileImage: currentUserProfileImage,
+        authorPosition: currentUserPosition,
+        text: '🔄 REPOSTED MANIFEST: \n\n${originalPost.text}',
+        images: originalPost.images,
+        createdAt: DateTime.now(),
+        tags: ['REPOST', originalPost.id],
+      );
+      await _firestoreService.createPost(repost);
+      
+      // Notify original author
+      if (originalPost.authorId != currentUserId) {
+        final author = await _firestoreService.getUser(originalPost.authorId);
+        await NotificationService.sendNotification(
+          targetToken: author?.fcmToken,
+          targetUid: originalPost.authorId,
+          title: 'Manifest Reposted!',
+          body: '$currentUserName shared your transcript.',
+          type: NotificationType.post,
+          relatedId: originalPost.id,
+        );
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> toggleSavedPost(String uid, String postId, bool isSaving) async {
     await _firestoreService.toggleSavedPost(uid, postId, isSaving);
     notifyListeners();
+  }
+
+  Stream<PostModel?> getPostStream(String postId) {
+    return _firestoreService.streamPost(postId);
   }
 }

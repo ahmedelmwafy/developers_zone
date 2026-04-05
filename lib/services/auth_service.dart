@@ -1,7 +1,8 @@
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
-import 'package:firebase_auth/firebase_auth.dart' show UserCredential, GoogleAuthProvider, OAuthCredential, OAuthProvider;
+import 'package:firebase_auth/firebase_auth.dart'
+    show UserCredential, GoogleAuthProvider, OAuthCredential, OAuthProvider;
 
 class FirebaseAuthService {
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -11,9 +12,11 @@ class FirebaseAuthService {
 
   firebase_auth.User? get currentUser => _auth.currentUser;
 
-  Future<UserCredential?> registerWithEmail(String email, String password) async {
+  Future<UserCredential?> registerWithEmail(
+      String email, String password) async {
     try {
-      return await _auth.createUserWithEmailAndPassword(email: email, password: password);
+      return await _auth.createUserWithEmailAndPassword(
+          email: email, password: password);
     } catch (e) {
       // ignore: avoid_print
       print('Registration Error: $e');
@@ -23,7 +26,8 @@ class FirebaseAuthService {
 
   Future<UserCredential?> loginWithEmail(String email, String password) async {
     try {
-      return await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
     } catch (e) {
       // ignore: avoid_print
       print('Login Error: $e');
@@ -43,19 +47,20 @@ class FirebaseAuthService {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
-      // Ensure GoogleSignIn is initialized once
+      // Ensure GoogleSignIn is initialized with serverClientId for Android in v7.0.0+
+      // You can find your Web Client ID in the Google Cloud Console:
+      // Credentials -> OAuth 2.0 Client IDs -> Web client (auto-created by Google Service)
       await _googleSignIn.initialize();
-      
+
       final googleUser = await _googleSignIn.authenticate();
-      if (googleUser == null) return null; // User cancelled
-      
-      final googleAuth = await googleUser.authentication;
-      final String? idToken = googleAuth.idToken;
+      final googleAuth = googleUser.authentication;
+      final String idToken = googleAuth.idToken ?? '';
 
       // In v7.0.0+, accessToken is obtained via authorizationClient
-      final authorization = await googleUser.authorizationClient.authorizeScopes(['email', 'profile']);
-      final String? accessToken = authorization.accessToken;
-      
+      final authorization = await googleUser.authorizationClient
+          .authorizeScopes(['email', 'profile']);
+      final String accessToken = authorization.accessToken;
+
       final OAuthCredential credential = GoogleAuthProvider.credential(
         idToken: idToken,
         accessToken: accessToken,

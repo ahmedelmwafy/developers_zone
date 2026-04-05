@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../services/firestore_service.dart';
 import '../models/notification_model.dart';
 import '../providers/app_provider.dart';
-import '../theme/app_theme.dart';
 import 'profile_page.dart';
 import 'chat_detail_screen.dart';
 import 'components/shimmer_loading.dart';
@@ -55,7 +53,7 @@ class NotificationsPage extends StatelessWidget {
         ],
       ),
       body: user == null
-          ? Center(child: Text(locale.translate('login_to_notifications'), style: const TextStyle(color: AppColors.textSecondary)))
+          ? _GuestRestrictedView(locale: locale)
           : Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
@@ -100,7 +98,7 @@ class NotificationsPage extends StatelessWidget {
                           child: Text(
                             locale.translate('mark_all_read'),
                             style: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.7),
+                              color: Colors.white.withValues(alpha: 0.7),
                               fontWeight: FontWeight.w800,
                               fontSize: 10,
                               letterSpacing: 0.5,
@@ -128,11 +126,11 @@ class NotificationsPage extends StatelessWidget {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.notifications_none_outlined, size: 64, color: Colors.white.withOpacity(0.05)),
+                                Icon(Icons.notifications_none_outlined, size: 64, color: Colors.white.withValues(alpha: 0.05)),
                                 const SizedBox(height: 16),
                                 Text(
                                   locale.translate('all_clear'),
-                                  style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.1), fontWeight: FontWeight.w800, letterSpacing: 2),
+                                  style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.1), fontWeight: FontWeight.w800, letterSpacing: 2),
                                 ),
                               ],
                             ),
@@ -179,7 +177,7 @@ class NotificationCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFF161616),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.02)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,7 +198,7 @@ class NotificationCard extends StatelessWidget {
                       Text(
                         _getTypeLabel(notification.type, locale).toUpperCase(),
                         style: AppLocalization.digitalFont(context, 
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white.withValues(alpha: 0.6),
                           fontWeight: FontWeight.w800,
                           fontSize: 10,
                           letterSpacing: 1,
@@ -211,7 +209,7 @@ class NotificationCard extends StatelessWidget {
                   Text(
                     _timeAgo(notification.createdAt, locale).toUpperCase(),
                     style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       fontWeight: FontWeight.w800,
                       fontSize: 10,
                     ),
@@ -230,7 +228,7 @@ class NotificationCard extends StatelessWidget {
                       children: [
                         RichText(
                           text: TextSpan(
-                            style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.8), fontSize: 13, height: 1.5),
+                            style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.8), fontSize: 13, height: 1.5),
                             children: _parseBody(notification.body),
                           ),
                         ),
@@ -265,9 +263,9 @@ class NotificationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF0D0D0D),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
-      child: Icon(icon, color: const Color(0xFF00E5FF).withOpacity(0.5), size: 20),
+      child: Icon(icon, color: const Color(0xFF00E5FF).withValues(alpha: 0.5), size: 20),
     );
   }
 
@@ -298,8 +296,6 @@ class NotificationCard extends StatelessWidget {
   }
 
   List<TextSpan> _parseBody(String body) {
-    // Look for parts that should be bolded (currently assuming names are at the start or in a specific format)
-    // We'll bold words that start with @ or anything before first common verb
     final words = body.split(' ');
     final List<TextSpan> spans = [];
     
@@ -332,7 +328,7 @@ class NotificationCard extends StatelessWidget {
 
     switch (type) {
       case NotificationType.message:
-        Navigator.push(context, MaterialPageRoute(builder: (_) => ChatDetailScreen(chatId: relatedId, otherUserId: ''))); // Requires otherUserId logic
+        Navigator.push(context, MaterialPageRoute(builder: (_) => ChatDetailScreen(chatId: relatedId, otherUserId: '')));
         break;
       case NotificationType.follow:
       case NotificationType.profileView:
@@ -342,5 +338,55 @@ class NotificationCard extends StatelessWidget {
         break;
       default: break;
     }
+  }
+}
+
+class _GuestRestrictedView extends StatelessWidget {
+  final AppLocalization locale;
+  const _GuestRestrictedView({required this.locale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.2)),
+              ),
+              child: const Icon(Icons.notifications_off_outlined, color: Color(0xFF00E5FF), size: 40),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              locale.translate('LOGIN_REQUIRED_TITLE'),
+              textAlign: TextAlign.center,
+              style: AppLocalization.digitalFont(context, 
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              locale.translate('LOGIN_REQUIRED_BODY'),
+              textAlign: TextAlign.center,
+              style: AppLocalization.digitalFont(context, 
+                color: Colors.white.withValues(alpha: 0.5),
+                fontSize: 14,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

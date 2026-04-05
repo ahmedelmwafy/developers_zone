@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../views/components/zoomable_image_page.dart';
+import '../widgets/shimmer_component.dart';
 
 class PostMediaWidget extends StatefulWidget {
   final List<String> images;
+  final String postId;
   final double height;
   final double borderRadius;
 
   const PostMediaWidget({
     required this.images,
+    required this.postId,
     this.height = 250,
     this.borderRadius = 16,
     super.key,
@@ -50,7 +53,7 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                   },
                   itemBuilder: (context, index) {
                     final imageUrl = widget.images[index];
-                    final heroTag = 'media_${imageUrl.hashCode}_${index}';
+                    final heroTag = 'media_${widget.postId}_${imageUrl.hashCode}_$index';
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
@@ -71,19 +74,15 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                           width: double.infinity,
                           loadingBuilder: (context, child, progress) {
                             if (progress == null) return child;
-                            return Container(
-                              color: Colors.white.withOpacity(0.02),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF00E5FF),
-                                  strokeWidth: 2,
-                                ),
-                              ),
+                            return ShimmerComponent(
+                              width: double.infinity,
+                              height: widget.height,
+                              borderRadius: widget.borderRadius,
                             );
                           },
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.1),
                               child: const Icon(Icons.error_outline, color: Colors.red),
                             );
                           },
@@ -100,7 +99,7 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.5),
+                    color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -129,7 +128,7 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.6),
+                    color: Colors.black.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.white10),
                   ),

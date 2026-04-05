@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/user_model.dart';
 import '../models/chat_model.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../services/firestore_service.dart';
-
 import '../providers/app_provider.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/terminal_dialog.dart';
 
 class ChatConfigPage extends StatefulWidget {
   final String chatId;
@@ -66,7 +66,8 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: PageEntryAnimation(
+        child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
@@ -84,8 +85,8 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                   chatController.muteChat(auth.currentUser!.uid, widget.chatId,
                       mute: val);
                 },
-                activeColor: const Color(0xFF00E5FF),
-                activeTrackColor: const Color(0xFF00E5FF).withOpacity(0.2),
+                activeThumbColor: const Color(0xFF00E5FF),
+                activeTrackColor: const Color(0xFF00E5FF).withValues(alpha: 0.2),
               ),
             ),
             const SizedBox(height: 16),
@@ -97,7 +98,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                 Navigator.pop(context);
               },
               trailing: Icon(Icons.chevron_right_rounded,
-                  color: Colors.white.withOpacity(0.2)),
+                  color: Colors.white.withValues(alpha: 0.2)),
             ),
             const SizedBox(height: 16),
             _buildOptionTile(
@@ -108,7 +109,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
               onTap: () {
                 _showDeleteConfirmation(chatController);
               },
-              color: Colors.redAccent.withOpacity(0.8),
+              color: Colors.redAccent.withValues(alpha: 0.8),
               destructive: true,
             ),
             const SizedBox(height: 48),
@@ -119,8 +120,9 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildProfileSection() {
     return Column(
@@ -131,13 +133,13 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-                color: const Color(0xFF00E5FF).withOpacity(0.5), width: 3),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.5), width: 3),
             image: _otherUser?.profileImage.isNotEmpty == true
                 ? DecorationImage(
                     image: NetworkImage(_otherUser!.profileImage),
                     fit: BoxFit.cover)
                 : null,
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
           ),
           child: Stack(
             children: [
@@ -172,7 +174,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         Text(
           '${AppLocalization.of(context)!.translate('active_now')} • ${_otherUser?.position.toUpperCase() ?? AppLocalization.of(context)!.translate('kernel_contributor')}',
           style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 10,
               fontWeight: FontWeight.w800,
               letterSpacing: 2),
@@ -197,11 +199,11 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         decoration: BoxDecoration(
           color: const Color(0xFF161616),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.03)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color ?? Colors.white.withOpacity(0.6), size: 24),
+            Icon(icon, color: color ?? Colors.white.withValues(alpha: 0.6), size: 24),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
@@ -215,8 +217,8 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                   if (subLabel != null)
                     Text(subLabel,
                         style: AppLocalization.digitalFont(context, 
-                            color: color?.withOpacity(0.5) ??
-                                Colors.white.withOpacity(0.2),
+                            color: color?.withValues(alpha: 0.5) ??
+                                Colors.white.withValues(alpha: 0.2),
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1)),
@@ -237,7 +239,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
         Text(
           AppLocalization.of(context)!.translate('COMMIT_HISTORY'),
           style: AppLocalization.digitalFont(context, 
-              color: const Color(0xFF00E5FF).withOpacity(0.4),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 2),
@@ -293,7 +295,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                       ? msg.text
                       : '📷 ${AppLocalization.of(context)!.translate('image_payload')}',
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                       height: 1.5),
                 ),
@@ -306,7 +308,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                             .replaceFirst('{}',
                                 '${msg.createdAt.hour}:${msg.createdAt.minute}'),
                         style: AppLocalization.digitalFont(context, 
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             fontSize: 8,
                             fontWeight: FontWeight.w800)),
                     const SizedBox(width: 8),
@@ -318,7 +320,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                     const SizedBox(width: 8),
                     Text(AppLocalization.of(context)!.translate('delivered'),
                         style: AppLocalization.digitalFont(context, 
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             fontSize: 8,
                             fontWeight: FontWeight.w800)),
                   ],
@@ -348,7 +350,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                 Text(
                   AppLocalization.of(context)!.translate('shared_assets'),
                   style: AppLocalization.digitalFont(context, 
-                      color: const Color(0xFF00E5FF).withOpacity(0.4),
+                      color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2),
@@ -358,7 +360,7 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                       .translate('files_count')
                       .replaceFirst('{}', imageMessages.length.toString()),
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.3),
+                      color: Colors.white.withValues(alpha: 0.3),
                       fontSize: 10,
                       fontWeight: FontWeight.w800),
                 ),
@@ -372,13 +374,13 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF161616),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.white.withOpacity(0.03)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
                 ),
                 child: Center(
                   child: Text(
                     AppLocalization.of(context)!.translate('no_assets_found'),
                     style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         fontSize: 12,
                         fontWeight: FontWeight.w700),
                   ),
@@ -401,10 +403,10 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
                         width: 100,
                         margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.05),
+                          color: Colors.white.withValues(alpha: 0.05),
                           borderRadius: BorderRadius.circular(12),
                           border:
-                              Border.all(color: Colors.white.withOpacity(0.05)),
+                              Border.all(color: Colors.white.withValues(alpha: 0.05)),
                           image: DecorationImage(
                               image: NetworkImage(msg.image!),
                               fit: BoxFit.cover),
@@ -421,38 +423,22 @@ class _ChatConfigPageState extends State<ChatConfigPage> {
   }
 
   void _showDeleteConfirmation(ChatController chatController) {
+    final locale = AppLocalization.of(context)!;
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        title: Text(
-            AppLocalization.of(context)!.translate('purge_repo_confirm_title'),
-            style: AppLocalization.digitalFont(context, 
-                color: Colors.white, fontWeight: FontWeight.w800)),
-        content: Text(
-            AppLocalization.of(context)!
-                .translate('purge_repo_confirm_content'),
-            style: AppLocalization.digitalFont(context, color: Colors.white70)),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                  AppLocalization.of(context)!
-                      .translate('cancel')
-                      .toUpperCase(),
-                  style: AppLocalization.digitalFont(context, color: Colors.white38))),
-          TextButton(
-            onPressed: () {
-              chatController.deleteChat(widget.chatId);
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Exit config
-              Navigator.pop(context); // Exit chat
-            },
-            child: Text(AppLocalization.of(context)!.translate('purge'),
-                style: AppLocalization.digitalFont(context, 
-                    color: Colors.redAccent, fontWeight: FontWeight.w800)),
-          ),
-        ],
+      builder: (_) => TerminalDialog(
+        headerTag: 'DATABASE_MANAGER',
+        title: locale.translate('purge_repo_confirm_title'),
+        body: locale.translate('purge_repo_confirm_content'),
+        confirmLabel: locale.translate('purge'),
+        cancelLabel: locale.translate('cancel'),
+        isDestructive: true,
+        onConfirm: () {
+          chatController.deleteChat(widget.chatId);
+          Navigator.pop(context); // Close dialog
+          Navigator.pop(context); // Exit config
+          Navigator.pop(context); // Exit chat
+        },
       ),
     );
   }

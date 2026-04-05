@@ -23,6 +23,17 @@ class FirestoreService {
     await _db.collection('users').doc(uid).update({'fcmToken': token});
   }
 
+  Future<bool> checkUsernameAvailable(String username, {String? excludeUid}) async {
+    final query = await _db
+        .collection('users')
+        .where('username', isEqualTo: username.toLowerCase())
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return true;
+    if (excludeUid != null && query.docs.first.id == excludeUid) return true;
+    return false;
+  }
+
   Future<UserModel?> getUser(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (!doc.exists) return null;
@@ -86,6 +97,14 @@ class FirestoreService {
     final doc = await _db.collection('posts').doc(postId).get();
     if (!doc.exists) return null;
     return PostModel.fromMap(doc.data()!, doc.id);
+  }
+
+  Stream<PostModel?> streamPost(String postId) {
+    return _db
+        .collection('posts')
+        .doc(postId)
+        .snapshots()
+        .map((doc) => doc.exists ? PostModel.fromMap(doc.data()!, doc.id) : null);
   }
 
   Future<void> togglePostLike(String postId, String uid, bool isLiking) async {
@@ -391,25 +410,31 @@ class FirestoreService {
     await _db.collection('ads').doc(adId).delete();
   }
 
-  Stream<List<AdModel>> streamAds({String? type}) {
-    return _db.collection('ads')
-      .where('active', isEqualTo: true)
-      .snapshots()
-      .map((snapshot) {
-        final ads = snapshot.docs
-            .map((doc) => AdModel.fromMap(doc.data(), doc.id))
-            .toList();
-        if (type != null) {
-          return ads.where((ad) => ad.type == type).toList();
-        }
-        return ads;
-      });
+  Stream<List<AdModel>> streamAds({String? type, bool activeOnly = true}) {
+    Query query = _db.collection('ads');
+    if (activeOnly) {
+      query = query.where('active', isEqualTo: true);
+    }
+    return query.snapshots().map((snapshot) {
+      final ads = snapshot.docs
+          .map((doc) => AdModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
+      if (type != null) {
+        return ads.where((ad) => ad.type == type).toList();
+      }
+      return ads;
+    });
   }
 
   // ADMIN
   Stream<List<UserModel>> streamAllUsers() {
     return _db.collection('users').snapshots().map((snapshot) =>
         snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
+  }
+
+  Future<List<UserModel>> getAdmins() async {
+    final snapshot = await _db.collection('users').where('isAdmin', isEqualTo: true).get();
+    return snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
   }
 
   Future<void> banUser(String uid, bool isBanned) async {
@@ -495,6 +520,7 @@ class FirestoreService {
     return users
         .where((u) =>
             u.name.toLowerCase().contains(q) ||
+            u.username.toLowerCase().contains(q) ||
             u.position.toLowerCase().contains(q) ||
             u.uid.toLowerCase().contains(q) || // UID search support
             u.city.toLowerCase().contains(q) ||
@@ -634,11 +660,13 @@ class FirestoreService {
   Future<Map<String, int>> getCounts() async {
     final users = await _db.collection('users').count().get();
     final posts = await _db.collection('posts').count().get();
+    final ads = await _db.collection('ads').count().get();
     final reports = await _db.collection('reports').count().get();
     return {
       'users': users.count ?? 0,
-       'posts': posts.count ?? 0,
-       'reports': reports.count ?? 0,
+      'posts': posts.count ?? 0,
+      'ads': ads.count ?? 0,
+      'reports': reports.count ?? 0,
     };
   }
 

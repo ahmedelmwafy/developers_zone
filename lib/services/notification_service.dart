@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:fluttertoast/fluttertoast.dart';
+
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:flutter/services.dart' show rootBundle;
 // http import removed as it was redundant with googleapis_auth's internal client or similar usage
@@ -9,6 +9,8 @@ import '../models/notification_model.dart';
 import '../services/firestore_service.dart';
 import '../views/chat_detail_screen.dart';
 import '../views/profile_page.dart';
+import '../views/admin_dashboard_page.dart';
+import '../theme/app_theme.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -41,14 +43,13 @@ class NotificationService {
   }
 
   static void _showToast(RemoteMessage message) {
-    Fluttertoast.showToast(
-      msg: "${message.notification?.title}\n${message.notification?.body}",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.TOP,
-      backgroundColor: const Color(0xFF673AB7),
-      textColor: Colors.white,
-      fontSize: 16.0,
-    );
+    if (navigatorKey.currentContext != null) {
+      AppWidgets.showSnackBar(
+        navigatorKey.currentContext,
+        "${message.notification?.title}: ${message.notification?.body}",
+        type: SnackBarType.info,
+      );
+    }
   }
 
   static void _handleNavigation(Map<String, dynamic> data) {
@@ -61,6 +62,10 @@ class NotificationService {
         orElse: () => NotificationType.post);
 
     switch (type) {
+      case NotificationType.admin_approval:
+        navigatorKey.currentState?.push(
+            MaterialPageRoute(builder: (_) => AdminDashboardPage(initialUserId: data['relatedId'])));
+        break;
       case NotificationType.message:
         navigatorKey.currentState?.push(MaterialPageRoute(
             builder: (_) => ChatDetailScreen(
@@ -176,6 +181,26 @@ class NotificationService {
         }
       } catch (e) {
         debugPrint('FCM Transmission Error: $e');
+      }
+    }
+  }
+
+  static Future<void> notifyAdmins({
+    required String title,
+    required String body,
+    required String relatedId,
+  }) async {
+    final admins = await _firestore.getAdmins();
+    for (final admin in admins) {
+      if (admin.fcmToken != null && admin.fcmToken!.isNotEmpty) {
+        await sendNotification(
+          targetToken: admin.fcmToken!,
+          targetUid: admin.uid,
+          title: title,
+          body: body,
+          type: NotificationType.admin_approval,
+          relatedId: relatedId,
+        );
       }
     }
   }

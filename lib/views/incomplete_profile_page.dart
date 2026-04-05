@@ -4,7 +4,7 @@ import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
 import '../providers/app_provider.dart';
 import 'home_screen.dart';
-import 'settings_screen.dart';
+import 'edit_profile_page.dart';
 
 class IncompleteProfilePage extends StatelessWidget {
   const IncompleteProfilePage({super.key});
@@ -41,7 +41,7 @@ class IncompleteProfilePage extends StatelessWidget {
               Text(
                 locale.translate('ARCHITECTURAL_SYNC_REQUIRED'),
                 style: AppLocalization.digitalFont(context, 
-                  color: const Color(0xFF00E5FF).withOpacity(0.5),
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 2,
@@ -53,7 +53,7 @@ class IncompleteProfilePage extends StatelessWidget {
                     .translate('SYNC_PARTIAL_DESC')
                     .replaceFirst('{}', (completion * 100).toInt().toString()),
                 style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 16,
                   height: 1.5,
                 ),
@@ -107,7 +107,7 @@ class IncompleteProfilePage extends StatelessWidget {
             Text(
               locale.translate('SYNCHRONIZATION_STATE'),
               style: AppLocalization.digitalFont(context, 
-                color: Colors.white.withOpacity(0.1),
+                color: Colors.white.withValues(alpha: 0.1),
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5,
@@ -140,7 +140,7 @@ class IncompleteProfilePage extends StatelessWidget {
                 borderRadius: BorderRadius.circular(4),
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF00E5FF).withOpacity(0.3),
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
                     blurRadius: 10,
                   ),
                 ],
@@ -162,9 +162,9 @@ class IncompleteProfilePage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF161616).withOpacity(0.5),
+        color: const Color(0xFF161616).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.03)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.03)),
       ),
       child: Column(
         children: [
@@ -195,7 +195,7 @@ class IncompleteProfilePage extends StatelessWidget {
             border: Border.all(
               color: isChecked
                   ? const Color(0xFF00E5FF)
-                  : Colors.white.withOpacity(0.1),
+                  : Colors.white.withValues(alpha: 0.1),
               width: 1.5,
             ),
           ),
@@ -208,7 +208,7 @@ class IncompleteProfilePage extends StatelessWidget {
         Text(
           label,
           style: AppLocalization.digitalFont(context, 
-            color: isChecked ? Colors.white : Colors.white.withOpacity(0.2),
+            color: isChecked ? Colors.white : Colors.white.withValues(alpha: 0.2),
             fontSize: 14,
             fontWeight: isChecked ? FontWeight.w600 : FontWeight.w400,
           ),
@@ -223,7 +223,7 @@ class IncompleteProfilePage extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            MaterialPageRoute(builder: (_) => const EditProfilePage()),
           ),
           child: Container(
             width: double.infinity,
@@ -235,7 +235,7 @@ class IncompleteProfilePage extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00E5FF).withOpacity(0.2),
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 4),
                 ),
@@ -266,9 +266,9 @@ class IncompleteProfilePage extends StatelessWidget {
             width: double.infinity,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Center(
               child: Text(
@@ -293,14 +293,14 @@ class IncompleteProfilePage extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.shield_rounded,
-              size: 12, color: Colors.white.withOpacity(0.2)),
+              size: 12, color: Colors.white.withValues(alpha: 0.2)),
           const SizedBox(width: 8),
           Text(
             locale
                 .translate('ENCRYPTED_NODE_TRANSFER')
                 .replaceFirst('{}', 'v2.0.48-STABLE'),
             style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               fontSize: 8,
               fontWeight: FontWeight.w800,
               letterSpacing: 0.5,

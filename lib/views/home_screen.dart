@@ -82,10 +82,10 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF).withOpacity(0.1),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
                 border:
-                    Border.all(color: const Color(0xFF00E5FF).withOpacity(0.2)),
+                    Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.2)),
               ),
               child: const Icon(Icons.terminal_rounded,
                   color: Color(0xFF00E5FF), size: 20),
@@ -104,13 +104,16 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined,
-                color: Color(0xFF00E5FF), size: 22),
-            onPressed: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-          const Center(child: NotificationBadge()),
+          if (Provider.of<AuthController>(context, listen: false).currentUser !=
+              null) ...[
+            IconButton(
+              icon: const Icon(Icons.settings_outlined,
+                  color: Color(0xFF00E5FF), size: 22),
+              onPressed: () => Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
+            const Center(child: NotificationBadge()),
+          ],
           const SizedBox(width: 8),
         ],
       ),
@@ -127,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+          const HomeAdsSection(),
           const BannerAdWidget(),
         ],
       ),
@@ -155,7 +159,7 @@ class _DigitalBottomNav extends StatelessWidget {
 
     final items = [
       {'icon': Icons.dns_rounded, 'label': locale.translate('nav_feed').toUpperCase()},
-      {'icon': Icons.chat_bubble_rounded, 'label': locale.translate('MESSAGE_INBOUND').toUpperCase()},
+      {'icon': Icons.chat_bubble_rounded, 'label': locale.translate('chat').toUpperCase()},
       {'icon': Icons.search_rounded, 'label': locale.translate('nav_search').toUpperCase()},
       {
         'icon': Icons.account_circle_rounded,
@@ -212,7 +216,7 @@ class _DigitalBottomNav extends StatelessWidget {
                               border: Border.all(
                                 color: isSelected
                                     ? Colors.black
-                                    : Colors.white.withOpacity(0.2),
+                                    : Colors.white.withValues(alpha: 0.2),
                                 width: 1.5,
                               ),
                               image: DecorationImage(
@@ -230,7 +234,7 @@ class _DigitalBottomNav extends StatelessWidget {
                             item['icon'] as IconData,
                             color: isSelected
                                 ? Colors.black
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             size: 24,
                           ),
                         const SizedBox(height: 8),
@@ -240,7 +244,7 @@ class _DigitalBottomNav extends StatelessWidget {
                             context,
                             color: isSelected
                                 ? Colors.black
-                                : Colors.white.withOpacity(0.3),
+                                : Colors.white.withValues(alpha: 0.3),
                             fontSize: 10,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1,
@@ -307,7 +311,7 @@ class HomeAdsSection extends StatelessWidget {
                             fit: BoxFit.cover),
                         boxShadow: [
                           BoxShadow(
-                              color: const Color(0xFF00E5FF).withOpacity(0.1),
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                               blurRadius: 12,
                               offset: const Offset(0, 4)),
                         ],
@@ -318,7 +322,7 @@ class HomeAdsSection extends StatelessWidget {
                           gradient: LinearGradient(
                             colors: [
                               Colors.transparent,
-                              Colors.black.withOpacity(0.6)
+                              Colors.black.withValues(alpha: 0.6)
                             ],
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,

@@ -50,6 +50,7 @@ class AdSettingsModel {
   final bool interstitialAdsActiveIOS;
   final bool splashCustomAdActive;
   final bool homeCustomAdActive;
+  final bool anonymousCommunityActive;
 
   AdSettingsModel({
     this.adMobActiveAndroid = false,
@@ -58,8 +59,9 @@ class AdSettingsModel {
     this.bannerAdsActiveIOS = false,
     this.interstitialAdsActiveAndroid = false,
     this.interstitialAdsActiveIOS = false,
-    this.splashCustomAdActive = false,
-    this.homeCustomAdActive = false,
+    this.splashCustomAdActive = true,
+    this.homeCustomAdActive = true,
+    this.anonymousCommunityActive = false,
   });
 
   factory AdSettingsModel.fromMap(Map<String, dynamic> data) {
@@ -70,8 +72,9 @@ class AdSettingsModel {
       bannerAdsActiveIOS: data['bannerAdsActiveIOS'] ?? data['bannerAdsActive'] ?? false,
       interstitialAdsActiveAndroid: data['interstitialAdsActiveAndroid'] ?? data['interstitialAdsActive'] ?? false,
       interstitialAdsActiveIOS: data['interstitialAdsActiveIOS'] ?? data['interstitialAdsActive'] ?? false,
-      splashCustomAdActive: data['splashCustomAdActive'] ?? false,
-      homeCustomAdActive: data['homeCustomAdActive'] ?? false,
+      splashCustomAdActive: data['splashCustomAdActive'] ?? true,
+      homeCustomAdActive: data['homeCustomAdActive'] ?? true,
+      anonymousCommunityActive: data['anonymousCommunityActive'] ?? false,
     );
   }
 
@@ -85,6 +88,7 @@ class AdSettingsModel {
       'interstitialAdsActiveIOS': interstitialAdsActiveIOS,
       'splashCustomAdActive': splashCustomAdActive,
       'homeCustomAdActive': homeCustomAdActive,
+      'anonymousCommunityActive': anonymousCommunityActive,
     };
   }
 
@@ -97,6 +101,7 @@ class AdSettingsModel {
     bool? interstitialAdsActiveIOS,
     bool? splashCustomAdActive,
     bool? homeCustomAdActive,
+    bool? anonymousCommunityActive,
   }) {
     return AdSettingsModel(
       adMobActiveAndroid: adMobActiveAndroid ?? this.adMobActiveAndroid,
@@ -107,6 +112,7 @@ class AdSettingsModel {
       interstitialAdsActiveIOS: interstitialAdsActiveIOS ?? this.interstitialAdsActiveIOS,
       splashCustomAdActive: splashCustomAdActive ?? this.splashCustomAdActive,
       homeCustomAdActive: homeCustomAdActive ?? this.homeCustomAdActive,
+      anonymousCommunityActive: anonymousCommunityActive ?? this.anonymousCommunityActive,
     );
   }
 }

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/ad_model.dart';
 import '../services/firestore_service.dart';
 import 'dart:async';
@@ -18,9 +18,11 @@ class AppLocalization {
   late Map<String, String> _localizedStrings;
 
   Future<bool> load() async {
-    String jsonString = await rootBundle.loadString('assets/translations/${locale.languageCode}.json');
+    String jsonString = await rootBundle
+        .loadString('assets/translations/${locale.languageCode}.json');
     Map<String, dynamic> jsonMap = json.decode(jsonString);
-    _localizedStrings = jsonMap.map((key, value) => MapEntry(key, value.toString()));
+    _localizedStrings =
+        jsonMap.map((key, value) => MapEntry(key, value.toString()));
     return true;
   }
 
@@ -103,8 +105,25 @@ class AppProvider extends ChangeNotifier {
   bool _hasSeenProfilePrompt = false;
   bool get hasSeenProfilePrompt => _hasSeenProfilePrompt;
 
+  bool _hasSeenOnboarding = false;
+  bool get hasSeenOnboarding => _hasSeenOnboarding;
+
   AppProvider() {
     _loadLocale();
+    _loadOnboarding();
+  }
+
+  void _loadOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    notifyListeners();
+  }
+
+  void setSeenOnboarding(bool val) async {
+    _hasSeenOnboarding = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', val);
+    notifyListeners();
   }
 
   void setSeenProfilePrompt(bool val) {

@@ -7,6 +7,8 @@ import '../models/user_model.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/imgbb_service.dart';
+import '../widgets/shimmer_component.dart';
+import '../widgets/page_entry_animation.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -25,6 +27,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _githubController = TextEditingController();
   final _linkedinController = TextEditingController();
   final _portfolioController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _imageController = TextEditingController();
   DateTime? _selectedBirthDate;
   String? _selectedGender;
@@ -37,6 +40,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = Provider.of<AuthController>(context, listen: false).currentUser;
     if (user != null) {
       _nameController.text = user.name;
+      _usernameController.text = user.username;
       _bioController.text = user.bio;
       _positionController.text = user.position;
       _companyController.text = user.company;
@@ -46,11 +50,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _selectedGender = user.gender;
       _imageController.text = user.profileImage;
       if (user.socialLinks != null) {
-        _githubController.text = user.socialLinks!['github'] ?? '';
-        _linkedinController.text = user.socialLinks!['linkedin'] ?? '';
-        _portfolioController.text = user.socialLinks!['portfolio'] ?? '';
+        final social = user.socialLinks!;
+        _githubController.text = social['github'] ?? '';
+        _linkedinController.text = social['linkedin'] ?? '';
+        _portfolioController.text = social['portfolio'] ?? '';
       }
     }
+    
+    // Add listeners to all controllers for the "has changes" check
+    _nameController.addListener(_rebuild);
+    _usernameController.addListener(_rebuild);
+    _bioController.addListener(_rebuild);
+    _positionController.addListener(_rebuild);
+    _companyController.addListener(_rebuild);
+    _cityController.addListener(_rebuild);
+    _countryController.addListener(_rebuild);
+    _githubController.addListener(_rebuild);
+    _linkedinController.addListener(_rebuild);
+    _portfolioController.addListener(_rebuild);
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
+
+  bool _hasChanges() {
+    final user = Provider.of<AuthController>(context, listen: false).currentUser;
+    if (user == null) return false;
+
+    final social = user.socialLinks ?? {};
+    
+    return _nameController.text.trim() != user.name ||
+        _usernameController.text.trim() != user.username ||
+        _bioController.text.trim() != user.bio ||
+        _positionController.text.trim() != user.position ||
+        _companyController.text.trim() != user.company ||
+        _cityController.text.trim() != user.city ||
+        _countryController.text.trim() != user.country ||
+        _selectedBirthDate != user.birthDate ||
+        _selectedGender != user.gender ||
+        _imageController.text.trim() != user.profileImage ||
+        _githubController.text.trim() != (social['github'] ?? '') ||
+        _linkedinController.text.trim() != (social['linkedin'] ?? '') ||
+        _portfolioController.text.trim() != (social['portfolio'] ?? '');
   }
 
   @override
@@ -64,6 +106,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _githubController.dispose();
     _linkedinController.dispose();
     _portfolioController.dispose();
+    _usernameController.dispose();
     _imageController.dispose();
     super.dispose();
   }
@@ -81,33 +124,66 @@ class _EditProfilePageState extends State<EditProfilePage> {
       setState(() => _isUploadingImage = true);
       final url = await ImgBBService.uploadImage(File(image.path));
       if (url != null) {
+        if (!mounted) {
+          return;
+        }
         setState(() {
           _imageController.text = url;
           _isUploadingImage = false;
         });
-        AppWidgets.showSnackBar(context, locale.translate('profile_image_uploaded'), type: SnackBarType.success);
+        // Auto-update profile when image is uploaded
+        await _updateProfile(silent: true);
+        if (mounted) {
+          AppWidgets.showSnackBar(context, locale.translate('profile_image_uploaded'), type: SnackBarType.success);
+        }
       } else {
+        if (!mounted) {
+          return;
+        }
         setState(() => _isUploadingImage = false);
         AppWidgets.showSnackBar(context, locale.translate('profile_image_failed'), type: SnackBarType.error);
       }
     }
   }
 
-  Future<void> _updateProfile() async {
+  Future<void> _updateProfile({bool silent = false}) async {
     final locale = AppLocalization.of(context)!;
-    setState(() => _isLoading = true);
+    if (!silent) setState(() => _isLoading = true);
     final auth = Provider.of<AuthController>(context, listen: false);
     final user = auth.currentUser!;
 
     if (_nameController.text.trim().isEmpty) {
       AppWidgets.showSnackBar(context, locale.translate('name_required'), type: SnackBarType.error);
-      setState(() => _isLoading = false);
+      if (!silent) setState(() => _isLoading = false);
       return;
+    }
+
+    final newUsername = _usernameController.text.trim().toLowerCase();
+    if (newUsername.isEmpty) {
+      AppWidgets.showSnackBar(context, locale.translate('username_required'), type: SnackBarType.error);
+      if (!silent) setState(() => _isLoading = false);
+      return;
+    }
+
+    // Check if username changed and is valid
+    if (newUsername != user.username) {
+      if (!RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(newUsername)) {
+        AppWidgets.showSnackBar(context, locale.translate('username_invalid'), type: SnackBarType.error);
+        if (!silent) setState(() => _isLoading = false);
+        return;
+      }
+      final available = await auth.checkUsernameAvailable(newUsername);
+      if (!available) {
+        AppWidgets.showSnackBar(context, locale.translate('username_taken'), type: SnackBarType.error);
+        if (!silent) setState(() => _isLoading = false);
+        return;
+      }
     }
 
     try {
       final updated = user.copyWith(
         name: _nameController.text.trim(),
+        username: newUsername,
         bio: _bioController.text.trim(),
         position: _positionController.text.trim(),
         company: _companyController.text.trim(),
@@ -123,14 +199,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
         },
       );
       await auth.updateProfile(updated);
-      if (mounted) {
+      if (mounted && !silent) {
         AppWidgets.showSnackBar(context, locale.translate('profile_sync_success'), type: SnackBarType.success);
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+      if (mounted && !silent) {
+        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+      }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && !silent) setState(() => _isLoading = false);
     }
   }
 
@@ -160,50 +238,59 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         actions: [
           _isLoading 
-            ? const Center(child: Padding(padding: EdgeInsets.only(right: 20), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF00E5FF), strokeWidth: 2))))
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 20), 
+                  child: ShimmerComponent.circleShimmer(size: 20)
+                )
+              )
             : TextButton(
-                onPressed: _updateProfile,
+                onPressed: _hasChanges() ? _updateProfile : null,
                 child: Text(locale.translate('update_button').toUpperCase(),
                     style: AppLocalization.digitalFont(context,
-                        color: const Color(0xFF00E5FF),
+                        color: _hasChanges() ? const Color(0xFF00E5FF) : Colors.white30,
                         fontWeight: FontWeight.w800)),
               ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: [
-            const SizedBox(height: 32),
-            _buildAvatarSection(user),
-            const SizedBox(height: 48),
-            _TerminalField(label: locale.translate('name'), controller: _nameController),
-            const SizedBox(height: 24),
-            _TerminalField(label: locale.translate('position'), controller: _positionController),
-            const SizedBox(height: 24),
-            _TerminalField(label: locale.translate('company_label'), controller: _companyController),
-            const SizedBox(height: 24),
-            _TerminalField(label: locale.translate('bio'), controller: _bioController, isMultiline: true),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(child: _TerminalField(label: locale.translate('city'), controller: _cityController)),
-                const SizedBox(width: 16),
-                Expanded(child: _TerminalField(label: locale.translate('country'), controller: _countryController)),
-              ],
-            ),
-            const SizedBox(height: 24),
-            _buildDateAndGender(locale),
-            const SizedBox(height: 48),
-            _SectionTitle(icon: Icons.link_rounded, title: locale.translate('links')),
-            const SizedBox(height: 16),
-            _TerminalField(label: 'GITHUB', controller: _githubController, hint: 'github.com/username'),
-            const SizedBox(height: 16),
-            _TerminalField(label: locale.translate('LINKEDIN').toUpperCase(), controller: _linkedinController, hint: 'linkedin.com/in/username'),
-            const SizedBox(height: 16),
-            _TerminalField(label: locale.translate('PORTFOLIO').toUpperCase(), controller: _portfolioController, hint: 'https://website.com'),
-            const SizedBox(height: 100),
-          ],
+      body: PageEntryAnimation(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const SizedBox(height: 32),
+              _buildAvatarSection(user),
+              const SizedBox(height: 48),
+              _TerminalField(label: locale.translate('name'), controller: _nameController),
+              const SizedBox(height: 24),
+              _TerminalField(label: locale.translate('username'), controller: _usernameController, hint: '@username'),
+              const SizedBox(height: 24),
+              _TerminalField(label: locale.translate('position'), controller: _positionController),
+              const SizedBox(height: 24),
+              _TerminalField(label: locale.translate('company_label'), controller: _companyController),
+              const SizedBox(height: 24),
+              _TerminalField(label: locale.translate('bio'), controller: _bioController, isMultiline: true),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(child: _TerminalField(label: locale.translate('city'), controller: _cityController)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _TerminalField(label: locale.translate('country'), controller: _countryController)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              _buildDateAndGender(locale),
+              const SizedBox(height: 48),
+              _SectionTitle(icon: Icons.link_rounded, title: locale.translate('links')),
+              const SizedBox(height: 16),
+              _TerminalField(label: 'GITHUB', controller: _githubController, hint: 'github.com/username'),
+              const SizedBox(height: 16),
+              _TerminalField(label: locale.translate('LINKEDIN').toUpperCase(), controller: _linkedinController, hint: 'linkedin.com/in/username'),
+              const SizedBox(height: 16),
+              _TerminalField(label: locale.translate('PORTFOLIO').toUpperCase(), controller: _portfolioController, hint: 'https://website.com'),
+              const SizedBox(height: 100),
+            ],
+          ),
         ),
       ),
     );
@@ -219,7 +306,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             height: 120,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.3), width: 2),
+              border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3), width: 2),
               image: _imageController.text.isNotEmpty
                   ? DecorationImage(image: NetworkImage(_imageController.text), fit: BoxFit.cover)
                   : user.profileImage.isNotEmpty
@@ -228,9 +315,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
               color: Colors.white10,
             ),
             child: _isUploadingImage 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)))
+              ? Center(child: ShimmerComponent.circleShimmer(size: 60))
               : (_imageController.text.isEmpty && user.profileImage.isEmpty)
-                ? Icon(Icons.person_rounded, color: Colors.white.withOpacity(0.1), size: 64)
+                ? Icon(Icons.person_rounded, color: Colors.white.withValues(alpha: 0.1), size: 64)
                 : null,
           ),
           GestureDetector(
@@ -268,7 +355,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   child: child!,
                 ),
               );
-              if (date != null) setState(() => _selectedBirthDate = date);
+              if (date != null) {
+                setState(() => _selectedBirthDate = date);
+              }
             },
             child: AbsorbPointer(
               child: _TerminalField(
@@ -295,9 +384,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
@@ -359,10 +448,10 @@ class _TerminalField extends StatelessWidget {
           style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 14),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.1)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.1)),
             filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
+            fillColor: Colors.black.withValues(alpha: 0.3),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(4), borderSide: const BorderSide(color: Color(0xFF00E5FF))),
           ),
         ),
@@ -384,7 +473,7 @@ class _SectionTitle extends StatelessWidget {
         const SizedBox(width: 12),
         Text(title.toUpperCase(),
             style: AppLocalization.digitalFont(context,
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1)),

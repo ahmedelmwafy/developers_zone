@@ -146,5 +146,37 @@ class DataSeederService {
     }
     
     await batch.commit();
+    
+    // Seed Ad Settings
+    await _db.collection('settings').doc('ads').set({
+      'adMobActiveAndroid': false,
+      'adMobActiveIOS': false,
+      'bannerAdsActiveAndroid': false,
+      'bannerAdsActiveIOS': false,
+      'interstitialAdsActiveAndroid': false,
+      'interstitialAdsActiveIOS': false,
+      'splashCustomAdActive': true,
+      'homeCustomAdActive': true,
+    });
+
+    // Seed Dummy Ads
+    final ad1 = {
+      'title': 'The Next Wave of Flutter',
+      'description': 'Deploy high-performance manifests across multiple node dimensions including Web, Desktop, and Mobile.',
+      'imageUrl': 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
+      'targetUrl': 'https://flutter.dev',
+      'active': true,
+      'type': 'splash',
+    };
+    final ad2 = {
+      'title': 'Secure Your Node Infrastructure',
+      'description': 'Advanced encryption protocols for your developer collective.',
+      'imageUrl': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80',
+      'targetUrl': 'https://github.com/security',
+      'active': true,
+      'type': 'home',
+    };
+    await _db.collection('ads').add(ad1);
+    await _db.collection('ads').add(ad2);
   }
 }

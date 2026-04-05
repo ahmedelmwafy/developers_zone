@@ -10,6 +10,9 @@ import '../profile_page.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/post_media_widget.dart';
+import '../../widgets/terminal_dialog.dart';
+import '../../theme/app_theme.dart';
+import '../login_screen.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -32,10 +35,11 @@ class PostCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04), width: 0.5),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.04), width: 0.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -62,11 +66,11 @@ class PostCard extends StatelessWidget {
                 ],
                 if (post.images.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  PostMediaWidget(images: post.images),
+                  PostMediaWidget(images: post.images, postId: post.id),
                 ],
                 const SizedBox(height: 24),
-                _buildActionRow(post, isLiked, currentUser, authController, postController,
-                    locale, context),
+                _buildActionRow(post, isLiked, currentUser, authController,
+                    postController, locale, context),
               ],
             ),
           ),
@@ -97,14 +101,16 @@ class PostCard extends StatelessWidget {
     return {'title': title, 'body': body, 'code': code};
   }
 
-  Widget _buildDynamicContent(Map<String, String?> parts, BuildContext context) {
+  Widget _buildDynamicContent(
+      Map<String, String?> parts, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (parts['title'] != null) ...[
           Text(
             parts['title']!,
-            style: AppLocalization.digitalFont(context, 
+            style: AppLocalization.digitalFont(
+              context,
               color: Colors.white,
               fontSize: 18,
               fontWeight: FontWeight.w700,
@@ -127,7 +133,7 @@ class PostCard extends StatelessWidget {
               styleSheet: MarkdownStyleSheet(
                 p: AppLocalization.digitalFont(
                   context,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                   height: 1.6,
                 ),
@@ -136,7 +142,8 @@ class PostCard extends StatelessWidget {
                 a: const TextStyle(
                     color: Color(0xFF00E5FF),
                     decoration: TextDecoration.underline),
-                listBullet: TextStyle(color: Colors.white.withOpacity(0.3)),
+                listBullet:
+                    TextStyle(color: Colors.white.withValues(alpha: 0.3)),
               ),
             ),
           ),
@@ -162,8 +169,8 @@ class PostCard extends StatelessWidget {
             padding: const EdgeInsets.all(1),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border:
-                  Border.all(color: const Color(0xFF00E5FF).withOpacity(0.4)),
+              border: Border.all(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.4)),
             ),
             child: CircleAvatar(
               radius: 18,
@@ -173,7 +180,7 @@ class PostCard extends StatelessWidget {
                   : null,
               child: post.authorProfileImage.isEmpty
                   ? Text(post.authorInitials,
-                      style: AppLocalization.digitalFont(context, 
+                      style: AppLocalization.digitalFont(context,
                           color: Colors.white,
                           fontSize: 10,
                           fontWeight: FontWeight.w800))
@@ -198,8 +205,9 @@ class PostCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 'COMMITTED ${_timeAgo(post.createdAt, locale).toUpperCase()} • ${post.authorPosition.toUpperCase()}',
-                style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.35),
+                style: AppLocalization.digitalFont(
+                  context,
+                  color: Colors.white.withValues(alpha: 0.35),
                   fontSize: 9,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 0.5,
@@ -224,30 +232,118 @@ class PostCard extends StatelessWidget {
       AppLocalization locale) {
     return PopupMenuButton<String>(
       icon: Icon(Icons.more_horiz_rounded,
-          color: Colors.white.withOpacity(0.4), size: 20),
+          color: Colors.white.withValues(alpha: 0.4), size: 20),
       color: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       onSelected: (val) async {
+        if (currentUser == null) return;
+
         if (val == 'delete' && isMe) {
-          await postController.deletePost(post.id);
+          showDialog(
+            context: context,
+            builder: (context) => TerminalDialog(
+              headerTag: locale.translate('LOG_DELETE'),
+              title: locale.translate('PURGE_MANIFEST'),
+              body: locale.translate('PURGE_MANIFEST_CONFIRM'),
+              confirmLabel: locale.translate('CONFIRM_ACTION'),
+              cancelLabel: locale.translate('CANCEL_ACTION'),
+              isDestructive: true,
+              onConfirm: () async {
+                Navigator.pop(context);
+                await postController.deletePost(post.id);
+              },
+            ),
+          );
+        } else if (val == 'repost') {
+          showDialog(
+            context: context,
+            builder: (context) => TerminalDialog(
+              headerTag: locale.translate('REPOST_SEQUENCE'),
+              title: locale.translate('REPOST'),
+              body: locale.translate('REPOST_CONFIRM'),
+              confirmLabel: locale.translate('CONFIRM_ACTION'),
+              cancelLabel: locale.translate('CANCEL_ACTION'),
+              onConfirm: () async {
+                Navigator.pop(context);
+                await postController.repostPost(
+                    post,
+                    currentUser.uid,
+                    currentUser.name,
+                    currentUser.profileImage,
+                    currentUser.position);
+                if (context.mounted) {
+                  AppWidgets.showSnackBar(
+                      context, locale.translate('repost_success'),
+                      type: SnackBarType.success);
+                }
+              },
+            ),
+          );
         } else if (val == 'block' && !isMe) {
-          authController.blockUser(post.authorId);
+          showDialog(
+            context: context,
+            builder: (context) => TerminalDialog(
+              headerTag: locale.translate('BLOCK_NODE'),
+              title: locale.translate('TERMINATE_NODE'),
+              body: locale.translate('BLOCK_USER_CONFIRM'),
+              confirmLabel: locale.translate('CONFIRM_ACTION'),
+              cancelLabel: locale.translate('CANCEL_ACTION'),
+              isDestructive: true,
+              onConfirm: () async {
+                Navigator.pop(context);
+                await authController.blockUser(post.authorId);
+                if (context.mounted) {
+                  AppWidgets.showSnackBar(
+                      context, locale.translate('block_success'),
+                      type: SnackBarType.error);
+                }
+              },
+            ),
+          );
+        } else if (val == 'report' && !isMe) {
+          AppWidgets.showSnackBar(context, locale.translate('report_success'),
+              type: SnackBarType.warning);
+        } else if (val == 'delete' && isMe) {
+          showDialog(
+            context: context,
+            builder: (context) => TerminalDialog(
+              headerTag: locale.translate('PURGE_NODE'),
+              title: locale.translate('PURGE_NODE'),
+              body: locale.translate('delete_post_confirm'),
+              confirmLabel: locale.translate('CONFIRM_ACTION'),
+              cancelLabel: locale.translate('CANCEL_ACTION'),
+              isDestructive: true,
+              onConfirm: () async {
+                Navigator.pop(context);
+                await postController.deletePost(post.id);
+                if (context.mounted) {
+                  AppWidgets.showSnackBar(
+                      context, locale.translate('post_purged'),
+                      type: SnackBarType.error);
+                }
+              },
+            ),
+          );
         }
       },
-      itemBuilder: (_) => isMe
-          ? [
-              _buildMenuItem(context, 'delete', Icons.delete_outline_rounded,
-                  locale.translate('delete'), Colors.redAccent),
-            ]
-          : [
-              _buildMenuItem(context, 'block', Icons.block_rounded,
-                  locale.translate('block'), Colors.redAccent),
-            ],
+      itemBuilder: (_) => [
+        if (isMe)
+          _buildMenuItem(context, 'delete', Icons.delete_outline_rounded,
+              locale.translate('PURGE_NODE'), Colors.redAccent)
+        else ...[
+          _buildMenuItem(context, 'repost', Icons.repeat_rounded,
+              locale.translate('REPOST'), const Color(0xFF00E5FF)),
+          _buildMenuItem(context, 'block', Icons.block_rounded,
+              locale.translate('TERMINATE_NODE'), Colors.redAccent),
+          _buildMenuItem(context, 'report', Icons.emergency_share_outlined,
+              locale.translate('REPORT_ANOMALY'), Colors.orangeAccent),
+        ]
+      ],
     );
   }
 
-  PopupMenuItem<String> _buildMenuItem(
-      BuildContext context, String value, IconData icon, String text, Color color) {
+  PopupMenuItem<String> _buildMenuItem(BuildContext context, String value,
+      IconData icon, String text, Color color) {
     return PopupMenuItem(
       value: value,
       child: Row(
@@ -256,7 +352,7 @@ class PostCard extends StatelessWidget {
           const SizedBox(width: 10),
           Text(text,
               style: AppLocalization.digitalFont(context,
-                  color: color, fontSize: 13)),
+                  color: color, fontSize: 13, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -269,10 +365,10 @@ class PostCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 20,
               offset: const Offset(0, 10)),
         ],
@@ -301,8 +397,8 @@ class PostCard extends StatelessWidget {
                       color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
               Text('CODE_MANIFEST',
-                  style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.1),
+                  style: AppLocalization.digitalFont(context,
+                      color: Colors.white.withValues(alpha: 0.1),
                       fontSize: 8,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1)),
@@ -313,7 +409,7 @@ class PostCard extends StatelessWidget {
             code,
             maxLines: 6,
             style: GoogleFonts.sourceCodePro(
-              color: const Color(0xFF00E5FF).withOpacity(0.8),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
               fontSize: 12,
               height: 1.5,
             ),
@@ -331,8 +427,8 @@ class PostCard extends StatelessWidget {
       PostController postController,
       AppLocalization locale,
       BuildContext context) {
-    
-    final isSaved = currentUser != null && currentUser.savedPosts.contains(post.id);
+    final isSaved =
+        currentUser != null && currentUser.savedPosts.contains(post.id);
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.start,
@@ -341,31 +437,89 @@ class PostCard extends StatelessWidget {
           context,
           isLiked ? Icons.favorite_rounded : Icons.favorite_outline_rounded,
           '${post.likes.length}',
-          isLiked ? Colors.redAccent : Colors.white.withOpacity(0.4),
-          () => currentUser == null
-              ? null
-              : postController.togglePostLike(
-                  post.id, currentUser.uid, !isLiked),
+          isLiked ? Colors.redAccent : Colors.white.withValues(alpha: 0.4),
+          () {
+            if (currentUser != null) {
+              postController.togglePostLike(post.id, currentUser.uid, !isLiked);
+              if (!isLiked) {
+                AppWidgets.showSnackBar(
+                    context, locale.translate('action_synced'),
+                    type: SnackBarType.success);
+              }
+            } else {
+              _showGuestLoginPrompt(context, locale);
+            }
+          },
         ),
         const SizedBox(width: 24),
         _buildInteractionIcon(
           context,
           Icons.chat_bubble_outline_rounded,
           '${post.commentCount}',
-          Colors.white.withOpacity(0.4),
+          Colors.white.withValues(alpha: 0.4),
           () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => PostDetailsPage(post: post))),
         ),
+        if (currentUser?.uid != post.authorId) ...[
+          const SizedBox(width: 24),
+          _buildInteractionIcon(
+            context,
+            Icons.repeat_rounded,
+            '',
+            const Color(0xFF00E5FF).withValues(alpha: 0.6),
+            () {
+              if (currentUser == null) {
+                _showGuestLoginPrompt(context, locale);
+                return;
+              }
+              showDialog(
+                context: context,
+                builder: (context) => TerminalDialog(
+                  headerTag: 'REPOST_SEQUENCE',
+                  title: locale.translate('REPOST'),
+                  body: locale.translate('REPOST_CONFIRM'),
+                  confirmLabel: locale.translate('CONFIRM_ACTION'),
+                  cancelLabel: locale.translate('CANCEL_ACTION'),
+                  onConfirm: () async {
+                    Navigator.pop(context);
+                    await postController.repostPost(
+                      post,
+                      currentUser.uid,
+                      currentUser.name,
+                      currentUser.profileImage,
+                      currentUser.position,
+                    );
+                    if (context.mounted) {
+                      AppWidgets.showSnackBar(
+                          context, locale.translate('repost_success'),
+                          type: SnackBarType.success);
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        ],
         const Spacer(),
         _buildInteractionIcon(
           context,
           isSaved ? Icons.bookmark_rounded : Icons.bookmark_border_rounded,
           '',
-          isSaved ? const Color(0xFF00E5FF) : Colors.white.withOpacity(0.4),
+          isSaved
+              ? const Color(0xFF00E5FF)
+              : Colors.white.withValues(alpha: 0.4),
           () async {
             if (currentUser != null) {
-              await postController.toggleSavedPost(currentUser.uid, post.id, !isSaved);
+              await postController.toggleSavedPost(
+                  currentUser.uid, post.id, !isSaved);
               await authController.refreshUser();
+              if (context.mounted) {
+                AppWidgets.showSnackBar(
+                    context, locale.translate('action_synced'),
+                    type: SnackBarType.success);
+              }
+            } else {
+              _showGuestLoginPrompt(context, locale);
             }
           },
         ),
@@ -381,7 +535,8 @@ class PostCard extends StatelessWidget {
         children: [
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 300),
-            transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+            transitionBuilder: (child, anim) =>
+                ScaleTransition(scale: anim, child: child),
             child: Icon(icon, key: ValueKey(icon), color: color, size: 20),
           ),
           if (label.isNotEmpty) ...[
@@ -391,7 +546,8 @@ class PostCard extends StatelessWidget {
               child: Text(
                 label,
                 key: ValueKey(label),
-                style: AppLocalization.digitalFont(context, 
+                style: AppLocalization.digitalFont(
+                  context,
                   color: color,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -400,6 +556,25 @@ class PostCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  void _showGuestLoginPrompt(BuildContext context, AppLocalization locale) {
+    showDialog(
+      context: context,
+      builder: (context) => TerminalDialog(
+        headerTag: 'AUTH_REQUIRED',
+        title: locale.translate('LOGIN_REQUIRED_TITLE'),
+        body: locale.translate('LOGIN_REQUIRED_BODY'),
+        confirmLabel: locale.translate('EXECUTE_LOGIN'),
+        cancelLabel: locale.translate('CANCEL_ACTION'),
+        onConfirm: () {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        },
       ),
     );
   }

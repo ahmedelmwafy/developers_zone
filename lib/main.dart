@@ -12,6 +12,7 @@ import 'controllers/admin_controller.dart';
 import 'views/splash_screen.dart';
 import 'services/notification_service.dart';
 import 'services/firestore_service.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
@@ -19,6 +20,9 @@ void main() async {
   await Firebase.initializeApp();
   await NotificationService.initialize();
   await MobileAds.instance.initialize();
+  
+  // Initialize Analytics
+  FirebaseAnalytics.instance.setAnalyticsCollectionEnabled(true);
   
   runApp(
     MultiProvider(
@@ -53,7 +57,7 @@ class DevelopersZoneApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      onGenerateTitle: (context) => AppLocalization.of(context)!.translate('app_name'),
+      onGenerateTitle: (context) => AppLocalization.of(context)?.translate('app_name') ?? 'Developers Zone',
       theme: theme,
       locale: appProvider.locale,
       supportedLocales: const [
@@ -67,6 +71,9 @@ class DevelopersZoneApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       navigatorKey: NotificationService.navigatorKey,
+      navigatorObservers: [
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+      ],
       home: const SplashScreen(),
     );
   }

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -7,6 +6,8 @@ import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'waiting_approval_page.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/shimmer_component.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -31,7 +32,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _navigate(AuthController auth) {
-    if (!mounted || auth.currentUser == null) return;
+    if (!mounted || auth.currentUser == null) {
+      return;
+    }
     if (auth.currentUser!.isApproved) {
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const HomeScreen()));
@@ -93,233 +96,253 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
     final locale = AppLocalization.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 60),
+      body: PageEntryAnimation(
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 60),
 
-                  // Top Bar: Obsidian Core
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00E5FF).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Icon(Icons.terminal_rounded,
-                            color: Color(0xFF00E5FF), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        locale.translate('OBSIDIAN_CORE'),
-                        style: AppLocalization.digitalFont(context, 
-                          color: const Color(0xFF00E5FF),
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 100),
-
-                  // Status Chip
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 6),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Color(0xFF00E5FF),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Color(0xFF00E5FF),
-                                    blurRadius: 8,
-                                    spreadRadius: 1),
-                              ],
-                            ),
+                    // Top Bar: Obsidian Core
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            locale.translate('LIVE_CONNECTION_SECURE'),
-                            style: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.5),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Headline
-                  Center(
-                    child: Text(
-                      locale.translate('JOIN_THE_CORE'),
-                      textAlign: TextAlign.center,
-                      style: AppLocalization.digitalFont(context, 
-                        color: Colors.white,
-                        fontSize: 42,
-                        fontWeight: FontWeight.w800,
-                        height: 1.1,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        locale.translate('CREATE_ELITE_PROFILE'),
-                        textAlign: TextAlign.center,
-                        style: AppLocalization.digitalFont(context, 
-                          color: Colors.white.withOpacity(0.5),
-                          fontSize: 16,
-                          height: 1.5,
+                          child: const Icon(Icons.terminal_rounded,
+                              color: Color(0xFF00E5FF), size: 20),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Text(
+                          locale.translate('OBSIDIAN_CORE'),
+                          style: AppLocalization.digitalFont(
+                            context,
+                            color: const Color(0xFF00E5FF),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
 
-                  const SizedBox(height: 60),
+                    const SizedBox(height: 100),
 
-                  // Form
-                  _TerminalLabel(locale.translate('DISPLAY_NAME')),
-                  _TerminalInput(
-                      controller: _nameController, hint: 'e.g. Neo_Operator'),
-
-                  const SizedBox(height: 32),
-
-                  _TerminalLabel(locale.translate('EMAIL_ADDRESS_CAPS')),
-                  _TerminalInput(
-                      controller: _emailController,
-                      hint: 'dev@obsidian.io',
-                      keyboardType: TextInputType.emailAddress),
-
-                  const SizedBox(height: 32),
-
-                  _TerminalLabel(locale.translate('ACCESS_KEY')),
-                  _TerminalInput(
-                      controller: _passwordController,
-                      hint: '••••••••••••',
-                      obscureText: true),
-
-                  const SizedBox(height: 32),
-
-                  _TerminalLabel(locale.translate('CONFIRM_ACCESS_KEY')),
-                  _TerminalInput(
-                      controller: _confirmPasswordController,
-                      hint: '••••••••••••',
-                      obscureText: true),
-
-                  const SizedBox(height: 48),
-
-                  // Initialize Button
-                  _InitializeButton(
-                    onPressed: _register,
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Auth Divider
-                  Center(
-                    child: Text(
-                      locale.translate('OR_AUTHENTICATE_WITH'),
-                      style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.2),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // Social Row
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _SocialButton(
-                        icon: FontAwesomeIcons.google,
-                        label: locale.translate('GOOGLE'),
-                        onPressed: _signInWithGoogle,
-                      )),
-                      const SizedBox(width: 12),
-                      Expanded(
-                          child: _SocialButton(
-                        icon: FontAwesomeIcons.github,
-                        label: locale.translate('GITHUB'),
-                        onPressed: _signInWithGitHub,
-                      )),
-                    ],
-                  ),
-
-                  const SizedBox(height: 60),
-
-                  // Login Link
-                  Center(
-                    child: GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: RichText(
-                        text: TextSpan(
-                          style: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.6),
-                              fontSize: 14),
+                    // Status Chip
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            TextSpan(text: locale.translate('ALREADY_OPERATOR')),
-                            TextSpan(
-                              text: locale.translate('LOGIN'),
-                              style: AppLocalization.digitalFont(context, 
-                                  color: const Color(0xFF00E5FF),
-                                  fontWeight: FontWeight.w700),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF00E5FF),
+                                boxShadow: [
+                                  BoxShadow(
+                                      color: Color(0xFF00E5FF),
+                                      blurRadius: 8,
+                                      spreadRadius: 1),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              locale.translate('LIVE_CONNECTION_SECURE'),
+                              style: AppLocalization.digitalFont(
+                                context,
+                                color: Colors.white.withValues(alpha: 0.5),
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.5,
+                                fontSize: 10,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 80),
+                    const SizedBox(height: 12),
 
-                  // Footer Links
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _FooterLink(locale.translate('PRIVACY_PROTOCOL')),
-                      _FooterLink(locale.translate('TERMS_CONDITIONS')),
-                      _FooterLink(locale.translate('VERSION_STABLE')),
-                    ],
-                  ),
+                    // Headline
+                    Center(
+                      child: Text(
+                        locale.translate('JOIN_THE_CORE'),
+                        textAlign: TextAlign.center,
+                        style: AppLocalization.digitalFont(
+                          context,
+                          color: Colors.white,
+                          fontSize: 42,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
 
-                  const SizedBox(height: 100),
-                ],
+                    const SizedBox(height: 24),
+
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          locale.translate('CREATE_ELITE_PROFILE'),
+                          textAlign: TextAlign.center,
+                          style: AppLocalization.digitalFont(
+                            context,
+                            color: Colors.white.withValues(alpha: 0.5),
+                            fontSize: 16,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 60),
+
+                    // Form
+                    _TerminalLabel(locale.translate('DISPLAY_NAME')),
+                    _TerminalInput(
+                        controller: _nameController, hint: 'e.g. Neo_Operator'),
+
+                    const SizedBox(height: 32),
+
+                    _TerminalLabel(locale.translate('EMAIL_ADDRESS_CAPS')),
+                    _TerminalInput(
+                        controller: _emailController,
+                        hint: 'dev@obsidian.io',
+                        keyboardType: TextInputType.emailAddress),
+
+                    const SizedBox(height: 32),
+
+                    _TerminalLabel(locale.translate('ACCESS_KEY')),
+                    _TerminalInput(
+                        controller: _passwordController,
+                        hint: '••••••••••••',
+                        obscureText: true),
+
+                    const SizedBox(height: 32),
+
+                    _TerminalLabel(locale.translate('CONFIRM_ACCESS_KEY')),
+                    _TerminalInput(
+                        controller: _confirmPasswordController,
+                        hint: '••••••••••••',
+                        obscureText: true),
+
+                    const SizedBox(height: 48),
+
+                    // Initialize Button
+                    _InitializeButton(
+                      onPressed: _register,
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    // Auth Divider
+                    Center(
+                      child: Text(
+                        locale.translate('OR_AUTHENTICATE_WITH'),
+                        style: AppLocalization.digitalFont(
+                          context,
+                          color: Colors.white.withValues(alpha: 0.2),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Social Row
+                    Row(
+                      children: [
+                        Expanded(
+                            child: _SocialButton(
+                          icon: FontAwesomeIcons.google,
+                          label: locale.translate('GOOGLE'),
+                          onPressed: _signInWithGoogle,
+                        )),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: _SocialButton(
+                          icon: FontAwesomeIcons.github,
+                          label: locale.translate('GITHUB'),
+                          onPressed: _signInWithGitHub,
+                        )),
+                      ],
+                    ),
+
+                    const SizedBox(height: 60),
+
+                    // Login Link
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: RichText(
+                          text: TextSpan(
+                            style: AppLocalization.digitalFont(
+                              context,
+                              color: Colors.white.withValues(alpha: 0.6),
+                              fontSize: 14,
+                            ),
+                            children: [
+                              TextSpan(
+                                  text: locale.translate('ALREADY_OPERATOR')),
+                              TextSpan(
+                                text: locale.translate('LOGIN'),
+                                style: AppLocalization.digitalFont(
+                                  context,
+                                  color: const Color(0xFF00E5FF),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 80),
+
+                    // Footer Links
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _FooterLink(locale.translate('PRIVACY_PROTOCOL')),
+                        _FooterLink(locale.translate('TERMS_CONDITIONS')),
+                        _FooterLink(locale.translate('VERSION_STABLE')),
+                      ],
+                    ),
+
+                    const SizedBox(height: 100),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            if (auth.isLoading)
+              const ShimmerComponent(
+                width: double.infinity,
+                height: 4,
+                borderRadius: 0,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -363,7 +386,7 @@ class _TerminalInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
+        color: Colors.black.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(4),
       ),
       child: TextField(
@@ -374,13 +397,13 @@ class _TerminalInput extends StatelessWidget {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.1), fontSize: 13),
+              color: Colors.white.withValues(alpha: 0.1), fontSize: 13),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           border: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
           enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
           focusedBorder: const UnderlineInputBorder(
               borderSide: BorderSide(color: Color(0xFF00E5FF))),
         ),
@@ -408,7 +431,7 @@ class _InitializeButton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0ED2F7).withOpacity(0.3),
+            color: const Color(0xFF0ED2F7).withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 2,
             offset: const Offset(0, 4),
@@ -450,9 +473,9 @@ class _SocialButton extends StatelessWidget {
     return Container(
       height: 56,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: Material(
         color: Colors.transparent,
@@ -463,7 +486,7 @@ class _SocialButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               FaIcon(icon as FaIconData?,
-                  color: Colors.white.withOpacity(0.8), size: 18),
+                  color: Colors.white.withValues(alpha: 0.8), size: 18),
               const SizedBox(width: 12),
               Text(
                 label,
@@ -487,7 +510,7 @@ class _FooterLink extends StatelessWidget {
     return Text(
       text,
       style: AppLocalization.digitalFont(context, 
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         fontSize: 9,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.1,

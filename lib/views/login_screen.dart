@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
@@ -10,6 +8,10 @@ import 'home_screen.dart';
 import 'forgot_password_screen.dart';
 import 'waiting_approval_page.dart';
 import '../providers/app_provider.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/shimmer_component.dart';
+import '../controllers/admin_controller.dart';
+import '../models/ad_model.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -83,7 +85,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: Stack(
+      body: PageEntryAnimation(
+        child: Stack(
         children: [
           // Background subtle grid/texture could be added here
           SingleChildScrollView(
@@ -102,9 +105,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF00E5FF).withOpacity(0.1),
+                              color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.2)),
+                              border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.2)),
                             ),
                             child: const Icon(Icons.terminal_rounded, color: Color(0xFF00E5FF), size: 24),
                           ),
@@ -145,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
+                            color: Colors.white.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
@@ -173,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -194,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         Text(
                           locale.translate('ELITE_NODE_ACTIVE'),
                           style: AppLocalization.digitalFont(context, 
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.5,
                             fontSize: 10,
@@ -227,7 +230,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       locale.translate('HERO_SUBTITLE'),
                       textAlign: TextAlign.center,
                       style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 15,
                         height: 1.6,
                       ),
@@ -237,24 +240,31 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   const SizedBox(height: 48),
                   
                   // Stats Row
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _StatBox(
-                          value: '2.4M+',
-                          label: locale.translate('COMMITS_TODAY'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _StatBox(
-                          value: '99.9%',
-                          label: locale.translate('UPTIME_SLA'),
-                        ),
-                      ),
-                    ],
+                  FutureBuilder<Map<String, int>>(
+                    future: Provider.of<AdminController>(context, listen: false).getAnalytics(),
+                    builder: (context, snapshot) {
+                      final users = snapshot.data?['users'] ?? 0;
+                      final posts = snapshot.data?['posts'] ?? 0;
+                      
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: _StatBox(
+                              value: users > 1000 ? '${(users / 1000).toStringAsFixed(1)}K+' : '$users',
+                              label: locale.translate('total_users').toUpperCase(),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _StatBox(
+                              value: posts > 1000 ? '${(posts / 1000).toStringAsFixed(1)}K+' : '$posts',
+                              label: locale.translate('total_posts').toUpperCase(),
+                            ),
+                          ),
+                        ],
+                      );
+                    }
                   ),
-                  
                   const SizedBox(height: 48),
                   
                   // Login Card
@@ -287,7 +297,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   Text(
                                     locale.translate('AUTH_METHOD_SUB'),
                                     style: AppLocalization.digitalFont(context, 
-                                      color: Colors.white.withOpacity(0.5),
+                                      color: Colors.white.withValues(alpha: 0.5),
                                       fontSize: 13,
                                     ),
                                   ),
@@ -296,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             ),
                             const SizedBox(width: 16),
                             Icon(Icons.grid_view_rounded,
-                                color: Colors.white.withOpacity(0.1), size: 40),
+                                color: Colors.white.withValues(alpha: 0.1), size: 40),
                           ],
                         ),
                         
@@ -325,7 +335,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           child: Text(
                             locale.translate('OR_VIA_TERMINAL'),
                             style: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                               letterSpacing: 1.5,
@@ -355,7 +365,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                child: Text(
                                  locale.translate('FORGOT_CAPS'),
                                  style: AppLocalization.digitalFont(context, 
-                                   color: Colors.white.withOpacity(0.4),
+                                   color: Colors.white.withValues(alpha: 0.4),
                                    fontSize: 10,
                                    fontWeight: FontWeight.w700,
                                    letterSpacing: 1.1,
@@ -373,7 +383,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                onTap: () => setState(() => _obscurePassword = !_obscurePassword),
                                child: Icon(
                                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                 color: Colors.white.withOpacity(0.3),
+                                 color: Colors.white.withValues(alpha: 0.3),
                                  size: 18,
                                ),
                              )
@@ -391,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               child: Checkbox(
                                 value: _maintainSession,
                                 onChanged: (v) => setState(() => _maintainSession = v ?? true),
-                                side: BorderSide(color: Colors.white.withOpacity(0.1)),
+                                side: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
                                 activeColor: const Color(0xFF00E5FF),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                               ),
@@ -400,7 +410,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             Text(
                               locale.translate('MAINTAIN_SESSION'),
                               style: AppLocalization.digitalFont(context, 
-                                color: Colors.white.withOpacity(0.6),
+                                color: Colors.white.withValues(alpha: 0.6),
                                 fontSize: 13,
                               ),
                             ),
@@ -414,6 +424,54 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           onPressed: auth.isLoading ? null : _login,
                           isLoading: auth.isLoading,
                         ),
+                        const SizedBox(height: 16),
+                        
+                        // Anonymous Community Toggle Support
+                        Consumer<AdminController>(
+                          builder: (context, admin, child) {
+                            return StreamBuilder<AdSettingsModel>(
+                              stream: admin.getAdSettings(),
+                              builder: (context, snapshot) {
+                                if (snapshot.hasData && snapshot.data!.anonymousCommunityActive) {
+                                  return Column(
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () {
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                          );
+                                        },
+                                        child: Container(
+                                          width: double.infinity,
+                                          height: 52,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(alpha: 0.05),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.2)),
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              locale.translate('VIEW_COMMUNITY_ANONYMOUSLY'),
+                                              style: AppLocalization.digitalFont(context, 
+                                                color: const Color(0xFF00E5FF),
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                                letterSpacing: 1,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            );
+                          },
+                        ),
                         
                         const SizedBox(height: 24),
                         
@@ -421,7 +479,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         Center(
                           child: RichText(
                             text: TextSpan(
-                              style: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.6), fontSize: 14),
+                              style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.6), fontSize: 14),
                               children: [
                                 TextSpan(text: locale.translate('NEW_OPERATOR')),
                                 WidgetSpan(
@@ -460,20 +518,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   InputDecoration _terminalInputDecoration(IconData icon, String hint, {Widget? suffix}) {
     return InputDecoration(
-      prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.5), size: 18),
+      prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.5), size: 18),
       suffixIcon: suffix,
       hintText: hint,
-      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2)),
+      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.2)),
       filled: true,
-      fillColor: Colors.black.withOpacity(0.2),
+      fillColor: Colors.black.withValues(alpha: 0.2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
-      border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+      border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
       focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF00E5FF), width: 1.5)),
     );
   }
@@ -490,7 +549,7 @@ class _StatBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow.withOpacity(0.5),
+        color: AppColors.surfaceContainerLow.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(4),
         border: Border.all(color: AppColors.ghostBorder),
       ),
@@ -508,7 +567,7 @@ class _StatBox extends StatelessWidget {
           Text(
             label,
             style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 9,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.1,
@@ -534,9 +593,9 @@ class _SocialButton extends StatelessWidget {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.03),
+          color: Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -569,7 +628,7 @@ class _TerminalLabel extends StatelessWidget {
       child: Text(
         text,
         style: AppLocalization.digitalFont(context, 
-          color: Colors.white.withOpacity(0.7),
+          color: Colors.white.withValues(alpha: 0.7),
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -600,7 +659,7 @@ class _ExecuteLoginButton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E5FF).withOpacity(0.3),
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 1,
             offset: const Offset(0, 4),
@@ -614,11 +673,7 @@ class _ExecuteLoginButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: Center(
             child: isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
+                ? ShimmerComponent.circleShimmer(size: 24)
                 : Text(
                     locale.translate('EXECUTE_LOGIN'),
                     style: AppLocalization.digitalFont(context, 
@@ -644,7 +699,7 @@ class _BottomNavLink extends StatelessWidget {
     return Text(
       text,
       style: AppLocalization.digitalFont(context, 
-        color: Colors.white.withOpacity(0.3),
+        color: Colors.white.withValues(alpha: 0.3),
         fontSize: 10,
         fontWeight: FontWeight.w700,
         letterSpacing: 1.1,

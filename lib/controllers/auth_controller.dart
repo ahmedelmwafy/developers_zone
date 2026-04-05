@@ -52,6 +52,13 @@ class AuthController extends ChangeNotifier {
         await _firestoreService.createUser(newUser);
         _currentUser = newUser;
         updateFCMToken();
+
+        // Notify Admins about new registration
+        await NotificationService.notifyAdmins(
+          title: 'ACCESS_REQUEST_INITIAL',
+          body: 'A new nodal identity ($name) has registered. Initial security clearance required.',
+          relatedId: newUser.uid,
+        );
       }
     } finally {
       _isLoading = false;
@@ -248,9 +255,25 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> updateProfile(UserModel newUser) async {
+    final wasApproved = _currentUser?.isApproved ?? false;
+    final wasComplete = isProfileComplete;
+    
     await _firestoreService.updateUser(newUser);
     _currentUser = newUser;
     notifyListeners();
+
+    // If profile is now complete and user is not yet approved, notify admins
+    if (!wasApproved && !newUser.isApproved && isProfileComplete && !wasComplete) {
+       await NotificationService.notifyAdmins(
+          title: 'MANIFEST_COMPLETE',
+          body: '${newUser.name} has finalized their tech transcript. Ready for final clearance.',
+          relatedId: newUser.uid,
+        );
+    }
+  }
+
+  Future<bool> checkUsernameAvailable(String username) async {
+    return await _firestoreService.checkUsernameAvailable(username, excludeUid: currentUser?.uid);
   }
 
   Future<void> refreshUser() async {
@@ -265,10 +288,11 @@ class AuthController extends ChangeNotifier {
   double get profileCompletionPercentage {
     if (_currentUser == null) return 0.0;
     int completedFields = 0;
-    int totalFields = 10;
+    int totalFields = 11;
 
-    // Identity (2)
+    // Identity (3)
     if (_currentUser!.name.isNotEmpty) completedFields++;
+    if (_currentUser!.username.isNotEmpty) completedFields++;
     if (_currentUser!.profileImage.isNotEmpty) completedFields++;
 
     // Tech Profile (3)

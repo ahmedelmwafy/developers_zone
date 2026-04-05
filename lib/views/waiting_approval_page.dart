@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
+import 'edit_profile_page.dart';
 
 class WaitingApprovalPage extends StatefulWidget {
   const WaitingApprovalPage({super.key});
@@ -114,7 +115,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             const SizedBox(width: 12),
             Text(
               'Obsidian.Dev',
-              style: AppLocalization.digitalFont(context, 
+              style: AppLocalization.digitalFont(
+                context,
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -125,18 +127,19 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             shape: BoxShape.circle,
           ),
           child: Icon(Icons.person_outline_rounded,
-              color: Colors.white.withOpacity(0.5), size: 20),
+              color: Colors.white.withValues(alpha: 0.5), size: 20),
         ),
       ],
     );
   }
 
   Widget _buildMainStatus(AppLocalization locale, bool isBanned) {
-    final statusColor = isBanned ? const Color(0xFFFF3D00) : const Color(0xFF00E5FF);
+    final statusColor =
+        isBanned ? const Color(0xFFFF3D00) : const Color(0xFF00E5FF);
     return Column(
       children: [
         ScaleTransition(
@@ -151,16 +154,21 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                    color: statusColor.withOpacity(0.5), blurRadius: 20, spreadRadius: 2),
+                    color: statusColor.withValues(alpha: 0.5),
+                    blurRadius: 20,
+                    spreadRadius: 2),
               ],
             ),
           ),
         ),
         const SizedBox(height: 32),
         Text(
-          isBanned ? locale.translate('PROTOCOL_VIOLATION') : locale.translate('REVIEWING_NODE_CREDENTIALS'),
+          isBanned
+              ? locale.translate('PROTOCOL_VIOLATION')
+              : locale.translate('REVIEWING_NODE_CREDENTIALS'),
           textAlign: TextAlign.center,
-          style: AppLocalization.digitalFont(context, 
+          style: AppLocalization.digitalFont(
+            context,
             color: statusColor,
             fontSize: 12,
             fontWeight: FontWeight.w800,
@@ -169,8 +177,11 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 48),
         Text(
-          isBanned ? locale.translate('ACCESS_REVOKED') : locale.translate('ACCESS_PENDING'),
-          style: AppLocalization.digitalFont(context, 
+          isBanned
+              ? locale.translate('ACCESS_REVOKED')
+              : locale.translate('ACCESS_PENDING'),
+          style: AppLocalization.digitalFont(
+            context,
             color: Colors.white,
             fontSize: 42,
             fontWeight: FontWeight.w900,
@@ -179,10 +190,13 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         ),
         const SizedBox(height: 24),
         Text(
-          isBanned ? locale.translate('BANNED_DESC') : locale.translate('ACCESS_PENDING_DESC'),
+          isBanned
+              ? locale.translate('BANNED_DESC')
+              : locale.translate('ACCESS_PENDING_DESC'),
           textAlign: TextAlign.center,
-          style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.5),
+          style: AppLocalization.digitalFont(
+            context,
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 15,
             height: 1.6,
           ),
@@ -198,7 +212,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +236,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       children: [
         Text(
           label,
-          style: AppLocalization.digitalFont(context, 
+          style: AppLocalization.digitalFont(
+            context,
             color: const Color(0xFF00E5FF),
             fontSize: 10,
             fontWeight: FontWeight.w700,
@@ -232,7 +247,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         const SizedBox(height: 4),
         Text(
           value,
-          style: AppLocalization.digitalFont(context, 
+          style: AppLocalization.digitalFont(
+            context,
             color: Colors.white,
             fontSize: 16,
             fontWeight: FontWeight.bold,
@@ -262,7 +278,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                      color: const Color(0xFFFF3D00).withOpacity(0.2),
+                      color: const Color(0xFFFF3D00).withValues(alpha: 0.2),
                       blurRadius: 20,
                       offset: const Offset(0, 8)),
                 ],
@@ -270,7 +286,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
               child: Center(
                 child: Text(
                   locale.translate('CONTACT_SUPPORT'),
-                  style: AppLocalization.digitalFont(context, 
+                  style: AppLocalization.digitalFont(
+                    context,
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
                     fontSize: 14,
@@ -287,14 +304,10 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
               width: double.infinity,
               height: 60,
               decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: const Color(0xFF00E5FF).withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8)),
-                ],
+                border: Border.all(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
               ),
               child: Center(
                 child: _isRefreshing
@@ -302,16 +315,52 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
-                            color: Colors.black, strokeWidth: 3))
+                            color: Color(0xFF00E5FF), strokeWidth: 3))
                     : Text(
                         locale.translate('REFRESH_STATUS'),
-                        style: AppLocalization.digitalFont(context, 
-                          color: Colors.black,
+                        style: AppLocalization.digitalFont(
+                          context,
+                          color: const Color(0xFF00E5FF),
                           fontWeight: FontWeight.w900,
                           fontSize: 14,
                           letterSpacing: 1,
                         ),
                       ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const EditProfilePage()),
+            ),
+            child: Container(
+              width: double.infinity,
+              height: 60,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF00E5FF), Color(0xFF00E5FF)],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: Text(
+                  locale.translate('COMPLETE_PROFILE_CAPS'),
+                  style: AppLocalization.digitalFont(
+                    context,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
           ),
@@ -322,7 +371,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             final authController =
                 Provider.of<AuthController>(context, listen: false);
             await authController.logout();
-            if (context.mounted) {
+            if (mounted) {
               Navigator.of(context).pushAndRemoveUntil(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
                 (route) => false,
@@ -333,15 +382,16 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             width: double.infinity,
             height: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: Colors.white.withValues(alpha: 0.03),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
             ),
             child: Center(
               child: Text(
                 locale.translate('LOGOUT_SESSION'),
-                style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.5),
+                style: AppLocalization.digitalFont(
+                  context,
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                   letterSpacing: 1,
@@ -359,8 +409,9 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
       children: [
         Text(
           AppLocalization.of(context)!.translate('SECURITY_LOGS'),
-          style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.2),
+          style: AppLocalization.digitalFont(
+            context,
+            color: Colors.white.withValues(alpha: 0.2),
             fontSize: 10,
             fontWeight: FontWeight.w700,
             letterSpacing: 2,
@@ -387,7 +438,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
           child: Text(
             text,
             style: GoogleFonts.sourceCodePro(
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 11,
             ),
             overflow: TextOverflow.ellipsis,

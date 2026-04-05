@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/shimmer_component.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -25,7 +26,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final auth = Provider.of<AuthController>(context, listen: false);
     final locale = AppLocalization.of(context)!;
     
-    if (_emailController.text.trim().isEmpty) return;
+    if (_emailController.text.trim().isEmpty) {
+      return;
+    }
 
     try {
       await auth.sendPasswordReset(_emailController.text.trim());
@@ -64,7 +67,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
+      body: PageEntryAnimation(
+        child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
@@ -89,7 +93,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               Text(
                 locale.translate('RECOVERY_DESC'),
                 style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.6),
+                  color: Colors.white.withValues(alpha: 0.6),
                   fontSize: 15,
                   height: 1.6,
                 ),
@@ -145,7 +149,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         Text(
                           locale.translate('ENCRYPTION_NODE_ACTIVE'),
                           style: AppLocalization.digitalFont(context, 
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                             fontSize: 10,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.2,
@@ -182,7 +186,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                    '© 2024 DEVELOPERS ZONE TERMINAL.\nAUTHORIZED ACCESS ONLY.',
                    textAlign: TextAlign.center,
                    style: AppLocalization.digitalFont(context, 
-                     color: Colors.white.withOpacity(0.15),
+                     color: Colors.white.withValues(alpha: 0.15),
                      fontSize: 9,
                      fontWeight: FontWeight.w600,
                      letterSpacing: 2,
@@ -196,19 +200,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   InputDecoration _terminalInputDecoration(IconData icon, String hint) {
     return InputDecoration(
-      prefixIcon: Icon(icon, color: Colors.white.withOpacity(0.5), size: 18),
+      prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.5), size: 18),
       hintText: hint,
-      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.2)),
+      hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.2)),
       filled: true,
-      fillColor: Colors.black.withOpacity(0.2),
+      fillColor: Colors.black.withValues(alpha: 0.2),
       contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 16),
-      border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
+      border: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+      enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
       focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF00E5FF), width: 1.5)),
     );
   }
@@ -225,7 +230,7 @@ class _TerminalLabel extends StatelessWidget {
       child: Text(
         text,
         style: AppLocalization.digitalFont(context, 
-          color: const Color(0xFF00E5FF).withOpacity(0.8),
+          color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
           fontSize: 10,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
@@ -256,7 +261,7 @@ class _ExecuteButton extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00E5FF).withOpacity(0.3),
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
             blurRadius: 15,
             spreadRadius: 1,
             offset: const Offset(0, 4),
@@ -270,15 +275,11 @@ class _ExecuteButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(6),
           child: Center(
             child: isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                  )
+                ? ShimmerComponent.circleShimmer(size: 24)
                 : Text(
                     label,
                     style: AppLocalization.digitalFont(context, 
-                      color: Colors.black.withOpacity(0.8),
+                      color: Colors.black.withValues(alpha: 0.8),
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.5,
@@ -306,7 +307,7 @@ class _DiagnosticItem extends StatelessWidget {
         Text(
           label,
           style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.4),
+            color: Colors.white.withValues(alpha: 0.4),
             fontSize: 9,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.1,
@@ -316,7 +317,7 @@ class _DiagnosticItem extends StatelessWidget {
         Text(
           value,
           style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 12,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,

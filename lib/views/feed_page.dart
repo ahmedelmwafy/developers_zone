@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
 import '../providers/app_provider.dart';
@@ -22,8 +21,16 @@ class _FeedPageState extends State<FeedPage> {
   @override
   Widget build(BuildContext context) {
     final locale = AppLocalization.of(context)!;
-    final postController = Provider.of<PostController>(context);
-    final user = Provider.of<AuthController>(context).currentUser;
+    // Use listen: false to prevent rebuilds on every notification
+    final postController = Provider.of<PostController>(context, listen: false);
+
+    // Only listen to parts of the user that affect the feed filter
+    final blockedUsers = context.select<AuthController, List<String>>(
+        (auth) => List<String>.from(auth.currentUser?.blockedUsers ?? []));
+    final followingIds = context.select<AuthController, List<String>>(
+        (auth) => List<String>.from(auth.currentUser?.following ?? []));
+    final userId = context
+        .select<AuthController, String?>((auth) => auth.currentUser?.uid);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
@@ -33,10 +40,11 @@ class _FeedPageState extends State<FeedPage> {
             physics: const BouncingScrollPhysics(),
             slivers: [
               _buildFeedTabs(locale),
-              _buildFeedContent(postController, user, locale),
+              _buildFeedContent(
+                  postController, userId, followingIds, blockedUsers, locale),
             ],
           ),
-          _buildFloatingActionButton(context),
+          if (userId != null) _buildFloatingActionButton(context),
         ],
       ),
     );
@@ -64,7 +72,7 @@ class _FeedPageState extends State<FeedPage> {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? const Color(0xFF00E5FF).withOpacity(0.1)
+                        ? const Color(0xFF00E5FF).withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -74,10 +82,11 @@ class _FeedPageState extends State<FeedPage> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
-                      style: AppLocalization.digitalFont(context, 
+                      style: AppLocalization.digitalFont(
+                        context,
                         color: isSelected
                             ? const Color(0xFF00E5FF)
-                            : Colors.white.withOpacity(0.4),
+                            : Colors.white.withValues(alpha: 0.4),
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1,
@@ -94,17 +103,21 @@ class _FeedPageState extends State<FeedPage> {
   }
 
   Widget _buildFeedContent(
-      PostController postController, dynamic user, AppLocalization locale) {
+      PostController postController,
+      String? userId,
+      List<String> followingIds,
+      List<String> blockedUsers,
+      AppLocalization locale) {
     Stream<List<PostModel>> feedStream;
 
-    if (_selectedTab == 1 && user != null) {
+    if (_selectedTab == 1 && userId != null) {
       feedStream = postController.getFollowingFeed(
-        userId: user.uid,
-        followingIds: List<String>.from(user.following),
+        userId: userId,
+        followingIds: followingIds,
       );
     } else {
       feedStream = postController.getGlobalFeed(
-        blockedUsers: List<String>.from(user?.blockedUsers ?? []),
+        blockedUsers: blockedUsers,
       );
     }
 
@@ -137,14 +150,15 @@ class _FeedPageState extends State<FeedPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.terminal_rounded,
-                      size: 48, color: Colors.white.withOpacity(0.05)),
+                      size: 48, color: Colors.white.withValues(alpha: 0.05)),
                   const SizedBox(height: 16),
                   Text(
                     _selectedTab == 1
                         ? locale.translate('NO_CONNECTIONS_FOUND')
                         : locale.translate('NO_COMMITS_FOUND'),
-                    style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.2),
+                    style: AppLocalization.digitalFont(
+                      context,
+                      color: Colors.white.withValues(alpha: 0.2),
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 2,
@@ -196,7 +210,7 @@ class _FeedPageState extends State<FeedPage> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withOpacity(0.3),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.3),
                 blurRadius: 15,
                 spreadRadius: 2,
               ),

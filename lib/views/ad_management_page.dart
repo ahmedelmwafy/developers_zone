@@ -41,7 +41,7 @@ class AdManagementPage extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<List<AdModel>>(
-        stream: adminController.getAds(),
+        stream: adminController.getAds(activeOnly: false),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -687,7 +687,7 @@ class _ToggleRow extends StatelessWidget {
           value: value,
           onChanged: onChanged,
           activeTrackColor: AppColors.primary.withValues(alpha: 0.5),
-          activeColor: AppColors.primary,
+          activeThumbColor: AppColors.primary,
         ),
       ],
     );

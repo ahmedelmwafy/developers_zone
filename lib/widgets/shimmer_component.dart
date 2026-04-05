@@ -27,7 +27,7 @@ class ShimmerComponent extends StatelessWidget {
           width: width,
           height: height,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
+            color: Colors.white.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(borderRadius),
           ),
         ),
@@ -72,4 +72,36 @@ class ShimmerComponent extends StatelessWidget {
       ),
     );
   }
+
+  static Widget circleShimmer({double size = 40}) {
+    return ShimmerComponent(width: size, height: size, borderRadius: size / 2);
+  }
+
+  static Widget userTileShimmer({int count = 6}) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: count,
+      itemBuilder: (context, index) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: Row(
+          children: [
+            ShimmerComponent(width: 60, height: 60, borderRadius: 12),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerComponent(width: 120, height: 14),
+                  const SizedBox(height: 8),
+                  ShimmerComponent(width: 200, height: 10),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

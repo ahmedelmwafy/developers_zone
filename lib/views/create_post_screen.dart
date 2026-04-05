@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
@@ -28,13 +28,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     // Check post permissions
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = Provider.of<AuthController>(context, listen: false).currentUser;
+      final user =
+          Provider.of<AuthController>(context, listen: false).currentUser;
       if (user != null && !user.canPost) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalization.of(context)!.translate('posting_restricted'))),
+          SnackBar(
+              content: Text(AppLocalization.of(context)!
+                  .translate('posting_restricted'))),
         );
         Navigator.pop(context);
       }
@@ -128,7 +131,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       await postController.createPost(post);
     }
 
-    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(AppLocalization.of(context)!.translate('action_synced')),
+          backgroundColor: const Color(0xFF00E5FF).withOpacity(0.8),
+        ),
+      );
+      Navigator.pop(context);
+    }
   }
 
   void _showAddTagDialog() {
@@ -146,7 +158,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: locale.translate('ADD_TAG_PROMPT'),
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
           ),
         ),
         actions: [
@@ -188,14 +200,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                   hintText: locale.translate('LINK_TEXT'),
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3))),
+                  hintStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.3))),
             ),
             TextField(
               controller: urlController,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
                   hintText: locale.translate('LINK_URL'),
-                  hintStyle: TextStyle(color: Colors.white.withOpacity(0.3))),
+                  hintStyle:
+                      TextStyle(color: Colors.white.withValues(alpha: 0.3))),
             ),
           ],
         ),
@@ -236,7 +250,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   void _wrapSelection(String prefix, [String? suffix]) {
     final selection = _textController.selection;
     final text = _textController.text;
-    
+
     if (selection.start == -1 || selection.end == -1) {
       final newText = text + prefix + (suffix ?? prefix);
       _textController.text = newText;
@@ -268,8 +282,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           widget.postToEdit != null
               ? locale.translate('edit_post').toUpperCase()
               : locale.translate('create_post').toUpperCase(),
-          style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.3),
+          style: AppLocalization.digitalFont(
+            context,
+            color: Colors.white.withValues(alpha: 0.3),
             fontWeight: FontWeight.w700,
             fontSize: 11,
             letterSpacing: 2,
@@ -299,15 +314,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             TextField(
               controller: _titleController,
               cursorColor: const Color(0xFF00E5FF),
-              style: AppLocalization.digitalFont(context, 
+              style: AppLocalization.digitalFont(
+                context,
                 color: Colors.white,
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
               ),
               decoration: InputDecoration(
                 hintText: locale.translate('ENTRY_TITLE'),
-                hintStyle: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.05),
+                hintStyle: AppLocalization.digitalFont(
+                  context,
+                  color: Colors.white.withValues(alpha: 0.05),
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
                 ),
@@ -336,28 +353,28 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               controller: _textController,
               maxLines: null,
               cursorColor: const Color(0xFF00E5FF),
-              style: AppLocalization.digitalFont(context, 
-                color: Colors.white.withOpacity(0.8),
+              style: AppLocalization.digitalFont(
+                context,
+                color: Colors.white.withValues(alpha: 0.8),
                 fontSize: 16,
                 height: 1.7,
               ),
               decoration: InputDecoration(
                 hintText: locale.translate('post_hint'),
-                hintStyle: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.1),
+                hintStyle: AppLocalization.digitalFont(
+                  context,
+                  color: Colors.white.withValues(alpha: 0.1),
                   fontSize: 16,
                 ),
                 border: InputBorder.none,
               ),
             ),
             const SizedBox(height: 48),
-            _SectionLabel(
-                text: locale.translate('VISUAL_DOCUMENTATION')),
+            _SectionLabel(text: locale.translate('VISUAL_DOCUMENTATION')),
             const SizedBox(height: 20),
             _buildGraphicSection(locale),
             const SizedBox(height: 48),
-            _SectionLabel(
-                text: locale.translate('CODE_REPOSITORY')),
+            _SectionLabel(text: locale.translate('CODE_REPOSITORY')),
             const SizedBox(height: 20),
             _buildCodeEditor(locale),
             const SizedBox(height: 100),
@@ -374,7 +391,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -394,7 +411,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               isActive: true,
               onPressed: () => _wrapSelection('`')),
           Icon(Icons.help_outline_rounded,
-              color: Colors.white.withOpacity(0.1), size: 18),
+              color: Colors.white.withValues(alpha: 0.1), size: 18),
         ],
       ),
     );
@@ -410,21 +427,21 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               child: Container(
                 height: 180,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.01),
+                  color: Colors.white.withValues(alpha: 0.01),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.04),
+                      color: Colors.white.withValues(alpha: 0.04),
                       style: BorderStyle.solid),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.add_photo_alternate_outlined,
-                        color: Colors.white.withOpacity(0.05), size: 36),
+                        color: Colors.white.withValues(alpha: 0.05), size: 36),
                     const SizedBox(height: 12),
                     Text(locale.translate('photo').toUpperCase(),
-                        style: AppLocalization.digitalFont(context, 
-                            color: Colors.white.withOpacity(0.15),
+                        style: AppLocalization.digitalFont(context,
+                            color: Colors.white.withValues(alpha: 0.15),
                             fontSize: 9,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 1.5)),
@@ -448,13 +465,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         width: 140,
                         margin: const EdgeInsets.only(left: 12),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.03),
+                          color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(16),
-                          border:
-                              Border.all(color: Colors.white.withOpacity(0.05)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.05)),
                         ),
                         child: Icon(Icons.add_rounded,
-                            color: Colors.white.withOpacity(0.2)),
+                            color: Colors.white.withValues(alpha: 0.2)),
                       ),
                     );
                   }
@@ -504,10 +521,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       decoration: BoxDecoration(
         color: Colors.black,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -520,7 +537,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
               border: Border(
-                  bottom: BorderSide(color: Colors.white.withOpacity(0.03))),
+                  bottom:
+                      BorderSide(color: Colors.white.withValues(alpha: 0.03))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -547,8 +565,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ],
                 ),
                 Text(locale.translate('KERNEL_FILENAME'),
-                    style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.2),
+                    style: AppLocalization.digitalFont(context,
+                        color: Colors.white.withValues(alpha: 0.2),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1)),
@@ -562,13 +580,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               maxLines: 8,
               cursorColor: const Color(0xFF00E5FF),
               style: GoogleFonts.sourceCodePro(
-                  color: const Color(0xFF00E5FF).withOpacity(0.8),
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
                   fontSize: 13,
                   height: 1.6),
               decoration: InputDecoration(
                 hintText: locale.translate('INSERT_CODE_HINT'),
                 hintStyle: GoogleFonts.sourceCodePro(
-                    color: Colors.white.withOpacity(0.05)),
+                    color: Colors.white.withValues(alpha: 0.05)),
                 border: InputBorder.none,
               ),
             ),
@@ -589,8 +607,9 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         text.toUpperCase(),
-        style: AppLocalization.digitalFont(context, 
-          color: const Color(0xFF00E5FF).withOpacity(0.4),
+        style: AppLocalization.digitalFont(
+          context,
+          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
           fontSize: 9,
           fontWeight: FontWeight.w800,
           letterSpacing: 2,
@@ -623,7 +642,7 @@ class _PublishButton extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00E5FF).withOpacity(0.2),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
               blurRadius: 10,
               spreadRadius: 1,
             ),
@@ -637,7 +656,7 @@ class _PublishButton extends StatelessWidget {
                   child: CircularProgressIndicator(
                       strokeWidth: 2, color: Colors.white))
               : Text(label,
-                  style: AppLocalization.digitalFont(context, 
+                  style: AppLocalization.digitalFont(context,
                       color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
@@ -657,13 +676,14 @@ class _TagChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF00E5FF).withOpacity(0.08),
+        color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.12)),
+        border:
+            Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.12)),
       ),
       child: Text('#$text',
-          style: AppLocalization.digitalFont(context, 
-              color: const Color(0xFF00E5FF).withOpacity(0.6),
+          style: AppLocalization.digitalFont(context,
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.6),
               fontSize: 10,
               fontWeight: FontWeight.w800)),
     );
@@ -682,7 +702,7 @@ class _AddTagButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -691,7 +711,7 @@ class _AddTagButton extends StatelessWidget {
             const Icon(Icons.add, color: Colors.white30, size: 12),
             const SizedBox(width: 6),
             Text(label ?? 'ADD',
-                style: AppLocalization.digitalFont(context, 
+                style: AppLocalization.digitalFont(context,
                     color: Colors.white30,
                     fontSize: 10,
                     fontWeight: FontWeight.w800)),
@@ -715,7 +735,7 @@ class _ToolbarIcon extends StatelessWidget {
       icon: Icon(icon,
           color: isActive
               ? const Color(0xFF00E5FF)
-              : Colors.white.withOpacity(0.2),
+              : Colors.white.withValues(alpha: 0.2),
           size: 20),
       onPressed: onPressed,
       padding: EdgeInsets.zero,

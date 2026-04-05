@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../providers/app_provider.dart';
 
 class PolicyPage extends StatelessWidget {
@@ -44,12 +43,12 @@ class PolicyPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF161616),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: Text(
                 locale.translate(contentKey),
                 style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 14,
                   height: 1.8,
                 ),
@@ -60,7 +59,7 @@ class PolicyPage extends StatelessWidget {
               child: Text(
                 'END OF PROTOCOL',
                 style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 4,

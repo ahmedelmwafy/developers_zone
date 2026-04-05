@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
@@ -12,6 +12,8 @@ import '../services/imgbb_service.dart';
 import 'chat_config_page.dart';
 import '../providers/app_provider.dart';
 import 'components/zoomable_image_page.dart';
+import '../widgets/shimmer_component.dart';
+import '../widgets/page_entry_animation.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String chatId;
@@ -38,9 +40,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _loadOtherUser() async {
-    if (widget.otherUserId.isEmpty) return;
+    if (widget.otherUserId.isEmpty) {
+      return;
+    }
     final user = await FirestoreService().getUser(widget.otherUserId);
-    if (mounted) setState(() => _otherUser = user);
+    if (mounted) {
+      setState(() => _otherUser = user);
+    }
   }
 
   @override
@@ -54,7 +60,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     final authController = Provider.of<AuthController>(context, listen: false);
     final chatController = Provider.of<ChatController>(context, listen: false);
 
-    if (_messageController.text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty) {
+      return;
+    }
 
     if (_editingMessageId != null) {
       _editingMessageId = null;
@@ -77,7 +85,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void _pickAndSendImage() async {
     final pickedFile = await ImagePicker()
         .pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (pickedFile == null) return;
+    if (pickedFile == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _isUploading = true);
     final authController = Provider.of<AuthController>(context, listen: false);
@@ -99,7 +112,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             widget.chatId, message, authController.currentUser!.name);
       }
     } finally {
-      if (mounted) setState(() => _isUploading = false);
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
     }
   }
 
@@ -111,43 +126,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       appBar: _buildTechnicalAppBar(),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<MessageModel>>(
-              stream: chatController.getMessages(widget.chatId),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(
-                      child:
-                          CircularProgressIndicator(color: Color(0xFF00E5FF)));
-                }
-                final messages = snapshot.data!;
-                return ListView.builder(
-                  controller: _scrollController,
-                  reverse: true,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    final isMe = message.senderId == currentUser?.uid;
-                    return _buildMessageNode(
-                        context, message, isMe, chatController, currentUser);
-                  },
-                );
-              },
+      body: PageEntryAnimation(
+        child: Column(
+          children: [
+            Expanded(
+              child: StreamBuilder<List<MessageModel>>(
+                stream: chatController.getMessages(widget.chatId),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return ShimmerComponent.listShimmer(count: 5);
+                  }
+                  final messages = snapshot.data!;
+                  return ListView.builder(
+                    controller: _scrollController,
+                    reverse: true,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                    itemCount: messages.length,
+                    itemBuilder: (context, index) {
+                      final message = messages[index];
+                      final isMe = message.senderId == currentUser?.uid;
+                      return _buildMessageNode(
+                          context, message, isMe, chatController, currentUser);
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-          if (_isUploading)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: LinearProgressIndicator(
-                  backgroundColor: Colors.transparent,
-                  color: Color(0xFF00E5FF)),
-            ),
-          _buildTerminalInput(),
-        ],
+            if (_isUploading)
+              const ShimmerComponent(width: double.infinity, height: 4),
+            _buildTerminalInput(),
+          ],
+        ),
       ),
     );
   }
@@ -178,13 +188,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                        color: const Color(0xFF00E5FF).withOpacity(0.3)),
+                        color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
                     image: _otherUser?.profileImage.isNotEmpty == true
                         ? DecorationImage(
                             image: NetworkImage(_otherUser!.profileImage),
                             fit: BoxFit.cover)
                         : null,
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                   ),
                   child: _otherUser?.profileImage.isEmpty == true
                       ? const Icon(Icons.person,
@@ -224,7 +234,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   Text(
                     '${AppLocalization.of(context)!.translate('active_now')} • ${_otherUser?.position.toUpperCase() ?? AppLocalization.of(context)!.translate('contributor')}',
                     style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.3),
+                        color: Colors.white.withValues(alpha: 0.3),
                         fontSize: 8,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1),
@@ -238,7 +248,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       actions: [
         IconButton(
           icon: Icon(Icons.more_vert_rounded,
-              color: Colors.white.withOpacity(0.3), size: 20),
+              color: Colors.white.withValues(alpha: 0.3), size: 20),
           onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -311,7 +321,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           Text(
                             message.text,
                             style: AppLocalization.digitalFont(context, 
-                                color: Colors.white.withOpacity(0.85),
+                                color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 14,
                                 height: 1.55),
                           ),
@@ -334,7 +344,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 Text(
                   _formatTime(message.createdAt),
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       fontSize: 8,
                       fontWeight: FontWeight.w800),
                 ),
@@ -353,7 +363,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 Text(
                   isMe ? (message.isSeen ? AppLocalization.of(context)!.translate('delivered') : AppLocalization.of(context)!.translate('sent')) : AppLocalization.of(context)!.translate('encrypted'),
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       fontSize: 8,
                       fontWeight: FontWeight.w800),
                 ),
@@ -370,7 +380,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         shape: BoxShape.circle,
         image: image?.isNotEmpty == true
             ? DecorationImage(image: NetworkImage(image!), fit: BoxFit.cover)
@@ -440,13 +450,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       decoration: BoxDecoration(
           color: const Color(0xFF0D0D0D),
           border:
-              Border(top: BorderSide(color: Colors.white.withOpacity(0.03)))),
+              Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.03)))),
       child: Row(
         children: [
           GestureDetector(
               onTap: _pickAndSendImage,
               child: Icon(Icons.attachment_rounded,
-                  color: Colors.white.withOpacity(0.3), size: 18)),
+                  color: Colors.white.withValues(alpha: 0.3), size: 18)),
           const SizedBox(width: 16),
           Expanded(
             child: Container(
@@ -458,7 +468,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 children: [
                   Text('>',
                       style: GoogleFonts.sourceCodePro(
-                          color: const Color(0xFF00E5FF).withOpacity(0.4),
+                          color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
                           fontSize: 16,
                           fontWeight: FontWeight.w900)),
                   const SizedBox(width: 12),
@@ -470,7 +480,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       decoration: InputDecoration(
                           hintText: AppLocalization.of(context)!.translate('initialize_message_sequence'),
                           hintStyle: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               fontSize: 13),
                           border: InputBorder.none),
                     ),
@@ -483,7 +493,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           GestureDetector(
             onTap: _sendMessage,
             child: CircleAvatar(
-              backgroundColor: const Color(0xFF00E5FF).withOpacity(0.1),
+              backgroundColor: const Color(0xFF00E5FF).withValues(alpha: 0.1),
               child: const Icon(Icons.send_rounded,
                   color: Color(0xFF00E5FF), size: 18),
             ),
@@ -511,7 +521,7 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       leading:
-          Icon(icon, color: color ?? Colors.white.withOpacity(0.4), size: 22),
+          Icon(icon, color: color ?? Colors.white.withValues(alpha: 0.4), size: 22),
       title: Text(label,
           style: AppLocalization.digitalFont(context, 
               color: color ?? Colors.white,

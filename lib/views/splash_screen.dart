@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/auth_controller.dart';
@@ -12,6 +11,7 @@ import 'home_screen.dart';
 import 'login_screen.dart';
 import 'waiting_approval_page.dart';
 import 'incomplete_profile_page.dart';
+import 'onboarding_page.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -61,19 +61,35 @@ class _SplashScreenState extends State<SplashScreen>
     final adminController = Provider.of<AdminController>(context, listen: false);
     
     // Check if splash ads are enabled
-    final settings = await adminController.getAdSettings().first;
+    // Check if splash ads are enabled
+    AdSettingsModel settings = AdSettingsModel();
+    try {
+      settings = await adminController.getAdSettings().first.timeout(const Duration(seconds: 2));
+    } catch (e) {
+      debugPrint('Ad settings fetch timed out: $e');
+    }
     
-    // INITIALIZE INTERSTITIAL AD (Industrial Ad - initialized here as requested)
+    // INITIALIZE INTERSTITIAL AD
     AdService.loadInterstitialAd(settings: settings);
-
+    
     if (settings.splashCustomAdActive) {
+      // Get Splash ads
       final adStream = adminController.getAds(type: 'splash');
-      final ads = await adStream.first;
+      
+      List<AdModel> ads = [];
+      try {
+        ads = await adStream.first.timeout(const Duration(seconds: 2));
+      } catch (e) {
+        debugPrint('Ad stream fetch timed out or failed: $e');
+      }
+      
       if (ads.isNotEmpty) {
+        ads.shuffle();
         setState(() => _featuredAd = ads.first);
       }
     }
 
+    // Ensure we wait for the minimum display time (e.g. 4 seconds total)
     await Future.delayed(const Duration(seconds: 4));
     if (!mounted) return;
 
@@ -86,6 +102,8 @@ class _SplashScreenState extends State<SplashScreen>
       await Future.delayed(const Duration(milliseconds: 500));
       retries++;
     }
+
+    if (!mounted) return;
 
     if (authController.currentUser != null) {
       if (authController.currentUser!.isBanned || !authController.currentUser!.isApproved) {
@@ -105,8 +123,13 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } else {
       AdService.showInterstitialAd(settings: settings);
-      Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const LoginScreen()));
+      if (!appProvider.hasSeenOnboarding) {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const OnboardingPage()));
+      } else {
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const LoginScreen()));
+      }
     }
   }
 
@@ -158,7 +181,7 @@ class _SplashScreenState extends State<SplashScreen>
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withOpacity(0.05),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.05),
                 blurRadius: 150,
                 spreadRadius: 50,
               ),
@@ -182,7 +205,7 @@ class _SplashScreenState extends State<SplashScreen>
             border: Border.all(color: Colors.white10),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF00E5FF).withOpacity(0.1),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                 blurRadius: 20,
               ),
             ],
@@ -237,7 +260,7 @@ class _SplashScreenState extends State<SplashScreen>
           locale.translate('architecting_future'),
           textAlign: TextAlign.center,
           style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 2,
@@ -254,7 +277,7 @@ class _SplashScreenState extends State<SplashScreen>
         Container(
           height: 2,
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.05)),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05)),
           child: FractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: _percent,
@@ -268,7 +291,7 @@ class _SplashScreenState extends State<SplashScreen>
             Text(
               AppLocalization.of(context)!.translate(_statusKey),
               style: AppLocalization.digitalFont(context, 
-                color: const Color(0xFF00E5FF).withOpacity(0.8),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.8),
                 fontSize: 9,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.5,
@@ -277,7 +300,7 @@ class _SplashScreenState extends State<SplashScreen>
             Text(
               '${(_percent * 100).toInt()}%',
               style: AppLocalization.digitalFont(context, 
-                color: Colors.white.withOpacity(0.3),
+                color: Colors.white.withValues(alpha: 0.3),
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
               ),
@@ -294,7 +317,7 @@ class _SplashScreenState extends State<SplashScreen>
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -307,7 +330,7 @@ class _SplashScreenState extends State<SplashScreen>
                 ad.imageUrl,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
-                  color: Colors.white.withOpacity(0.05),
+                  color: Colors.white.withValues(alpha: 0.05),
                   child: const Icon(Icons.cloud_queue_rounded,
                       color: Colors.white24, size: 40),
                 ),
@@ -337,7 +360,7 @@ class _SplashScreenState extends State<SplashScreen>
               Text(
                 ad.title.toUpperCase(),
                 style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1,
@@ -351,7 +374,7 @@ class _SplashScreenState extends State<SplashScreen>
             textAlign: TextAlign.center,
             maxLines: 2,
             style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.4),
+              color: Colors.white.withValues(alpha: 0.4),
               fontSize: 12,
               height: 1.5,
             ),
@@ -392,24 +415,24 @@ class _SplashScreenState extends State<SplashScreen>
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(Icons.terminal_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
+        Icon(Icons.terminal_rounded, size: 14, color: Colors.white.withValues(alpha: 0.2)),
         const SizedBox(width: 8),
         Text(
           AppLocalization.of(context)!.translate('stable_version'),
           style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             fontSize: 9,
             fontWeight: FontWeight.w800,
             letterSpacing: 1,
           ),
         ),
         const SizedBox(width: 24),
-        Icon(Icons.shield_rounded, size: 14, color: Colors.white.withOpacity(0.2)),
+        Icon(Icons.shield_rounded, size: 14, color: Colors.white.withValues(alpha: 0.2)),
         const SizedBox(width: 8),
         Text(
           AppLocalization.of(context)!.translate('e2e_encryption'),
           style: AppLocalization.digitalFont(context, 
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             fontSize: 9,
             fontWeight: FontWeight.w800,
             letterSpacing: 1,
@@ -435,7 +458,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.02)
+      ..color = Colors.white.withValues(alpha: 0.02)
       ..strokeWidth = 1;
 
     const spacing = 40.0;

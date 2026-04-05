@@ -109,8 +109,8 @@ class AdminController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Stream<List<AdModel>> getAds({String? type}) {
-    return _firestoreService.streamAds(type: type);
+  Stream<List<AdModel>> getAds({String? type, bool activeOnly = true}) {
+    return _firestoreService.streamAds(type: type, activeOnly: activeOnly);
   }
 
   // AD SETTINGS

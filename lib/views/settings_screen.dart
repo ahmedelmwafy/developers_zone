@@ -9,6 +9,8 @@ import 'edit_profile_page.dart';
 import 'saved_posts_page.dart';
 import 'legal_screens.dart';
 import '../widgets/terminal_dialog.dart';
+import '../widgets/shimmer_component.dart';
+import '../widgets/page_entry_animation.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,86 +27,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final locale = AppLocalization.of(context)!;
 
     if (user == null) {
-      return const Scaffold(
-          backgroundColor: Color(0xFF0D0D0D),
+      return Scaffold(
+          backgroundColor: const Color(0xFF0D0D0D),
           body: Center(
-              child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+              child: ShimmerComponent.circleShimmer(size: 60)));
     }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(locale),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 32),
-                    _buildHeroHeader(locale),
-                    const SizedBox(height: 40),
-                    if (user.isAdmin) ...[
+      body: PageEntryAnimation(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(locale),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 32),
+                      _buildHeroHeader(locale),
+                      const SizedBox(height: 40),
+                      if (user.isAdmin) ...[
+                        _SectionTitle(
+                            icon: Icons.admin_panel_settings_outlined,
+                            title: locale
+                                .translate('MANAGEMENT_PROTOCOLS')
+                                .toUpperCase()),
+                        _buildAdminCard(context, locale),
+                        const SizedBox(height: 48),
+                      ],
                       _SectionTitle(
-                          icon: Icons.admin_panel_settings_outlined,
+                          icon: Icons.person_outline_rounded,
                           title: locale
-                              .translate('MANAGEMENT_PROTOCOLS')
+                              .translate('ACCOUNT_MANAGEMENT')
                               .toUpperCase()),
-                      _buildAdminCard(context, locale),
+                      _buildNavCard(
+                        icon: Icons.edit_note_rounded,
+                        title: locale.translate('edit_profile'),
+                        subtitle: locale.translate('edit_profile_sub'),
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const EditProfilePage()));
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      _buildNavCard(
+                        icon: Icons.bookmark_rounded,
+                        title: locale.translate('SAVED_MANIFESTS_CAPS'),
+                        subtitle: locale
+                            .translate('no_saved_posts')
+                            .replaceFirst('No ', 'View your '),
+                        onTap: () {
+                          Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => const SavedPostsPage()));
+                        },
+                      ),
                       const SizedBox(height: 48),
+                      _SectionTitle(
+                          icon: Icons.shield_outlined,
+                          title: locale.translate('SECURITY_LOGS').toUpperCase()),
+                      _buildSecurityCard(locale),
+                      const SizedBox(height: 48),
+                      _SectionTitle(
+                          icon: Icons.tune_rounded,
+                          title:
+                              locale.translate('ZONE_PREFERENCES').toUpperCase()),
+                      _buildPreferencesCard(locale),
+                      const SizedBox(height: 48),
+                      _SectionTitle(
+                          icon: Icons.gavel_rounded,
+                          title: locale.translate('legal').toUpperCase()),
+                      _buildLegalCard(locale),
+                      const SizedBox(height: 60),
+                      _buildLogoutButton(auth, locale),
+                      const SizedBox(height: 100),
                     ],
-                    _SectionTitle(
-                        icon: Icons.person_outline_rounded,
-                        title: locale
-                            .translate('ACCOUNT_MANAGEMENT')
-                            .toUpperCase()),
-                    _buildNavCard(
-                      icon: Icons.edit_note_rounded,
-                      title: locale.translate('edit_profile'),
-                      subtitle: locale.translate('edit_profile_sub'),
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const EditProfilePage())),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildNavCard(
-                      icon: Icons.bookmark_rounded,
-                      title: locale.translate('SAVED_MANIFESTS_CAPS'),
-                      subtitle: locale
-                          .translate('no_saved_posts')
-                          .replaceFirst('No ', 'View your '),
-                      onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const SavedPostsPage())),
-                    ),
-                    const SizedBox(height: 48),
-                    _SectionTitle(
-                        icon: Icons.shield_outlined,
-                        title: locale.translate('SECURITY_LOGS').toUpperCase()),
-                    _buildSecurityCard(locale),
-                    const SizedBox(height: 48),
-                    _SectionTitle(
-                        icon: Icons.tune_rounded,
-                        title:
-                            locale.translate('ZONE_PREFERENCES').toUpperCase()),
-                    _buildPreferencesCard(locale),
-                    const SizedBox(height: 48),
-                    _SectionTitle(
-                        icon: Icons.gavel_rounded,
-                        title: locale.translate('legal').toUpperCase()),
-                    _buildLegalCard(locale),
-                    const SizedBox(height: 60),
-                    _buildLogoutButton(auth, locale),
-                    const SizedBox(height: 100),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -128,7 +136,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withOpacity(0.1),
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: const Icon(Icons.person_search_rounded,
@@ -153,7 +161,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           const SizedBox(width: 12),
           Icon(Icons.help_outline_rounded,
-              color: Colors.white.withOpacity(0.3), size: 24),
+              color: Colors.white.withValues(alpha: 0.3), size: 24),
         ],
       ),
     );
@@ -166,7 +174,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -182,7 +190,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 locale.translate('CORE_CONFIG'),
                 style: AppLocalization.digitalFont(
                   context,
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1,
@@ -206,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           locale.translate('ACCOUNT_MANAGEMENT_SUB'),
           style: AppLocalization.digitalFont(
             context,
-            color: Colors.white.withOpacity(0.5),
+            color: Colors.white.withValues(alpha: 0.5),
             fontSize: 14,
             height: 1.5,
           ),
@@ -227,14 +235,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFF161616),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF).withOpacity(0.05),
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: const Color(0xFF00E5FF), size: 24),
@@ -251,12 +259,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           fontWeight: FontWeight.bold)),
                   Text(subtitle,
                       style: AppLocalization.digitalFont(context,
-                          color: Colors.white.withOpacity(0.4), fontSize: 13)),
+                          color: Colors.white.withValues(alpha: 0.4), fontSize: 13)),
                 ],
               ),
             ),
             Icon(Icons.arrow_forward_ios_rounded,
-                color: Colors.white.withOpacity(0.2), size: 14),
+                color: Colors.white.withValues(alpha: 0.2), size: 14),
           ],
         ),
       ),
@@ -269,7 +277,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2979FF).withOpacity(0.2)),
+        border: Border.all(color: const Color(0xFF2979FF).withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -280,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2979FF).withOpacity(0.1),
+                    color: const Color(0xFF2979FF).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.print_rounded,
@@ -298,7 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               fontSize: 14)),
                       Text(locale.translate('admin_dashboard_sub'),
                           style: AppLocalization.digitalFont(context,
-                              color: Colors.white.withOpacity(0.4),
+                              color: Colors.white.withValues(alpha: 0.4),
                               fontSize: 12),
                           overflow: TextOverflow.ellipsis),
                     ],
@@ -323,7 +331,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -341,7 +349,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ))),
             ),
           ),
-          Divider(color: Colors.white.withOpacity(0.03), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.03), height: 1),
           _SecurityItem(
             title: locale.translate('change_password'),
             subtitle: locale.translate('change_password_sub'),
@@ -350,7 +358,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: _showChangePasswordDialog,
             ),
           ),
-          Divider(color: Colors.white.withOpacity(0.03), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.03), height: 1),
           _SecurityItem(
             title: locale.translate('delete_account'),
             subtitle: locale.translate('delete_account_sub'),
@@ -370,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -399,13 +407,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       fontWeight: FontWeight.bold)),
               Text(locale.translate('INTERFACE_LANGUAGE'),
                   style: AppLocalization.digitalFont(context,
-                      color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                      color: Colors.white.withValues(alpha: 0.4), fontSize: 12)),
             ],
           ),
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -436,9 +444,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.red.withOpacity(0.05),
+          color: Colors.red.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.red.withOpacity(0.1)),
+          border: Border.all(color: Colors.red.withValues(alpha: 0.1)),
         ),
         child: Column(
           children: [
@@ -457,7 +465,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               locale.translate('DISCONNECT_NODE_SESSION'),
               style: AppLocalization.digitalFont(
                 context,
-                color: Colors.red.withOpacity(0.3),
+                color: Colors.red.withValues(alpha: 0.3),
                 fontWeight: FontWeight.bold,
                 fontSize: 9,
               ),
@@ -473,11 +481,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => TerminalDialog(
-        headerTag: locale.translate('ENCRYPTED_LOGOUT_PROTOCOL'),
+        headerTag: 'TERMINATE_SESSION',
         title: locale.translate('TERMINATE_SESSION'),
-        body: locale.translate('logout_confirm_body'),
-        confirmLabel: locale.translate('disconnect_cap'),
-        cancelLabel: locale.translate('cancel'),
+        body: locale.translate('LOGOUT_CONFIRM'),
+        confirmLabel: locale.translate('CONFIRM_ACTION'),
+        cancelLabel: locale.translate('CANCEL_ACTION'),
         onConfirm: () async {
           await auth.logout();
           if (mounted) {
@@ -497,7 +505,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         children: [
@@ -511,7 +519,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Colors.white24, size: 14),
             ),
           ),
-          Divider(color: Colors.white.withOpacity(0.03), height: 1),
+          Divider(color: Colors.white.withValues(alpha: 0.03), height: 1),
           GestureDetector(
             onTap: () => Navigator.push(
                 context,
@@ -534,32 +542,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final locale = AppLocalization.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        title: Text(locale.translate('change_password'),
-            style: AppLocalization.digitalFont(context, color: Colors.white)),
-        content: TextField(
+      builder: (context) => TerminalDialog(
+        headerTag: 'AUTH_ENCRYPTION',
+        title: locale.translate('change_password'),
+        body: locale.translate('change_password_sub'),
+        confirmLabel: locale.translate('update_button'),
+        cancelLabel: locale.translate('cancel'),
+        customBody: TextField(
           controller: controller,
           obscureText: true,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: locale.translate('new_password'),
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
+            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+            enabledBorder: UnderlineInputBorder(
+              borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+            ),
+            focusedBorder: const UnderlineInputBorder(
+              borderSide: BorderSide(color: Color(0xFF00E5FF)),
+            ),
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(locale.translate('cancel'))),
-          TextButton(
-              onPressed: () async {
-                if (controller.text.trim().length < 6) return;
-                await Provider.of<AuthController>(context, listen: false)
-                    .updatePassword(controller.text.trim());
-                Navigator.pop(context);
-              },
-              child: Text(locale.translate('update_button'))),
-        ],
+        onConfirm: () async {
+          if (controller.text.trim().length < 6) {
+            return;
+          }
+          await Provider.of<AuthController>(context, listen: false)
+              .updatePassword(controller.text.trim());
+          if (!mounted) {
+            return;
+          }
+          Navigator.pop(context);
+        },
       ),
     );
   }
@@ -569,11 +583,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => TerminalDialog(
-        headerTag: locale.translate('DESTRUCTION_PROTOCOL'),
+        headerTag: 'DESTRUCTION_PROTOCOL',
         title: locale.translate('delete_account'),
         body: locale.translate('delete_account_confirm'),
-        confirmLabel: locale.translate('delete'),
-        cancelLabel: locale.translate('cancel'),
+        confirmLabel: locale.translate('CONFIRM_ACTION'),
+        cancelLabel: locale.translate('CANCEL_ACTION'),
         isDestructive: true,
         onConfirm: () async {
           await Provider.of<AuthController>(context, listen: false)
@@ -605,7 +619,7 @@ class _SectionTitle extends StatelessWidget {
           const SizedBox(width: 12),
           Text(title,
               style: AppLocalization.digitalFont(context,
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1)),
@@ -644,7 +658,7 @@ class _SecurityItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: AppLocalization.digitalFont(context,
-                        color: Colors.white.withOpacity(0.3), fontSize: 12)),
+                        color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
               ],
             ),
           ),
@@ -673,8 +687,8 @@ class _OutlineButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         side: BorderSide(
             color: isDanger
-                ? Colors.redAccent.withOpacity(0.3)
-                : const Color(0xFF00E5FF).withOpacity(0.3)),
+                ? Colors.redAccent.withValues(alpha: 0.3)
+                : const Color(0xFF00E5FF).withValues(alpha: 0.3)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),

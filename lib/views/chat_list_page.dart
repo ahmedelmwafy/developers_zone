@@ -1,7 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../models/chat_model.dart';
@@ -10,7 +8,8 @@ import '../providers/app_provider.dart';
 import '../services/firestore_service.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
-import 'components/shimmer_loading.dart';
+import '../widgets/shimmer_component.dart';
+import '../widgets/page_entry_animation.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -28,15 +27,7 @@ class _ChatListPageState extends State<ChatListPage> {
     final currentUser = Provider.of<AuthController>(context).currentUser;
 
     if (currentUser == null) {
-      return Scaffold(
-        backgroundColor: AppColors.surface,
-        body: Center(
-          child: Text(
-            locale.translate('login_to_chat'),
-            style: AppLocalization.digitalFont(context, color: AppColors.onSurfaceVariant),
-          ),
-        ),
-      );
+      return _GuestRestrictedView(locale: locale);
     }
 
     final chatController = Provider.of<ChatController>(context);
@@ -44,16 +35,17 @@ class _ChatListPageState extends State<ChatListPage> {
 
     return Scaffold(
       backgroundColor: AppColors.surface,
-      body: Column(
-        children: [
+      body: PageEntryAnimation(
+        child: Column(
+          children: [
           // Search Bar (Synced with SearchScreen UI)
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.3),
+                color: Colors.black.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(4),
-                border: Border.all(color: Colors.white.withOpacity(0.05)),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
               ),
               child: TextField(
                 controller: _searchController,
@@ -61,9 +53,9 @@ class _ChatListPageState extends State<ChatListPage> {
                 decoration: InputDecoration(
                   hintText: locale.translate('search_conversations'),
                   hintStyle:
-                      AppLocalization.digitalFont(context, color: Colors.white.withOpacity(0.15)),
+                      AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.15)),
                   prefixIcon: Icon(Icons.search_rounded,
-                      color: Colors.white.withOpacity(0.3), size: 20),
+                      color: Colors.white.withValues(alpha: 0.3), size: 20),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 20),
                 ),
@@ -79,12 +71,7 @@ class _ChatListPageState extends State<ChatListPage> {
               stream: chatController.getUserChats(currentUser.uid),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 10, horizontal: 16),
-                    itemCount: 6,
-                    itemBuilder: (context, index) => const UserTileShimmer(),
-                  );
+                  return ShimmerComponent.userTileShimmer(count: 6);
                 }
 
                 final chats = snapshot.data ?? [];
@@ -117,36 +104,37 @@ class _ChatListPageState extends State<ChatListPage> {
           ),
         ],
       ),
-      floatingActionButton: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF00E5FF).withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
+    ),
+    floatingActionButton: Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => appProps.setTabIndex(1),
-            borderRadius: BorderRadius.circular(16),
-            child: const Icon(Icons.edit_note_rounded,
-                color: Colors.white, size: 32),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => appProps.setTabIndex(1),
+          borderRadius: BorderRadius.circular(16),
+          child: const Icon(Icons.edit_note_rounded,
+              color: Colors.white, size: 32),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildEmptyState(AppLocalization locale) {
     return Center(
@@ -154,7 +142,7 @@ class _ChatListPageState extends State<ChatListPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.chat_bubble_outline_rounded,
-              size: 64, color: Colors.white.withOpacity(0.05)),
+              size: 64, color: Colors.white.withValues(alpha: 0.05)),
           const SizedBox(height: 16),
           Text(
             locale.translate('no_chats_yet'),
@@ -192,11 +180,15 @@ class _ChatTileState extends State<_ChatTile> {
     final locale = AppLocalization.of(context)!;
     final diff = DateTime.now().difference(widget.chat.lastMessageTime);
     String timeStr = locale.translate('now_caps');
-    if (diff.inMinutes > 0)
+    if (diff.inMinutes > 0) {
       timeStr = locale.translate('m_ago').replaceFirst('{}', diff.inMinutes.toString());
-    if (diff.inHours > 0)
+    }
+    if (diff.inHours > 0) {
       timeStr = locale.translate('h_ago').replaceFirst('{}', diff.inHours.toString());
-    if (diff.inDays > 0) timeStr = locale.translate('yesterday_caps');
+    }
+    if (diff.inDays > 0) {
+      timeStr = locale.translate('yesterday_caps');
+    }
 
     return FutureBuilder<UserModel?>(
       future: FirestoreService().getUser(widget.otherUserId),
@@ -227,7 +219,7 @@ class _ChatTileState extends State<_ChatTile> {
                       ),
                       child: (user?.profileImage.isNotEmpty != true)
                           ? Icon(Icons.person,
-                              color: Colors.white.withOpacity(0.2), size: 30)
+                              color: Colors.white.withValues(alpha: 0.2), size: 30)
                           : null,
                     ),
                     Positioned(
@@ -243,7 +235,7 @@ class _ChatTileState extends State<_ChatTile> {
                                           .inMinutes <
                                       5)
                               ? const Color(0xFF00E5FF)
-                              : Colors.white.withOpacity(0.2),
+                              : Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                           border: Border.all(color: AppColors.surface, width: 2),
                         ),
@@ -272,7 +264,7 @@ class _ChatTileState extends State<_ChatTile> {
                           Text(
                             timeStr,
                             style: AppLocalization.digitalFont(context, 
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
                             ),
@@ -288,7 +280,7 @@ class _ChatTileState extends State<_ChatTile> {
                                   ? widget.chat.lastMessage
                                   : '...',
                               style: AppLocalization.digitalFont(context, 
-                                color: Colors.white.withOpacity(0.5),
+                                color: Colors.white.withValues(alpha: 0.5),
                                 fontSize: 13,
                                 height: 1.4,
                               ),
@@ -325,6 +317,59 @@ class _ChatTileState extends State<_ChatTile> {
           ),
         );
       },
+    );
+  }
+}
+
+class _GuestRestrictedView extends StatelessWidget {
+  final AppLocalization locale;
+  const _GuestRestrictedView({required this.locale});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.surface,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.2)),
+                ),
+                child: const Icon(Icons.lock_person_outlined, color: Color(0xFF00E5FF), size: 40),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                locale.translate('LOGIN_REQUIRED_TITLE'),
+                textAlign: TextAlign.center,
+                style: AppLocalization.digitalFont(context, 
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                locale.translate('LOGIN_REQUIRED_BODY'),
+                textAlign: TextAlign.center,
+                style: AppLocalization.digitalFont(context, 
+                  color: Colors.white.withValues(alpha: 0.5),
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

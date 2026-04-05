@@ -5,13 +5,16 @@ import '../models/user_model.dart';
 import '../models/report_model.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/shimmer_component.dart';
 import 'ad_management_page.dart';
 import 'post_details_page.dart';
 import '../models/post_model.dart';
 import '../models/ad_model.dart';
 
 class AdminDashboardPage extends StatefulWidget {
-  const AdminDashboardPage({super.key});
+  final String? initialUserId;
+  const AdminDashboardPage({super.key, this.initialUserId});
 
   @override
   State<AdminDashboardPage> createState() => _AdminDashboardPageState();
@@ -22,6 +25,14 @@ enum AdminTab { moderation, ads, admob, metrics, system }
 class _AdminDashboardPageState extends State<AdminDashboardPage> {
   AdminTab _currentTab = AdminTab.moderation;
   String _userSearch = '';
+  
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialUserId != null) {
+      _userSearch = widget.initialUserId!;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +40,10 @@ class _AdminDashboardPageState extends State<AdminDashboardPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
-      body: SafeArea(
-        child: _buildCurrentTab(locale),
+      body: PageEntryAnimation(
+        child: SafeArea(
+          child: _buildCurrentTab(locale),
+        ),
       ),
       bottomNavigationBar: _buildBottomNav(locale),
     );
@@ -253,6 +266,7 @@ class _ModerationViewState extends State<_ModerationView> {
                         fontSize: 28)),
                 const SizedBox(height: 24),
                 TextField(
+                  controller: TextEditingController(text: widget.searchQuery)..selection = TextSelection.collapsed(offset: widget.searchQuery.length),
                   onChanged: widget.onSearchChanged,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
@@ -299,6 +313,9 @@ class _ModerationViewState extends State<_ModerationView> {
                         .toLowerCase()
                         .contains(widget.searchQuery.toLowerCase()) ||
                     u.email
+                        .toLowerCase()
+                        .contains(widget.searchQuery.toLowerCase()) ||
+                    u.uid
                         .toLowerCase()
                         .contains(widget.searchQuery.toLowerCase()))
                 .where((u) {
@@ -449,10 +466,7 @@ class _ReportCard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (snapshot.connectionState == ConnectionState.waiting)
-                const LinearProgressIndicator(
-                    backgroundColor: Colors.white10,
-                    color: Colors.red,
-                    minHeight: 1)
+                ShimmerComponent.userTileShimmer(count: 1)
               else if (isDeleted)
                 Text('POST_MANIFEST_TERMINATED',
                     style: AppLocalization.digitalFont(context, 
@@ -763,6 +777,12 @@ class _MetricsView extends StatelessWidget {
                   value: stats['reports'].toString(),
                   icon: Icons.report_rounded,
                   color: Colors.red),
+              const SizedBox(height: 16),
+              _MetricCard(
+                  label: locale.translate('ads'),
+                  value: stats['ads']?.toString() ?? '0',
+                  icon: Icons.campaign_rounded,
+                  color: Colors.orange),
             ],
           ),
         );
@@ -770,6 +790,7 @@ class _MetricsView extends StatelessWidget {
     );
   }
 }
+
 
 class _MetricCard extends StatelessWidget {
   final String label;
@@ -1056,6 +1077,30 @@ class _AdMobView extends StatelessWidget {
                       settings.copyWith(interstitialAdsActiveIOS: v),
                     ),
                   ),
+                  const SizedBox(height: 32),
+                  Text(locale.translate('general_settings').toUpperCase(),
+                    style: AppLocalization.digitalFont(context, 
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        letterSpacing: 2)),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+                    ),
+                    child: _ToggleTile(
+                      label: locale.translate('anonymous_community'),
+                      icon: Icons.visibility_off_rounded,
+                      value: settings.anonymousCommunityActive,
+                      onChanged: (v) => adminController.updateAdSettings(
+                        settings.copyWith(anonymousCommunityActive: v),
+                      ),
+                    ),
+                  ),
                 ],
               );
             },
@@ -1150,7 +1195,7 @@ class _ToggleTile extends StatelessWidget {
         Switch(
           value: value,
           onChanged: onChanged,
-          activeColor: AppColors.primary,
+          activeThumbColor: AppColors.primary,
           activeTrackColor: AppColors.primary.withValues(alpha: 0.3),
         ),
       ],

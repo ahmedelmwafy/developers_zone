@@ -11,6 +11,8 @@ class TerminalDialog extends StatelessWidget {
   final VoidCallback onConfirm;
   final bool isDestructive;
 
+  final Widget? customBody;
+
   const TerminalDialog({
     super.key,
     required this.headerTag,
@@ -20,6 +22,7 @@ class TerminalDialog extends StatelessWidget {
     required this.cancelLabel,
     required this.onConfirm,
     this.isDestructive = false,
+    this.customBody,
   });
 
   @override
@@ -33,10 +36,10 @@ class TerminalDialog extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF121212),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               blurRadius: 40,
               offset: const Offset(0, 20),
             ),
@@ -50,13 +53,13 @@ class TerminalDialog extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 children: [
-                  Icon(Icons.shield_rounded, color: color.withOpacity(0.5), size: 14),
+                  Icon(Icons.shield_rounded, color: color.withValues(alpha: 0.5), size: 14),
                   const SizedBox(width: 8),
                   Text(
                     headerTag.toUpperCase(),
                     style: AppLocalization.digitalFont(
                       context,
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 9,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.5,
@@ -66,7 +69,7 @@ class TerminalDialog extends StatelessWidget {
                   Text(
                     'SESSION_ID: 0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16).toUpperCase()}',
                     style: GoogleFonts.sourceCodePro(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       fontSize: 8,
                       fontWeight: FontWeight.w600,
                     ),
@@ -96,11 +99,15 @@ class TerminalDialog extends StatelessWidget {
                   Text(
                     body,
                     style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 14,
                       height: 1.5,
                     ),
                   ),
+                  if (customBody != null) ...[
+                    const SizedBox(height: 24),
+                    customBody!,
+                  ],
                 ],
               ),
             ),
@@ -121,7 +128,7 @@ class TerminalDialog extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10),
                         gradient: LinearGradient(
                           colors: [
-                            color.withOpacity(0.8),
+                            color.withValues(alpha: 0.8),
                             color,
                           ],
                         ),
@@ -147,16 +154,16 @@ class TerminalDialog extends StatelessWidget {
                       width: double.infinity,
                       height: 54,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.03),
+                        color: Colors.white.withValues(alpha: 0.03),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                       ),
                       child: Center(
                         child: Text(
                           cancelLabel.toUpperCase(),
                           style: AppLocalization.digitalFont(
                             context,
-                            color: Colors.white.withOpacity(0.4),
+                            color: Colors.white.withValues(alpha: 0.4),
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                             letterSpacing: 1,
@@ -180,9 +187,9 @@ class TerminalDialog extends StatelessWidget {
                 ),
                 gradient: LinearGradient(
                   colors: [
-                    color.withOpacity(0.1),
+                    color.withValues(alpha: 0.1),
                     color,
-                    color.withOpacity(0.1),
+                    color.withValues(alpha: 0.1),
                   ],
                   stops: const [0.0, 0.5, 1.0],
                 ),

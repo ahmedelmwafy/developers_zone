@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
 import '../providers/app_provider.dart';
 import 'profile_page.dart';
+import '../widgets/page_entry_animation.dart';
+import '../widgets/shimmer_component.dart';
 
 enum NetworkTab { following, followers, blocked }
 
@@ -36,7 +37,19 @@ class _NetworkPageState extends State<NetworkPage> {
   void initState() {
     super.initState();
     _activeTab = widget.initialTab;
+    _searchController.addListener(_onSearchChanged);
     _fetchTargetUser();
+  }
+
+  void _onSearchChanged() {
+    setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchTargetUser() async {
@@ -56,7 +69,19 @@ class _NetworkPageState extends State<NetworkPage> {
   @override
   Widget build(BuildContext context) {
     final currentUser = Provider.of<AuthController>(context).currentUser;
-    if (currentUser == null || _isLoading) return const Scaffold(backgroundColor: Color(0xFF0D0D0D), body: Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF))));
+    if (currentUser == null || _isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0D0D0D),
+        body: PageEntryAnimation(
+          child: Column(
+            children: [
+              const SizedBox(height: 100),
+              ShimmerComponent.userTileShimmer(count: 5),
+            ],
+          ),
+        ),
+      );
+    }
     if (_targetUser == null) return const Scaffold();
     
     final locale = AppLocalization.of(context)!;
@@ -65,18 +90,20 @@ class _NetworkPageState extends State<NetworkPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       appBar: _buildTechnicalAppBar(_targetUser!, locale),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!widget.isSingleMode && isMe)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: _buildTabSelector(),
+      body: PageEntryAnimation(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (!widget.isSingleMode && isMe)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: _buildTabSelector(),
+              ),
+            Expanded(
+              child: _buildActiveList(_targetUser!, currentUser),
             ),
-          Expanded(
-            child: _buildActiveList(_targetUser!, currentUser),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +134,7 @@ class _NetworkPageState extends State<NetworkPage> {
           height: 32,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
             image: user.profileImage.isNotEmpty
                 ? DecorationImage(
                     image: NetworkImage(user.profileImage), fit: BoxFit.cover)
@@ -163,14 +190,25 @@ class _NetworkPageState extends State<NetworkPage> {
       future: _loadUsers(targetUser.following),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return _buildLoading();
-        final users = snapshot.data!;
+        final allUsers = snapshot.data!;
+        final query = _searchController.text.toLowerCase();
+        final users = allUsers.where((u) => 
+          u.name.toLowerCase().contains(query) || 
+          u.username.toLowerCase().contains(query) ||
+          u.position.toLowerCase().contains(query)).toList();
+        
         final locale = AppLocalization.of(context)!;
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           children: [
             _buildHeader(locale.translate('following'), '${users.length}'),
-            const SizedBox(height: 24),
-            ...users.map((u) {
+            const SizedBox(height: 20),
+            _buildSearchBar(locale.translate('QUERY_SYSTEM_NODES')),
+            const SizedBox(height: 32),
+            if (users.isEmpty && query.isNotEmpty)
+              _buildNoResults(locale)
+            else
+              ...users.map((u) {
               final isFollowing = currentUser.following.contains(u.uid);
               final isMe = currentUser.uid == u.uid;
               return _buildUserCard(
@@ -192,17 +230,26 @@ class _NetworkPageState extends State<NetworkPage> {
       future: _loadUsers(targetUser.followers),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return _buildLoading();
-        final users = snapshot.data!;
+        final allUsers = snapshot.data!;
+        final query = _searchController.text.toLowerCase();
+        final users = allUsers.where((u) => 
+          u.name.toLowerCase().contains(query) || 
+          u.username.toLowerCase().contains(query) ||
+          u.position.toLowerCase().contains(query)).toList();
+        
         final locale = AppLocalization.of(context)!;
         return ListView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           children: [
-            _buildHeader(locale.translate('followers'), null,
+            _buildHeader(locale.translate('followers'), '${users.length}',
                 sub: locale.translate('network_management_desc')),
             const SizedBox(height: 20),
             _buildSearchBar(locale.translate('QUERY_SYSTEM_NODES')),
             const SizedBox(height: 32),
-            ...users.map((u) {
+            if (users.isEmpty && query.isNotEmpty)
+              _buildNoResults(locale)
+            else
+              ...users.map((u) {
               final isFollowing = currentUser.following.contains(u.uid);
               final isMe = currentUser.uid == u.uid;
               return _buildUserCard(
@@ -219,7 +266,7 @@ class _NetworkPageState extends State<NetworkPage> {
             Center(
                 child: Text(locale.translate('LOAD_MORE_NODES'),
                     style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         fontSize: 9,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.5))),
@@ -240,12 +287,28 @@ class _NetworkPageState extends State<NetworkPage> {
           children: [
             _buildHeader(locale.translate('blocked_users'), null,
                 sub: locale.translate('restricted_accounts_desc')),
+            const SizedBox(height: 20),
+            _buildSearchBar(locale.translate('QUERY_SYSTEM_NODES')),
             const SizedBox(height: 40),
             if (snapshot.hasData) ...[
-              _buildRestrictionSummary(snapshot.data!.length, locale),
-              const SizedBox(height: 24),
-              ...snapshot.data!.map(
-                  (u) => _buildBlockedCard(u, locale, () => _unblock(user.uid, u.uid))),
+              () {
+                final allUsers = snapshot.data!;
+                final query = _searchController.text.toLowerCase();
+                final users = allUsers.where((u) => 
+                  u.name.toLowerCase().contains(query) || 
+                  u.username.toLowerCase().contains(query) ||
+                  u.uid.toLowerCase().contains(query)).toList();
+                
+                if (users.isEmpty && query.isNotEmpty) return _buildNoResults(locale);
+                
+                return Column(
+                  children: [
+                    _buildRestrictionSummary(users.length, locale),
+                    const SizedBox(height: 24),
+                    ...users.map((u) => _buildBlockedCard(u, locale, () => _unblock(user.uid, u.uid))),
+                  ],
+                );
+              }(),
             ],
             const SizedBox(height: 32),
             _buildProtocolEnforcement(locale),
@@ -272,7 +335,7 @@ class _NetworkPageState extends State<NetworkPage> {
               const SizedBox(width: 12),
               Text('($count)',
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       fontSize: 24,
                       fontWeight: FontWeight.w700)),
             ],
@@ -282,7 +345,7 @@ class _NetworkPageState extends State<NetworkPage> {
           const SizedBox(height: 8),
           Text(sub,
               style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 14,
                   height: 1.5)),
         ],
@@ -303,7 +366,7 @@ class _NetworkPageState extends State<NetworkPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: TextField(
         controller: _searchController,
@@ -311,12 +374,21 @@ class _NetworkPageState extends State<NetworkPage> {
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.1),
+              color: Colors.white.withValues(alpha: 0.1),
               fontSize: 12,
               fontWeight: FontWeight.w700,
               letterSpacing: 1),
           icon: Icon(Icons.search_rounded,
-              color: Colors.white.withOpacity(0.2), size: 18),
+              color: const Color(0xFF00E5FF).withValues(alpha: 0.4), size: 18),
+          suffixIcon: _searchController.text.isNotEmpty 
+            ? IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white24, size: 16),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {});
+                },
+              )
+            : null,
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 20),
         ),
@@ -333,7 +405,7 @@ class _NetworkPageState extends State<NetworkPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.02)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.02)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,7 +434,7 @@ class _NetworkPageState extends State<NetworkPage> {
                           const SizedBox(height: 2),
                           Text(user.position.toUpperCase(),
                               style: AppLocalization.digitalFont(context, 
-                                  color: Colors.white.withOpacity(0.35),
+                                  color: Colors.white.withValues(alpha: 0.35),
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 1)),
@@ -377,7 +449,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.5),
+                      color: Colors.white.withValues(alpha: 0.5),
                       fontSize: 13,
                       height: 1.6),
                 ),
@@ -413,7 +485,7 @@ class _NetworkPageState extends State<NetworkPage> {
                         btnLabel,
                         style: AppLocalization.digitalFont(context, 
                           color: isOutline
-                              ? Colors.white.withOpacity(0.6)
+                              ? Colors.white.withValues(alpha: 0.6)
                               : Colors.black,
                           fontSize: 13,
                           fontWeight: FontWeight.w900,
@@ -432,7 +504,7 @@ class _NetworkPageState extends State<NetworkPage> {
                       color: const Color(0xFF222222),
                       borderRadius: BorderRadius.circular(12)),
                   child: Icon(Icons.person_add_outlined,
-                      color: Colors.white.withOpacity(0.3), size: 20),
+                      color: Colors.white.withValues(alpha: 0.3), size: 20),
                 ),
               ],
             ],
@@ -461,7 +533,7 @@ class _NetworkPageState extends State<NetworkPage> {
                   ? DecorationImage(
                       image: NetworkImage(user.profileImage), fit: BoxFit.cover)
                   : null,
-              color: Colors.white.withOpacity(0.05),
+              color: Colors.white.withValues(alpha: 0.05),
             ),
             child: (user.profileImage.isEmpty)
                 ? const Icon(Icons.person, color: Colors.white24)
@@ -479,7 +551,7 @@ class _NetworkPageState extends State<NetworkPage> {
                         fontWeight: FontWeight.w800)),
                 Text(locale.translate('blocked_relative_time').replaceFirst('{}', '3'),
                     style: AppLocalization.digitalFont(context, 
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         fontSize: 8,
                         fontWeight: FontWeight.w800)),
               ],
@@ -490,11 +562,11 @@ class _NetworkPageState extends State<NetworkPage> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   borderRadius: BorderRadius.circular(8)),
               child: Text(locale.translate('unblock'),
                   style: AppLocalization.digitalFont(context, 
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white.withValues(alpha: 0.6),
                       fontSize: 10,
                       fontWeight: FontWeight.w900)),
             ),
@@ -509,12 +581,12 @@ class _NetworkPageState extends State<NetworkPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
           border: Border(
-              bottom: BorderSide(color: Colors.white.withOpacity(0.03)))),
+              bottom: BorderSide(color: Colors.white.withValues(alpha: 0.03)))),
       child: Row(
         children: [
           Text(locale.translate('ACTIVE_RESTRICTIONS'),
               style: AppLocalization.digitalFont(context, 
-                  color: Colors.white.withOpacity(0.4),
+                  color: Colors.white.withValues(alpha: 0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.5)),
@@ -522,23 +594,23 @@ class _NetworkPageState extends State<NetworkPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(4)),
             child: Text('${count.toString().padLeft(2, '0')} ${locale.translate('total')}',
                 style: AppLocalization.digitalFont(context, 
-                    color: const Color(0xFF00E5FF).withOpacity(0.6),
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.6),
                     fontSize: 8,
                     fontWeight: FontWeight.w900)),
           ),
           const SizedBox(width: 8),
           Icon(Icons.search_rounded,
-              color: Colors.white.withOpacity(0.15), size: 14),
+              color: Colors.white.withValues(alpha: 0.15), size: 14),
           const SizedBox(width: 8),
           Flexible(
             child: Text('${locale.translate('filter_hint')}...',
                 overflow: TextOverflow.ellipsis,
                 style: AppLocalization.digitalFont(context, 
-                    color: Colors.white.withOpacity(0.1), fontSize: 10)),
+                    color: Colors.white.withValues(alpha: 0.1), fontSize: 10)),
           ),
         ],
       ),
@@ -551,7 +623,7 @@ class _NetworkPageState extends State<NetworkPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -572,7 +644,7 @@ class _NetworkPageState extends State<NetworkPage> {
           Text(
             locale.translate('protocol_enforcement_desc'),
             style: AppLocalization.digitalFont(context, 
-                color: Colors.white.withOpacity(0.4),
+                color: Colors.white.withValues(alpha: 0.4),
                 fontSize: 12,
                 height: 1.6),
           ),
@@ -590,7 +662,7 @@ class _NetworkPageState extends State<NetworkPage> {
         image: image.isNotEmpty
             ? DecorationImage(image: NetworkImage(image), fit: BoxFit.cover)
             : null,
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
       ),
       child: image.isEmpty
           ? const Icon(Icons.person, color: Colors.white24, size: 24)
@@ -602,18 +674,39 @@ class _NetworkPageState extends State<NetworkPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
+          color: Colors.white.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(6)),
       child: Text(text,
           style: AppLocalization.digitalFont(context, 
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               fontSize: 8,
               fontWeight: FontWeight.w900)),
     );
   }
 
-  Widget _buildLoading() =>
-      const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
+  Widget _buildNoResults(AppLocalization locale) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 100),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(Icons.search_off_rounded, color: Colors.white.withValues(alpha: 0.05), size: 64),
+            const SizedBox(height: 24),
+            Text(
+              locale.translate('NO_RESULTS_FOUND'),
+              style: AppLocalization.digitalFont(context, 
+                  color: Colors.white.withValues(alpha: 0.2),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoading() => ShimmerComponent.userTileShimmer(count: 3);
 
   Future<List<UserModel>> _loadUsers(List<String> ids) async {
     final futures = ids.map((id) => _firestore.getUser(id)).toList();
@@ -657,7 +750,7 @@ class _TabItem extends StatelessWidget {
             style: AppLocalization.digitalFont(context, 
               color: isActive
                   ? const Color(0xFF00E5FF)
-                  : Colors.white.withOpacity(0.2),
+                  : Colors.white.withValues(alpha: 0.2),
               fontSize: 11,
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
