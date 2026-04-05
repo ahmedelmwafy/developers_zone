@@ -10,6 +10,7 @@ import '../models/post_model.dart';
 import '../models/user_model.dart';
 import 'profile_page.dart';
 import '../providers/app_provider.dart';
+import '../widgets/post_media_widget.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final PostModel post;
@@ -209,18 +210,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (post.images.isNotEmpty) ...[
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.only(bottom: 32),
-            decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.04)),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: Image.network(post.images.first, fit: BoxFit.cover),
-            ),
-          ),
+          const SizedBox(height: 16),
+          PostMediaWidget(images: post.images, height: 350, borderRadius: 20),
+          const SizedBox(height: 32),
         ],
         if (parts['body'] != null && parts['body']!.isNotEmpty)
           MarkdownBody(

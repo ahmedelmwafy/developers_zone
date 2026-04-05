@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
-import '../models/user_model.dart';
 import '../providers/app_provider.dart';
-import '../theme/app_theme.dart';
 import 'splash_screen.dart';
 import 'admin_dashboard_page.dart';
 import 'network_page.dart';
-import 'policy_page.dart';
+import 'edit_profile_page.dart';
+import 'saved_posts_page.dart';
+import 'legal_screens.dart';
+import '../widgets/terminal_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -18,181 +19,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _bioController = TextEditingController();
-  final _positionController = TextEditingController();
-  final _companyController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
-  final _githubController = TextEditingController();
-  final _linkedinController = TextEditingController();
-  final _portfolioController = TextEditingController();
-  final _imageController = TextEditingController();
-  DateTime? _selectedBirthDate;
-  String? _selectedGender;
-  bool _isLoading = false;
-
-  @override
-  void initState() {
-    super.initState();
-    final user =
-        Provider.of<AuthController>(context, listen: false).currentUser;
-    if (user != null) {
-      _nameController.text = user.name;
-      _emailController.text = user.email;
-      _bioController.text = user.bio;
-      _positionController.text = user.position;
-      _companyController.text = user.company;
-      _cityController.text = user.city;
-      _countryController.text = user.country;
-      _selectedBirthDate = user.birthDate;
-      _selectedGender = user.gender;
-      _imageController.text = user.profileImage;
-
-      if (user.socialLinks != null) {
-        _githubController.text = user.socialLinks!['github'] ?? '';
-        _linkedinController.text = user.socialLinks!['linkedin'] ?? '';
-        _portfolioController.text = user.socialLinks!['portfolio'] ?? '';
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _bioController.dispose();
-    _positionController.dispose();
-    _companyController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
-    _githubController.dispose();
-    _linkedinController.dispose();
-    _portfolioController.dispose();
-    _imageController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _updateProfile() async {
-    setState(() => _isLoading = true);
-    final auth = Provider.of<AuthController>(context, listen: false);
-    final user = auth.currentUser!;
-
-    if (_nameController.text.trim().isEmpty) {
-      AppWidgets.showSnackBar(context, 'Name field is required.', type: SnackBarType.error);
-      setState(() => _isLoading = false);
-      return;
-    }
-    if (_positionController.text.trim().isEmpty) {
-      AppWidgets.showSnackBar(context, 'Professional title is required.', type: SnackBarType.error);
-      setState(() => _isLoading = false);
-      return;
-    }
-    if (_bioController.text.trim().isEmpty) {
-      AppWidgets.showSnackBar(context, 'Manifest bio is required.', type: SnackBarType.error);
-      setState(() => _isLoading = false);
-      return;
-    }
-    if (_selectedBirthDate == null) {
-      AppWidgets.showSnackBar(context, 'Birth date record is required.', type: SnackBarType.error);
-      setState(() => _isLoading = false);
-      return;
-    }
-    if (_selectedGender == null) {
-      AppWidgets.showSnackBar(context, 'Gender designation is required.', type: SnackBarType.error);
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    try {
-      final updated = user.copyWith(
-        name: _nameController.text.trim(),
-        bio: _bioController.text.trim(),
-        position: _positionController.text.trim(),
-        company: _companyController.text.trim(),
-        city: _cityController.text.trim(),
-        country: _countryController.text.trim(),
-        birthDate: _selectedBirthDate,
-        gender: _selectedGender,
-        profileImage: _imageController.text.trim(),
-        socialLinks: {
-          'github': _githubController.text.trim(),
-          'linkedin': _linkedinController.text.trim(),
-          'portfolio': _portfolioController.text.trim(),
-        },
-      );
-      await auth.updateProfile(updated);
-      if (mounted) {
-        AppWidgets.showSnackBar(
-            context, 'Profile records synchronized successfully.',
-            type: SnackBarType.success);
-      }
-    } catch (e) {
-      if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(),
-            type: SnackBarType.error);
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  Widget _buildAdminCard(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF2979FF).withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF2979FF).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.admin_panel_settings_rounded,
-                      color: Color(0xFF2979FF), size: 24),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Admin Dashboard',
-                          style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14)),
-                      Text('Access core system controls',
-                          style: GoogleFonts.inter(
-                              color: Colors.white.withOpacity(0.4),
-                              fontSize: 12),
-                          overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          _OutlineButton(
-            label: 'INITIALIZE',
-            onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AdminDashboardPage())),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
@@ -211,7 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            _buildHeader(locale),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -219,26 +45,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 32),
-                    _buildHeroHeader(),
+                    _buildHeroHeader(locale),
                     const SizedBox(height: 40),
                     if (user.isAdmin) ...[
                       _SectionTitle(
                           icon: Icons.admin_panel_settings_outlined,
-                          title: 'Administrative Protocols'),
-                      _buildAdminCard(context),
+                          title: locale.translate('MANAGEMENT_PROTOCOLS').toUpperCase()),
+                      _buildAdminCard(context, locale),
                       const SizedBox(height: 48),
                     ],
                     _SectionTitle(
                         icon: Icons.person_outline_rounded,
-                        title: 'Account Management'),
-                    _buildAccountCard(user, locale),
+                        title: locale.translate('ACCOUNT_MANAGEMENT').toUpperCase()),
+                    _buildNavCard(
+                      icon: Icons.edit_note_rounded,
+                      title: locale.translate('edit_profile'),
+                      subtitle: locale.translate('edit_profile_sub'),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EditProfilePage())),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNavCard(
+                      icon: Icons.bookmark_rounded,
+                      title: locale.translate('SAVED_MANIFESTS_CAPS'),
+                      subtitle: locale.translate('no_saved_posts').replaceFirst('No ', 'View your '),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SavedPostsPage())),
+                    ),
                     const SizedBox(height: 48),
                     _SectionTitle(
-                        icon: Icons.shield_outlined, title: 'Security Suite'),
+                        icon: Icons.shield_outlined, title: locale.translate('SECURITY_LOGS').toUpperCase()),
                     _buildSecurityCard(locale),
                     const SizedBox(height: 48),
                     _SectionTitle(
-                        icon: Icons.tune_rounded, title: 'Zone Preferences'),
+                        icon: Icons.tune_rounded, title: locale.translate('ZONE_PREFERENCES').toUpperCase()),
                     _buildPreferencesCard(locale),
                     const SizedBox(height: 48),
                     _SectionTitle(
@@ -258,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppLocalization locale) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       child: Row(
@@ -286,7 +124,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Expanded(
                   child: Text(
                     'DEVELOPERS ZONE',
-                    style: GoogleFonts.spaceGrotesk(
+                    style: AppLocalization.digitalFont(
+                      context,
                       color: const Color(0xFF00E5FF),
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
@@ -306,7 +145,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildHeroHeader() {
+  Widget _buildHeroHeader(AppLocalization locale) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -327,7 +166,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(width: 8),
               Text(
                 'CORE CONFIG',
-                style: GoogleFonts.spaceGrotesk(
+                style: AppLocalization.digitalFont(
+                  context,
                   color: Colors.white.withOpacity(0.5),
                   fontSize: 10,
                   fontWeight: FontWeight.w700,
@@ -339,8 +179,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'System Preferences',
-          style: GoogleFonts.spaceGrotesk(
+          locale.translate('settings'),
+          style: AppLocalization.digitalFont(
+            context,
             color: Colors.white,
             fontSize: 32,
             fontWeight: FontWeight.w700,
@@ -348,7 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Modify your identity parameters and security protocols for the zone.',
+          locale.translate('ACCOUNT_MANAGEMENT_SUB'),
           style: GoogleFonts.inter(
             color: Colors.white.withOpacity(0.5),
             fontSize: 14,
@@ -359,309 +200,92 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildAccountCard(UserModel user, AppLocalization locale) {
+  Widget _buildNavCard({required IconData icon, required String title, required String subtitle, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E5FF).withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: const Color(0xFF00E5FF), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(subtitle, style: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 13)),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios_rounded, color: Colors.white.withOpacity(0.2), size: 14),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminCard(BuildContext context, AppLocalization locale) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: const Color(0xFF161616),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: const Color(0xFF2979FF).withOpacity(0.2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: Colors.white10,
-                    backgroundImage: _imageController.text.isNotEmpty
-                        ? NetworkImage(_imageController.text)
-                        : user.profileImage.isNotEmpty
-                            ? NetworkImage(user.profileImage)
-                            : null,
-                    child: (_imageController.text.isEmpty &&
-                            user.profileImage.isEmpty)
-                        ? const Icon(Icons.person,
-                            size: 30, color: Colors.white24)
-                        : null,
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2979FF).withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00E5FF),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(Icons.camera_alt_rounded,
-                        color: Color(0xFF0D0D0D), size: 14),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '@${user.name.toLowerCase().replaceAll(' ', '_')}',
-                      style: GoogleFonts.spaceGrotesk(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      '${user.position.isEmpty ? 'New' : user.position} Contributor',
-                      style: GoogleFonts.inter(
-                          color: Colors.white.withOpacity(0.4), fontSize: 13),
-                    ),
-                  ],
+                  child: const Icon(Icons.print_rounded,
+                      color: Color(0xFF2979FF), size: 24),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          _TerminalField(
-              label: locale.translate('name').toUpperCase(),
-              controller: _nameController),
-          const SizedBox(height: 24),
-          _TerminalField(
-              label: locale.translate('image_url').toUpperCase(),
-              controller: _imageController),
-          const SizedBox(height: 24),
-          _TerminalField(
-              label: locale.translate('position_label').toUpperCase(),
-              controller: _positionController),
-          const SizedBox(height: 24),
-          _TerminalField(
-              label: locale.translate('company_label').toUpperCase(),
-              controller: _companyController),
-          const SizedBox(height: 24),
-          _TerminalField(
-              label: 'SYSTEM MANIFEST (BIO)',
-              controller: _bioController,
-              isMultiline: true),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: _TerminalField(
-                    label: locale.translate('city').toUpperCase(),
-                    controller: _cityController),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _TerminalField(
-                    label: locale.translate('country').toUpperCase(),
-                    controller: _countryController),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedBirthDate ??
-                          DateTime.now()
-                              .subtract(const Duration(days: 365 * 18)),
-                      firstDate: DateTime(1950),
-                      lastDate: DateTime.now(),
-                      builder: (context, child) {
-                        return Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: const ColorScheme.dark(
-                              primary: Color(0xFF00E5FF),
-                              onPrimary: Colors.black,
-                              surface: Color(0xFF161616),
-                              onSurface: Colors.white,
-                            ),
-                            dialogBackgroundColor: const Color(0xFF0D0D0D),
-                          ),
-                          child: child!,
-                        );
-                      },
-                    );
-                    if (date != null) {
-                      setState(() => _selectedBirthDate = date);
-                    }
-                  },
-                  child: AbsorbPointer(
-                    child: _TerminalField(
-                      label: locale.translate('birth_date').toUpperCase(),
-                      controller: TextEditingController(
-                        text: _selectedBirthDate == null
-                            ? ''
-                            : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      locale.translate('gender').toUpperCase(),
-                      style: GoogleFonts.spaceGrotesk(
-                        color: const Color(0xFF00E5FF),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(4),
-                        border:
-                            Border.all(color: Colors.white.withOpacity(0.05)),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _selectedGender,
-                          isExpanded: true,
-                          dropdownColor: const Color(0xFF161616),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(locale.translate('admin_dashboard_title'),
+                          style: AppLocalization.digitalFont(context,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14)),
+                      Text(locale.translate('admin_dashboard_sub'),
                           style: GoogleFonts.inter(
-                              color: Colors.white, fontSize: 14),
-                          items: ['Male', 'Female'].map((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                          onChanged: (val) =>
-                              setState(() => _selectedGender = val),
-                        ),
-                      ),
-                    ),
-                  ],
+                              color: Colors.white.withOpacity(0.4),
+                              fontSize: 12),
+                          overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 32),
-          _SectionTitle(icon: Icons.link_rounded, title: 'SOCIAL NODES'),
-          const SizedBox(height: 8),
-          _TerminalField(
-              label: 'GITHUB',
-              controller: _githubController,
-              hint: 'github.com/username'),
-          const SizedBox(height: 16),
-          _TerminalField(
-              label: 'LINKEDIN',
-              controller: _linkedinController,
-              hint: 'linkedin.com/in/username'),
-          const SizedBox(height: 16),
-          _TerminalField(
-              label: 'PORTFOLIO',
-              controller: _portfolioController,
-              hint: 'https://yourwebsite.com'),
-          const SizedBox(height: 48),
-          _SyncButton(onPressed: _updateProfile, isLoading: _isLoading),
-        ],
-      ),
-    );
-  }
-
-  void _showChangePasswordDialog() {
-    final controller = TextEditingController();
-    final locale = AppLocalization.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        title: Text(locale.translate('change_password'),
-            style: GoogleFonts.spaceGrotesk(color: Colors.white)),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: locale.translate('new_password'),
-            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.translate('cancel'),
-                style: const TextStyle(color: Colors.white38)),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (controller.text.trim().length < 6) {
-                AppWidgets.showSnackBar(context, 'Password too short',
-                    type: SnackBarType.error);
-                return;
-              }
-              try {
-                await Provider.of<AuthController>(context, listen: false)
-                    .updatePassword(controller.text.trim());
-                if (mounted) {
-                  Navigator.pop(context);
-                  AppWidgets.showSnackBar(
-                      context, 'Password updated successfully',
-                      type: SnackBarType.success);
-                }
-              } catch (e) {
-                if (mounted)
-                  AppWidgets.showSnackBar(context, e.toString(),
-                      type: SnackBarType.error);
-              }
-            },
-            child: Text(locale.translate('update_button'),
-                style: const TextStyle(color: Color(0xFF00E5FF))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteAccountConfirm() {
-    final locale = AppLocalization.of(context)!;
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        title: Text(locale.translate('delete_account'),
-            style: GoogleFonts.spaceGrotesk(color: Colors.redAccent)),
-        content: Text(locale.translate('delete_account_confirm'),
-            style: GoogleFonts.inter(color: Colors.white70)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.translate('cancel'),
-                style: const TextStyle(color: Colors.white38)),
-          ),
-          TextButton(
-            onPressed: () async {
-              try {
-                await Provider.of<AuthController>(context, listen: false)
-                    .deleteAccount();
-                if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (route) => false,
-                  );
-                }
-              } catch (e) {
-                if (mounted)
-                  AppWidgets.showSnackBar(context, e.toString(),
-                      type: SnackBarType.error);
-              }
-            },
-            child: Text(locale.translate('delete').toUpperCase(),
-                style: const TextStyle(color: Colors.redAccent)),
+          const SizedBox(width: 12),
+          _OutlineButton(
+            label: locale.translate('INITIALIZE_TERMINAL'),
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AdminDashboardPage())),
           ),
         ],
       ),
@@ -730,88 +354,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildLegalCard(AppLocalization locale) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF161616),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        children: [
-          _SecurityItem(
-            title: locale.translate('privacy_policy'),
-            subtitle: 'Read our data protection protocols',
-            trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white24, size: 14),
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => PolicyPage(
-                          title: locale.translate('privacy_policy'),
-                          contentKey: 'PRIVACY_PROTOCOL'))),
-            ),
-          ),
-          Divider(color: Colors.white.withOpacity(0.03), height: 1),
-          _SecurityItem(
-            title: locale.translate('terms_conditions'),
-            subtitle: 'Review the rules of the zone',
-            trailing: IconButton(
-              icon: const Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white24, size: 14),
-              onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => PolicyPage(
-                          title: locale.translate('terms_conditions'),
-                          contentKey: 'TERMS_PROTOCOL'))),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLanguageSwitcher(AppLocalization locale) {
     final appProvider = Provider.of<AppProvider>(context);
+    final isAr = appProvider.locale.languageCode == 'ar';
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Row(
-              children: [
-                Icon(Icons.language_rounded,
-                    color: Colors.white.withOpacity(0.3), size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(locale.translate('language'),
-                      style:
-                          GoogleFonts.inter(color: Colors.white, fontSize: 14),
-                      overflow: TextOverflow.ellipsis),
-                ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(locale.translate('language'),
+                  style: AppLocalization.digitalFont(context,
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold)),
+              Text(locale.translate('INTERFACE_LANGUAGE'),
+                  style: GoogleFonts.inter(
+                      color: Colors.white.withOpacity(0.4), fontSize: 12)),
+            ],
           ),
-          const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.black,
+              color: Colors.black.withOpacity(0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               children: [
-                _LangChip(
+                _LangBtn(
                   label: 'EN',
-                  isActive: appProvider.locale.languageCode == 'en',
+                  isActive: !isAr,
                   onTap: () => appProvider.setLocale(const Locale('en')),
                 ),
-                _LangChip(
+                _LangBtn(
                   label: 'AR',
-                  isActive: appProvider.locale.languageCode == 'ar',
+                  isActive: isAr,
                   onTap: () => appProvider.setLocale(const Locale('ar')),
                 ),
               ],
@@ -823,23 +403,156 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLogoutButton(AuthController auth, AppLocalization locale) {
-    return Center(
-      child: GestureDetector(
-        onTap: () async {
+    return GestureDetector(
+      onTap: () => _showLogoutConfirmation(auth),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.red.withOpacity(0.1)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              locale.translate('logout').toUpperCase(),
+              style: AppLocalization.digitalFont(
+                context,
+                color: Colors.redAccent,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'DISCONNECT NODE SESSION',
+              style: GoogleFonts.spaceGrotesk(
+                color: Colors.red.withOpacity(0.3),
+                fontWeight: FontWeight.bold,
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(AuthController auth) {
+    final locale = AppLocalization.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => TerminalDialog(
+        headerTag: 'ENCRYPTED_LOGOUT_PROTOCOL',
+        title: locale.translate('TERMINATE_SESSION'),
+        body: locale.translate('logout_confirm_body'),
+        confirmLabel: locale.translate('disconnect_cap'),
+        cancelLabel: locale.translate('cancel'),
+        onConfirm: () async {
           await auth.logout();
-          if (mounted)
-            Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const SplashScreen()));
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const SplashScreen()),
+              (route) => false,
+            );
+          }
         },
-        child: Text(
-          'LOGOUT SESSION',
-          style: GoogleFonts.spaceGrotesk(
-            color: const Color(0xFFFF5252),
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 2,
+      ),
+    );
+  }
+
+  // Rest of the UI helpers...
+  Widget _buildLegalCard(AppLocalization locale) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF161616),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const PrivacyPolicyScreen())),
+            child: _SecurityItem(
+              title: locale.translate('privacy_policy'),
+              subtitle: 'Read our data protection protocols',
+              trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white24, size: 14),
+            ),
+          ),
+          Divider(color: Colors.white.withOpacity(0.03), height: 1),
+          GestureDetector(
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const TermsConditionsScreen())),
+            child: _SecurityItem(
+              title: locale.translate('terms_conditions'),
+              subtitle: 'Platform usage agreement',
+              trailing: const Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white24, size: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog() {
+    final controller = TextEditingController();
+    final locale = AppLocalization.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF161616),
+        title: Text(locale.translate('change_password'),
+            style: AppLocalization.digitalFont(context, color: Colors.white)),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: locale.translate('new_password'),
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.3)),
           ),
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(locale.translate('cancel'))),
+          TextButton(onPressed: () async {
+            if (controller.text.trim().length < 6) return;
+            await Provider.of<AuthController>(context, listen: false).updatePassword(controller.text.trim());
+            Navigator.pop(context);
+          }, child: Text(locale.translate('update_button'))),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteAccountConfirm() {
+    final locale = AppLocalization.of(context)!;
+    showDialog(
+      context: context,
+      builder: (context) => TerminalDialog(
+        headerTag: 'DESTRUCTION_PROTOCOL',
+        title: locale.translate('delete_account'),
+        body: locale.translate('delete_account_confirm'),
+        confirmLabel: locale.translate('delete'),
+        cancelLabel: locale.translate('cancel'),
+        isDestructive: true,
+        onConfirm: () async {
+          await Provider.of<AuthController>(context, listen: false).deleteAccount();
+          if (mounted) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const SplashScreen()),
+              (route) => false,
+            );
+          }
+        },
       ),
     );
   }
@@ -853,116 +566,18 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Icon(icon, color: Colors.white.withOpacity(0.3), size: 18),
+          Icon(icon, color: const Color(0xFF00E5FF), size: 16),
           const SizedBox(width: 12),
-          Text(
-            title,
-            style: GoogleFonts.spaceGrotesk(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          Text(title,
+              style: AppLocalization.digitalFont(context,
+                  color: Colors.white.withOpacity(0.4),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1)),
         ],
-      ),
-    );
-  }
-}
-
-class _TerminalField extends StatelessWidget {
-  final String label;
-  final TextEditingController controller;
-  final bool isMultiline;
-  final String? hint;
-  const _TerminalField(
-      {required this.label,
-      required this.controller,
-      this.isMultiline = false,
-      this.hint});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.spaceGrotesk(
-            color: const Color(0xFF00E5FF),
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1,
-          ),
-        ),
-        const SizedBox(height: 10),
-        TextField(
-          controller: controller,
-          maxLines: isMultiline ? 4 : 1,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: GoogleFonts.spaceGrotesk(
-                color: Colors.white.withOpacity(0.1), fontSize: 12),
-            filled: true,
-            fillColor: Colors.black.withOpacity(0.3),
-            contentPadding: const EdgeInsets.all(16),
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-            enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.05))),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(4),
-                borderSide:
-                    const BorderSide(color: Color(0xFF00E5FF), width: 0.5)),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SyncButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final bool isLoading;
-  const _SyncButton({required this.onPressed, required this.isLoading});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: 52,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFB2FEFA), Color(0xFF0ED2F7)],
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: isLoading ? null : onPressed,
-          borderRadius: BorderRadius.circular(6),
-          child: Center(
-            child: isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: Color(0xFF006064), strokeWidth: 2))
-                : Text(
-                    'SYNC PROFILE DATA',
-                    style: GoogleFonts.spaceGrotesk(
-                        color: const Color(0xFF006064),
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1),
-                  ),
-          ),
-        ),
       ),
     );
   }
@@ -972,33 +587,35 @@ class _SecurityItem extends StatelessWidget {
   final String title;
   final String subtitle;
   final Widget trailing;
-  const _SecurityItem(
-      {required this.title, required this.subtitle, required this.trailing});
+
+  const _SecurityItem({
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: GoogleFonts.inter(
+                    style: AppLocalization.digitalFont(context,
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14)),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text(subtitle,
                     style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                        color: Colors.white.withOpacity(0.3), fontSize: 12)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
           trailing,
         ],
       ),
@@ -1010,54 +627,65 @@ class _OutlineButton extends StatelessWidget {
   final String label;
   final VoidCallback onPressed;
   final bool isDanger;
-  const _OutlineButton(
-      {required this.label, required this.onPressed, this.isDanger = false});
+
+  const _OutlineButton({
+    required this.label,
+    required this.onPressed,
+    this.isDanger = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
-        foregroundColor: isDanger ? Colors.redAccent : Colors.white,
         side: BorderSide(
-            color: isDanger
-                ? Colors.redAccent.withOpacity(0.5)
-                : Colors.white.withOpacity(0.1)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            color: isDanger ? Colors.redAccent.withOpacity(0.3) : const Color(0xFF00E5FF).withOpacity(0.3)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
-      child: Text(label,
-          style: GoogleFonts.spaceGrotesk(
-              fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1)),
+      child: Text(
+        label,
+        style: AppLocalization.digitalFont(
+          context,
+          color: isDanger ? Colors.redAccent : const Color(0xFF00E5FF),
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
     );
   }
 }
 
-class _LangChip extends StatelessWidget {
+class _LangBtn extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
-  const _LangChip(
-      {required this.label, required this.isActive, required this.onTap});
+
+  const _LangBtn({
+    required this.label,
+    required this.isActive,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF00E5FF) : Colors.transparent,
           borderRadius: BorderRadius.circular(6),
         ),
         child: Text(
           label,
-          style: GoogleFonts.spaceGrotesk(
-            color: isActive
-                ? const Color(0xFF0D0D0D)
-                : Colors.white.withOpacity(0.3),
-            fontWeight: FontWeight.bold,
-            fontSize: 10,
+          style: AppLocalization.digitalFont(
+            context,
+            color: isActive ? Colors.black : Colors.white38,
+            fontWeight: FontWeight.w900,
+            fontSize: 11,
           ),
         ),
       ),

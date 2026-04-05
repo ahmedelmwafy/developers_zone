@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
+import '../services/ad_service.dart';
 import '../models/ad_model.dart';
 import '../providers/app_provider.dart';
 import 'home_screen.dart';
@@ -61,6 +62,10 @@ class _SplashScreenState extends State<SplashScreen>
     
     // Check if splash ads are enabled
     final settings = await adminController.getAdSettings().first;
+    
+    // INITIALIZE INTERSTITIAL AD (Industrial Ad - initialized here as requested)
+    AdService.loadInterstitialAd(settings: settings);
+
     if (settings.splashCustomAdActive) {
       final adStream = adminController.getAds(type: 'splash');
       final ads = await adStream.first;
@@ -85,17 +90,21 @@ class _SplashScreenState extends State<SplashScreen>
     if (authController.currentUser != null) {
       if (authController.currentUser!.isApproved) {
         if (!authController.isProfileComplete && !appProvider.hasSeenProfilePrompt) {
+          AdService.showInterstitialAd(settings: settings);
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const IncompleteProfilePage()));
         } else {
+          AdService.showInterstitialAd(settings: settings);
           Navigator.of(context).pushReplacement(
               MaterialPageRoute(builder: (_) => const HomeScreen()));
         }
       } else {
+        AdService.showInterstitialAd(settings: settings);
         Navigator.of(context).pushReplacement(
             MaterialPageRoute(builder: (_) => const WaitingApprovalPage()));
       }
     } else {
+      AdService.showInterstitialAd(settings: settings);
       Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => const LoginScreen()));
     }

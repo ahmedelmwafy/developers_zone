@@ -10,13 +10,14 @@ import 'chat_detail_screen.dart';
 import 'network_page.dart';
 import 'settings_screen.dart';
 import 'admin_dashboard_page.dart';
-import 'splash_screen.dart';
+import 'edit_profile_page.dart';
 import '../providers/app_provider.dart';
 
 import '../services/notification_service.dart';
 import '../models/notification_model.dart';
-import 'components/shimmer_loading.dart';
-import 'components/post_card.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../widgets/post_media_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   final String? userId;
@@ -48,12 +49,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
     // Get target user for notification
     final viewedUser = await firestore.getUser(widget.userId!);
-    if (viewedUser != null &&
-        viewedUser.fcmToken != null &&
-        viewedUser.pushNotifications) {
+    if (viewedUser != null && viewedUser.pushNotifications) {
       final locale = AppLocalization.of(context)!;
       await NotificationService.sendNotification(
-        targetToken: viewedUser.fcmToken!,
+        targetToken: viewedUser.fcmToken,
         targetUid: viewedUser.uid,
         title: locale.translate('profile_view_title'),
         body: locale
@@ -126,16 +125,10 @@ class _ProfileView extends StatelessWidget {
               _buildAccountManagement(context, auth, locale),
               const SizedBox(height: 24),
               _buildNetworkHubPanel(context, auth, locale),
-              const SizedBox(height: 24),
-              _buildZonePreferences(context, auth, locale),
-              const SizedBox(height: 32),
-              _buildSavedManifests(context, auth, locale),
               if (auth.currentUser?.isAdmin ?? false) ...[
                 const SizedBox(height: 24),
                 _buildPrivilegedAccess(context, auth, locale),
               ],
-              const SizedBox(height: 32),
-              _buildSystemLegalInfo(context, locale),
               const SizedBox(height: 100),
             ],
           ),
@@ -241,11 +234,14 @@ class _ProfileView extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     if (user.socialLinks!['github']?.isNotEmpty == true)
-                      _buildSocialChip('GITHUB', Icons.code_rounded),
+                      _buildSocialChip('GITHUB', Icons.code_rounded,
+                          user.socialLinks!['github']!),
                     if (user.socialLinks!['linkedin']?.isNotEmpty == true)
-                      _buildSocialChip('LINKEDIN', Icons.link_rounded),
+                      _buildSocialChip('LINKEDIN', Icons.link_rounded,
+                          user.socialLinks!['linkedin']!),
                     if (user.socialLinks!['portfolio']?.isNotEmpty == true)
-                      _buildSocialChip('PORTFOLIO', Icons.language_rounded),
+                      _buildSocialChip('PORTFOLIO', Icons.language_rounded,
+                          user.socialLinks!['portfolio']!),
                   ],
                 ),
               ],
@@ -291,27 +287,35 @@ class _ProfileView extends StatelessWidget {
       height: 1,
       color: Colors.white.withOpacity(0.03));
 
-  Widget _buildSocialChip(String label, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.1)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: const Color(0xFF00E5FF), size: 14),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.spaceGrotesk(
-                color: const Color(0xFF00E5FF),
-                fontSize: 9,
-                fontWeight: FontWeight.w800),
-          ),
-        ],
+  Widget _buildSocialChip(String label, IconData icon, String url) {
+    return GestureDetector(
+      onTap: () async {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: const Color(0xFF00E5FF), size: 14),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.spaceGrotesk(
+                  color: const Color(0xFF00E5FF),
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -593,7 +597,7 @@ class _ProfileView extends StatelessWidget {
           const SizedBox(height: 32),
           GestureDetector(
             onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SettingsScreen())),
+                MaterialPageRoute(builder: (_) => const EditProfilePage())),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               decoration: BoxDecoration(
@@ -674,20 +678,6 @@ class _ProfileView extends StatelessWidget {
             title: locale.translate('change_password'),
             onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const SettingsScreen())),
-          ),
-          const SizedBox(height: 12),
-          _buildConfigActionTile(
-            icon: Icons.logout_rounded,
-            title: locale.translate('LOGOUT_SESSION'),
-            titleColor: const Color(0xFFFF5252),
-            onTap: () async {
-              await auth.logout();
-              if (context.mounted)
-                Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (route) => false);
-            },
           ),
         ],
       ),
@@ -831,95 +821,6 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildZonePreferences(
-      BuildContext context, AuthController auth, AppLocalization locale) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF121212),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            locale.translate('ZONE_PREFERENCES'),
-            style: GoogleFonts.spaceGrotesk(
-                color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 24),
-          _buildConfigToggleTile(context, locale),
-          const SizedBox(height: 24),
-          _buildConfigActionTile(
-            icon: Icons.do_not_disturb_on_rounded,
-            title: locale.translate('blocked_users'),
-            onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const NetworkPage(
-                        initialTab: NetworkTab.blocked, isSingleMode: true))),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfigToggleTile(BuildContext context, AppLocalization locale) {
-    final appProvider = Provider.of<AppProvider>(context);
-    final isAr = appProvider.locale.languageCode == 'ar';
-
-    return Row(
-      children: [
-        Icon(Icons.translate_rounded,
-            color: Colors.white.withOpacity(0.3), size: 18),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Text(
-            locale.translate('INTERFACE_LANGUAGE'),
-            style: GoogleFonts.spaceGrotesk(
-                color: Colors.white.withOpacity(0.8),
-                fontWeight: FontWeight.w700,
-                fontSize: 14),
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              _buildLangOption(
-                  'EN', !isAr, () => appProvider.setLocale(const Locale('en'))),
-              _buildLangOption(
-                  'AR', isAr, () => appProvider.setLocale(const Locale('ar'))),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLangOption(String label, bool isActive, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF00E5FF).withOpacity(0.1) : null,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.spaceGrotesk(
-              color: isActive ? const Color(0xFF00E5FF) : Colors.white24,
-              fontSize: 10,
-              fontWeight: FontWeight.w800),
-        ),
-      ),
-    );
-  }
 
   Widget _buildPrivilegedAccess(
       BuildContext context, AuthController auth, AppLocalization locale) {
@@ -1005,62 +906,6 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildSystemLegalInfo(BuildContext context, AppLocalization locale) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          locale.translate('SYSTEM_LEGAL'),
-          style: GoogleFonts.spaceGrotesk(
-              color: Colors.white.withOpacity(0.4),
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.5),
-        ),
-        const SizedBox(height: 24),
-        _buildLegalLink(Icons.verified_user_rounded,
-            locale.translate('privacy_policy'), () {}),
-        const SizedBox(height: 16),
-        _buildLegalLink(
-            Icons.gavel_rounded, locale.translate('terms_conditions'), () {}),
-        const SizedBox(height: 48),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(locale.translate('stable_version'),
-                style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white.withOpacity(0.1),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700)),
-            Text(locale.translate('COPYRIGHT'),
-                style: GoogleFonts.spaceGrotesk(
-                    color: Colors.white.withOpacity(0.1),
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegalLink(IconData icon, String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.white.withOpacity(0.3), size: 16),
-          const SizedBox(width: 12),
-          Text(
-            label,
-            style: GoogleFonts.inter(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 13,
-                fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildMainButton(
       {required String label,
@@ -1134,8 +979,7 @@ class _ProfileView extends StatelessWidget {
                 time: _timeAgo(post.createdAt, context),
                 content: parts['body'] ?? post.text,
                 code: parts['code'],
-                hasImage: post.images.isNotEmpty,
-                imageUrl: post.images.isNotEmpty ? post.images.first : null,
+                images: post.images,
                 likes: post.likes.length,
                 comments: post.commentCount,
               ),
@@ -1180,8 +1024,7 @@ class _ProfileView extends StatelessWidget {
       required String time,
       required String content,
       String? code,
-      bool hasImage = false,
-      String? imageUrl,
+      List<String> images = const [],
       int likes = 0,
       int comments = 0}) {
     return Container(
@@ -1233,18 +1076,34 @@ class _ProfileView extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Text(content,
-              style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 13,
-                  height: 1.6)),
+          MarkdownBody(
+            data: content,
+            onTapLink: (text, href, title) {
+              if (href != null) {
+                launchUrl(Uri.parse(href),
+                    mode: LaunchMode.externalApplication);
+              }
+            },
+            styleSheet: MarkdownStyleSheet(
+              p: GoogleFonts.inter(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 13,
+                height: 1.6,
+              ),
+              strong: const TextStyle(
+                  color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+              a: const TextStyle(
+                  color: Color(0xFF00E5FF),
+                  decoration: TextDecoration.underline),
+            ),
+          ),
           if (code != null) ...[
             const SizedBox(height: 20),
             _buildCodeBlock(code),
           ],
-          if (hasImage && imageUrl != null) ...[
+          if (images.isNotEmpty) ...[
             const SizedBox(height: 20),
-            _buildImagePayload(imageUrl),
+            PostMediaWidget(images: images, height: 220),
           ],
           const SizedBox(height: 24),
           Row(
@@ -1282,31 +1141,48 @@ class _ProfileView extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: const Color(0xFF0D0D0D),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.04))),
-      child: Text(
-        code,
-        style: GoogleFonts.sourceCodePro(
-            color: const Color(0xFF00E5FF).withOpacity(0.8),
-            fontSize: 11,
-            height: 1.5),
+        color: const Color(0xFF0D0D0D),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFFF5F56), shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
+              const SizedBox(width: 6),
+              Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                      color: Color(0xFF27C93F), shape: BoxShape.circle)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SelectableText(
+            code,
+            style: GoogleFonts.sourceCodePro(
+                color: const Color(0xFF00E5FF).withOpacity(0.8),
+                fontSize: 11,
+                height: 1.5),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildImagePayload(String url) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Container(
-          color: Colors.white.withOpacity(0.05),
-          child: Image.network(url, fit: BoxFit.cover),
-        ),
-      ),
-    );
-  }
+  // Removed unused _buildImagePayload in favor of PostMediaWidget
 
   Widget _buildInteraction(IconData icon, String count) {
     return Row(
@@ -1318,97 +1194,6 @@ class _ProfileView extends StatelessWidget {
                 color: Colors.white.withOpacity(0.4),
                 fontSize: 12,
                 fontWeight: FontWeight.w700)),
-      ],
-    );
-  }
-
-  Widget _buildSavedManifests(
-      BuildContext context, AuthController auth, AppLocalization locale) {
-    if (auth.currentUser == null || auth.currentUser!.savedPosts.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: const Color(0xFF161616),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.bookmark_outline_rounded,
-                color: Colors.white.withOpacity(0.1), size: 32),
-            const SizedBox(height: 12),
-            Text(
-              locale.translate('no_saved_posts'),
-              style: GoogleFonts.inter(
-                  color: Colors.white.withOpacity(0.3), fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      );
-    }
-
-    final savedIds = auth.currentUser!.savedPosts;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(Icons.bookmark_rounded,
-                color: Color(0xFF00E5FF), size: 18),
-            const SizedBox(width: 12),
-            Text(
-              locale.translate('SAVED_MANIFESTS_CAPS'),
-              style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1),
-            ),
-            const Spacer(),
-            Text(
-              '${savedIds.length} NODES',
-              style: GoogleFonts.spaceGrotesk(
-                  color: Colors.white.withOpacity(0.2),
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        StreamBuilder<List<PostModel>>(
-          stream: FirestoreService().streamSavedPosts(savedIds),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Column(
-                children: [
-                  PostShimmer(),
-                  SizedBox(height: 16),
-                  PostShimmer(),
-                ],
-              );
-            }
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const SizedBox();
-            }
-
-            final posts = snapshot.data!;
-            return ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: posts.length,
-              itemBuilder: (context, index) {
-                final post = posts[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: PostCard(
-                    post: post,
-                  ),
-                );
-              },
-            );
-          },
-        ),
       ],
     );
   }

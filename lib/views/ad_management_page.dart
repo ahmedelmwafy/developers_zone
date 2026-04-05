@@ -76,17 +76,14 @@ class AdManagementPage extends StatelessWidget {
           }
 
           final ads = snapshot.data!;
-          // Group by type
           final homeAds = ads.where((a) => a.type == 'home').toList();
           final splashAds = ads.where((a) => a.type == 'splash').toList();
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // GLOBAL SETTINGS
               _GlobalAdSettings(adminController: adminController),
               const SizedBox(height: 24),
-
               if (homeAds.isNotEmpty) ...[
                 AppWidgets.sectionTitle(locale.translate('home_ads')),
                 ...homeAds.map(
@@ -140,7 +137,6 @@ class AdManagementPage extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Handle bar
                 Center(
                   child: Container(
                     width: 40,
@@ -170,8 +166,6 @@ class AdManagementPage extends StatelessWidget {
                       prefixIcon: Icons.title),
                 ),
                 const SizedBox(height: 14),
-
-                // IMAGE PICKER SECTION
                 GestureDetector(
                   onTap: isUploading
                       ? null
@@ -235,7 +229,6 @@ class AdManagementPage extends StatelessWidget {
                           ),
                   ),
                 ),
-
                 const SizedBox(height: 14),
                 TextField(
                   controller: imageUrlController,
@@ -320,26 +313,21 @@ class AdManagementPage extends StatelessWidget {
                       ? null
                       : () async {
                           String finalUrl = imageUrlController.text.trim();
-
                           if (selectedImage != null) {
                             setModalState(() => isUploading = true);
                             try {
                               final uploadUrl = await ImgBBService.uploadImage(
                                   selectedImage!);
-                              if (uploadUrl != null) {
-                                finalUrl = uploadUrl;
-                              }
+                              if (uploadUrl != null) finalUrl = uploadUrl;
                             } finally {
                               setModalState(() => isUploading = false);
                             }
                           }
-
                           if (finalUrl.isEmpty) {
                             AppWidgets.showSnackBar(
                                 context, locale.translate('fill_all_fields'));
                             return;
                           }
-
                           adminController.addAd(AdModel(
                             id: '',
                             title: titleController.text.trim(),
@@ -363,7 +351,6 @@ class AdManagementPage extends StatelessWidget {
 class _AdCard extends StatelessWidget {
   final AdModel ad;
   final AdminController adminController;
-
   const _AdCard({required this.ad, required this.adminController});
 
   @override
@@ -381,7 +368,6 @@ class _AdCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Thumbnail
           ClipRRect(
             borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(14), bottomLeft: Radius.circular(14)),
@@ -400,7 +386,6 @@ class _AdCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +441,6 @@ class _AdCard extends StatelessWidget {
               ],
             ),
           ),
-          // Actions
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -465,15 +449,7 @@ class _AdCard extends StatelessWidget {
                 child: Switch(
                   value: ad.active,
                   onChanged: (val) => adminController.updateAd(
-                    AdModel(
-                      id: ad.id,
-                      title: ad.title,
-                      description: ad.description,
-                      imageUrl: ad.imageUrl,
-                      targetUrl: ad.targetUrl,
-                      active: val,
-                      type: ad.type,
-                    ),
+                    ad.copyWithActive(val),
                   ),
                   activeThumbColor: AppColors.success,
                   inactiveThumbColor: AppColors.textMuted,
@@ -536,7 +512,6 @@ class _AdCard extends StatelessWidget {
 
 class _GlobalAdSettings extends StatelessWidget {
   final AdminController adminController;
-
   const _GlobalAdSettings({required this.adminController});
 
   @override
@@ -567,29 +542,50 @@ class _GlobalAdSettings extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _ToggleRow(
-                label: locale.translate('admob_enabled'),
-                value: settings.adMobActive,
-                onChanged: (val) => adminController.updateAdSettings(
-                  settings.copyWith(adMobActive: val),
+              
+              // ADMOB MASTER SWITCHES
+              _PlatformToggleGroup(
+                title: locale.translate('admob_enabled'),
+                androidValue: settings.adMobActiveAndroid,
+                iosValue: settings.adMobActiveIOS,
+                onAndroidChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(adMobActiveAndroid: v),
+                ),
+                onIosChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(adMobActiveIOS: v),
                 ),
               ),
-              const Divider(color: Colors.white10, height: 24),
-              _ToggleRow(
-                label: locale.translate('banner_ads'),
-                value: settings.bannerAdsActive,
-                onChanged: (val) => adminController.updateAdSettings(
-                  settings.copyWith(bannerAdsActive: val),
+              const Divider(color: Colors.white10, height: 32),
+              
+              // BANNER SWITCHES
+              _PlatformToggleGroup(
+                title: locale.translate('banner_ads'),
+                androidValue: settings.bannerAdsActiveAndroid,
+                iosValue: settings.bannerAdsActiveIOS,
+                onAndroidChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(bannerAdsActiveAndroid: v),
+                ),
+                onIosChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(bannerAdsActiveIOS: v),
                 ),
               ),
-              _ToggleRow(
-                label: locale.translate('interstitial_ads'),
-                value: settings.interstitialAdsActive,
-                onChanged: (val) => adminController.updateAdSettings(
-                  settings.copyWith(interstitialAdsActive: val),
+              const Divider(color: Colors.white10, height: 32),
+              
+              // INTERSTITIAL SWITCHES
+              _PlatformToggleGroup(
+                title: locale.translate('interstitial_ads'),
+                androidValue: settings.interstitialAdsActiveAndroid,
+                iosValue: settings.interstitialAdsActiveIOS,
+                onAndroidChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(interstitialAdsActiveAndroid: v),
+                ),
+                onIosChanged: (v) => adminController.updateAdSettings(
+                  settings.copyWith(interstitialAdsActiveIOS: v),
                 ),
               ),
-              const Divider(color: Colors.white10, height: 24),
+              const Divider(color: Colors.white10, height: 32),
+              
+              // CUSTOM ADS
               _ToggleRow(
                 label: locale.translate('splash_custom_ads'),
                 value: settings.splashCustomAdActive,
@@ -612,13 +608,55 @@ class _GlobalAdSettings extends StatelessWidget {
   }
 }
 
+class _PlatformToggleGroup extends StatelessWidget {
+  final String title;
+  final bool androidValue;
+  final bool iosValue;
+  final ValueChanged<bool> onAndroidChanged;
+  final ValueChanged<bool> onIosChanged;
+
+  const _PlatformToggleGroup({
+    required this.title,
+    required this.androidValue,
+    required this.iosValue,
+    required this.onAndroidChanged,
+    required this.onIosChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, 
+          style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        _ToggleRow(
+          label: 'Android',
+          icon: Icons.android,
+          value: androidValue,
+          onChanged: onAndroidChanged,
+        ),
+        _ToggleRow(
+          label: 'iOS',
+          icon: Icons.apple,
+          value: iosValue,
+          onChanged: onIosChanged,
+        ),
+      ],
+    );
+  }
+}
+
 class _ToggleRow extends StatelessWidget {
   final String label;
+  final IconData? icon;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   const _ToggleRow({
     required this.label,
+    this.icon,
     required this.value,
     required this.onChanged,
   });
@@ -628,13 +666,21 @@ class _ToggleRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
+        Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: AppColors.textSecondary, size: 16),
+              const SizedBox(width: 8),
+            ],
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
         Switch(
           value: value,
@@ -643,6 +689,20 @@ class _ToggleRow extends StatelessWidget {
           activeColor: AppColors.primary,
         ),
       ],
+    );
+  }
+}
+
+extension on AdModel {
+  AdModel copyWithActive(bool active) {
+    return AdModel(
+      id: id,
+      title: title,
+      description: description,
+      imageUrl: imageUrl,
+      targetUrl: targetUrl,
+      active: active,
+      type: type,
     );
   }
 }

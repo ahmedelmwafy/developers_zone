@@ -43,6 +43,6 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Developers Zone needs access to your photo library to select profile and post images.</string>
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-8083932237652497~9292027114</string>
 </dict>
 </plist>

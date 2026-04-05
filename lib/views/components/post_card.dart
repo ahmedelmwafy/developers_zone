@@ -7,6 +7,9 @@ import '../../controllers/post_controller.dart';
 import '../../providers/app_provider.dart';
 import '../post_details_page.dart';
 import '../profile_page.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../widgets/post_media_widget.dart';
 
 class PostCard extends StatelessWidget {
   final PostModel post;
@@ -52,14 +55,14 @@ class PostCard extends StatelessWidget {
                 _buildAuthorHeader(context, post, isMe, currentUser,
                     authController, postController, locale),
                 const SizedBox(height: 16),
-                _buildDynamicContent(parts),
+                _buildDynamicContent(parts, context),
                 if (parts['code'] != null) ...[
                   const SizedBox(height: 16),
                   _buildCodeManifest(parts['code']!),
                 ],
                 if (post.images.isNotEmpty) ...[
                   const SizedBox(height: 16),
-                  _buildPostMedia(post.images.first),
+                  PostMediaWidget(images: post.images),
                 ],
                 const SizedBox(height: 24),
                 _buildActionRow(post, isLiked, currentUser, postController,
@@ -94,7 +97,7 @@ class PostCard extends StatelessWidget {
     return {'title': title, 'body': body, 'code': code};
   }
 
-  Widget _buildDynamicContent(Map<String, String?> parts) {
+  Widget _buildDynamicContent(Map<String, String?> parts, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -111,14 +114,29 @@ class PostCard extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         if (parts['body'] != null && parts['body']!.isNotEmpty) ...[
-          Text(
-            parts['body']!,
-            maxLines: 4,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              color: Colors.white.withOpacity(0.7),
-              fontSize: 14,
-              height: 1.6,
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 180),
+            child: MarkdownBody(
+              data: parts['body']!,
+              onTapLink: (text, href, title) {
+                if (href != null) {
+                  launchUrl(Uri.parse(href),
+                      mode: LaunchMode.externalApplication);
+                }
+              },
+              styleSheet: MarkdownStyleSheet(
+                p: GoogleFonts.inter(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14,
+                  height: 1.6,
+                ),
+                strong: const TextStyle(
+                    color: Color(0xFF00E5FF), fontWeight: FontWeight.bold),
+                a: const TextStyle(
+                    color: Color(0xFF00E5FF),
+                    decoration: TextDecoration.underline),
+                listBullet: TextStyle(color: Colors.white.withOpacity(0.3)),
+              ),
             ),
           ),
         ],
@@ -240,41 +258,22 @@ class PostCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPostMedia(String url) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Image.network(
-          url,
-          width: double.infinity,
-          height: 220,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, progress) {
-            if (progress == null) return child;
-            return Container(
-              height: 220,
-              color: Colors.white.withOpacity(0.02),
-              child: const Center(
-                  child: CircularProgressIndicator(
-                      color: Color(0xFF00E5FF), strokeWidth: 2)),
-            );
-          },
-        ),
-      ),
-    );
-  }
+  // Removed unused _buildPostMedia in favor of PostMediaWidget
 
   Widget _buildCodeManifest(String code) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -282,20 +281,20 @@ class PostCard extends StatelessWidget {
           Row(
             children: [
               Container(
-                  width: 6,
-                  height: 6,
+                  width: 8,
+                  height: 8,
                   decoration: const BoxDecoration(
                       color: Color(0xFFFF5F56), shape: BoxShape.circle)),
-              const SizedBox(width: 5),
+              const SizedBox(width: 8),
               Container(
-                  width: 6,
-                  height: 6,
+                  width: 8,
+                  height: 8,
                   decoration: const BoxDecoration(
                       color: Color(0xFFFFBD2E), shape: BoxShape.circle)),
-              const SizedBox(width: 5),
+              const SizedBox(width: 8),
               Container(
-                  width: 6,
-                  height: 6,
+                  width: 8,
+                  height: 8,
                   decoration: const BoxDecoration(
                       color: Color(0xFF27C93F), shape: BoxShape.circle)),
               const Spacer(),
@@ -308,10 +307,9 @@ class PostCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          Text(
+          SelectableText(
             code,
             maxLines: 6,
-            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.sourceCodePro(
               color: const Color(0xFF00E5FF).withOpacity(0.8),
               fontSize: 12,

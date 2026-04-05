@@ -104,7 +104,7 @@ class NotificationService {
   }
 
   static Future<void> sendNotification({
-    required String targetToken,
+    String? targetToken,
     required String targetUid,
     required String title,
     required String body,
@@ -113,49 +113,9 @@ class NotificationService {
     Map<String, dynamic>? extraData,
   }) async {
     final String rId = relatedId ?? '';
+
+    // 1. ALWAYS Save to Firestore History first
     try {
-      final client = await _getAuthClient();
-      const String projectId = 'developers-zone-33a66';
-      const String url =
-          'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
-
-      final Map<String, dynamic> payload = {
-        'message': {
-          'token': targetToken,
-          'notification': {
-            'title': title,
-            'body': body,
-          },
-          'data': {
-            'type': type.toString().split('.').last,
-            'relatedId': rId,
-            if (extraData != null) ...extraData,
-          },
-          'android': {
-            'notification': {
-              'channel_id': 'high_importance_channel',
-              'priority': 'high',
-            }
-          },
-          'apns': {
-            'payload': {
-              'aps': {'sound': 'default', 'badge': 1}
-            }
-          }
-        }
-      };
-
-      final response = await client.post(
-        Uri.parse(url),
-        body: jsonEncode(payload),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode != 200) {
-        debugPrint('FCM HTTP v1 Error: ${response.body}');
-      }
-
-      // Save to Firestore History
       await _firestore.createNotification(
           targetUid,
           AppNotificationModel(
@@ -167,7 +127,55 @@ class NotificationService {
             createdAt: DateTime.now(),
           ));
     } catch (e) {
-      debugPrint('Notification Send Error: $e');
+      debugPrint('Notification Database Persist Error: $e');
+    }
+
+    // 2. If token exists, try sending push to node
+    if (targetToken != null && targetToken.isNotEmpty) {
+      try {
+        final client = await _getAuthClient();
+        const String projectId = 'developers-zone-33a66';
+        const String url =
+            'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
+
+        final Map<String, dynamic> payload = {
+          'message': {
+            'token': targetToken,
+            'notification': {
+              'title': title,
+              'body': body,
+            },
+            'data': {
+              'type': type.toString().split('.').last,
+              'relatedId': rId,
+              if (extraData != null) ...extraData,
+            },
+            'android': {
+              'notification': {
+                'channel_id': 'high_importance_channel',
+                'priority': 'high',
+              }
+            },
+            'apns': {
+              'payload': {
+                'aps': {'sound': 'default', 'badge': 1}
+              }
+            }
+          }
+        };
+
+        final response = await client.post(
+          Uri.parse(url),
+          body: jsonEncode(payload),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (response.statusCode != 200) {
+          debugPrint('FCM HTTP v1 Protocol Error: ${response.body}');
+        }
+      } catch (e) {
+        debugPrint('FCM Transmission Error: $e');
+      }
     }
   }
 }

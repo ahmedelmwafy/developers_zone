@@ -1,4 +1,3 @@
-
 class AdModel {
   final String id;
   final String title;
@@ -43,25 +42,34 @@ class AdModel {
 }
 
 class AdSettingsModel {
-  final bool adMobActive;
-  final bool bannerAdsActive;
-  final bool interstitialAdsActive;
+  final bool adMobActiveAndroid;
+  final bool adMobActiveIOS;
+  final bool bannerAdsActiveAndroid;
+  final bool bannerAdsActiveIOS;
+  final bool interstitialAdsActiveAndroid;
+  final bool interstitialAdsActiveIOS;
   final bool splashCustomAdActive;
   final bool homeCustomAdActive;
 
   AdSettingsModel({
-    this.adMobActive = false,
-    this.bannerAdsActive = false,
-    this.interstitialAdsActive = false,
+    this.adMobActiveAndroid = false,
+    this.adMobActiveIOS = false,
+    this.bannerAdsActiveAndroid = false,
+    this.bannerAdsActiveIOS = false,
+    this.interstitialAdsActiveAndroid = false,
+    this.interstitialAdsActiveIOS = false,
     this.splashCustomAdActive = false,
     this.homeCustomAdActive = false,
   });
 
   factory AdSettingsModel.fromMap(Map<String, dynamic> data) {
     return AdSettingsModel(
-      adMobActive: data['adMobActive'] ?? false,
-      bannerAdsActive: data['bannerAdsActive'] ?? false,
-      interstitialAdsActive: data['interstitialAdsActive'] ?? false,
+      adMobActiveAndroid: data['adMobActiveAndroid'] ?? data['adMobActive'] ?? false,
+      adMobActiveIOS: data['adMobActiveIOS'] ?? data['adMobActive'] ?? false,
+      bannerAdsActiveAndroid: data['bannerAdsActiveAndroid'] ?? data['bannerAdsActive'] ?? false,
+      bannerAdsActiveIOS: data['bannerAdsActiveIOS'] ?? data['bannerAdsActive'] ?? false,
+      interstitialAdsActiveAndroid: data['interstitialAdsActiveAndroid'] ?? data['interstitialAdsActive'] ?? false,
+      interstitialAdsActiveIOS: data['interstitialAdsActiveIOS'] ?? data['interstitialAdsActive'] ?? false,
       splashCustomAdActive: data['splashCustomAdActive'] ?? false,
       homeCustomAdActive: data['homeCustomAdActive'] ?? false,
     );
@@ -69,25 +77,34 @@ class AdSettingsModel {
 
   Map<String, dynamic> toMap() {
     return {
-      'adMobActive': adMobActive,
-      'bannerAdsActive': bannerAdsActive,
-      'interstitialAdsActive': interstitialAdsActive,
+      'adMobActiveAndroid': adMobActiveAndroid,
+      'adMobActiveIOS': adMobActiveIOS,
+      'bannerAdsActiveAndroid': bannerAdsActiveAndroid,
+      'bannerAdsActiveIOS': bannerAdsActiveIOS,
+      'interstitialAdsActiveAndroid': interstitialAdsActiveAndroid,
+      'interstitialAdsActiveIOS': interstitialAdsActiveIOS,
       'splashCustomAdActive': splashCustomAdActive,
       'homeCustomAdActive': homeCustomAdActive,
     };
   }
 
   AdSettingsModel copyWith({
-    bool? adMobActive,
-    bool? bannerAdsActive,
-    bool? interstitialAdsActive,
+    bool? adMobActiveAndroid,
+    bool? adMobActiveIOS,
+    bool? bannerAdsActiveAndroid,
+    bool? bannerAdsActiveIOS,
+    bool? interstitialAdsActiveAndroid,
+    bool? interstitialAdsActiveIOS,
     bool? splashCustomAdActive,
     bool? homeCustomAdActive,
   }) {
     return AdSettingsModel(
-      adMobActive: adMobActive ?? this.adMobActive,
-      bannerAdsActive: bannerAdsActive ?? this.bannerAdsActive,
-      interstitialAdsActive: interstitialAdsActive ?? this.interstitialAdsActive,
+      adMobActiveAndroid: adMobActiveAndroid ?? this.adMobActiveAndroid,
+      adMobActiveIOS: adMobActiveIOS ?? this.adMobActiveIOS,
+      bannerAdsActiveAndroid: bannerAdsActiveAndroid ?? this.bannerAdsActiveAndroid,
+      bannerAdsActiveIOS: bannerAdsActiveIOS ?? this.bannerAdsActiveIOS,
+      interstitialAdsActiveAndroid: interstitialAdsActiveAndroid ?? this.interstitialAdsActiveAndroid,
+      interstitialAdsActiveIOS: interstitialAdsActiveIOS ?? this.interstitialAdsActiveIOS,
       splashCustomAdActive: splashCustomAdActive ?? this.splashCustomAdActive,
       homeCustomAdActive: homeCustomAdActive ?? this.homeCustomAdActive,
     );

@@ -21,17 +21,15 @@ class ChatController extends ChangeNotifier {
       final recipientId =
           chatDoc.users.firstWhere((id) => id != message.senderId);
       final recipient = await _firestoreService.getUser(recipientId);
-      if (recipient?.fcmToken != null) {
-        await NotificationService.sendNotification(
-          targetToken: recipient!.fcmToken!,
-          targetUid: recipientId,
-          title: 'New Message from $senderName',
-          body: message.text.isNotEmpty ? message.text : '📷 Image',
-          type: NotificationType.message,
-          relatedId: chatId,
-          extraData: {'otherUserId': message.senderId},
-        );
-      }
+      await NotificationService.sendNotification(
+        targetToken: recipient?.fcmToken,
+        targetUid: recipientId,
+        title: 'New Message from $senderName',
+        body: message.text.isNotEmpty ? message.text : '📷 Image',
+        type: NotificationType.message,
+        relatedId: chatId,
+        extraData: {'otherUserId': message.senderId},
+      );
     }
     notifyListeners();
   }

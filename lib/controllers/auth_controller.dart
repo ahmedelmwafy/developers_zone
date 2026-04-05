@@ -23,6 +23,8 @@ class AuthController extends ChangeNotifier {
       try {
         if (user != null) {
           _currentUser = await _firestoreService.getUser(user.uid);
+          // Auto-sync FCM Node
+          updateFCMToken();
         } else {
           _currentUser = null;
         }
@@ -49,6 +51,7 @@ class AuthController extends ChangeNotifier {
         );
         await _firestoreService.createUser(newUser);
         _currentUser = newUser;
+        updateFCMToken();
       }
     } finally {
       _isLoading = false;
@@ -63,6 +66,7 @@ class AuthController extends ChangeNotifier {
       final credential = await _authService.loginWithEmail(email, password);
       if (credential != null && credential.user != null) {
         _currentUser = await _firestoreService.getUser(credential.user!.uid);
+        updateFCMToken();
       }
     } finally {
       _isLoading = false;
@@ -139,6 +143,7 @@ class AuthController extends ChangeNotifier {
         } else {
           _currentUser = existingUser;
         }
+        updateFCMToken();
       }
     } finally {
       _isLoading = false;
@@ -205,18 +210,16 @@ class AuthController extends ChangeNotifier {
     if (_currentUser == null) return;
     await _firestoreService.followUser(_currentUser!.uid, targetUid);
     
-    // Trigger Notification
+    // Trigger Notification Manifest
     final target = await _firestoreService.getUser(targetUid);
-    if (target?.fcmToken != null) {
-      await NotificationService.sendNotification(
-        targetToken: target!.fcmToken!, 
-        targetUid: targetUid,
-        title: 'New Follower!', 
-        body: '${_currentUser!.name} followed you.',
-        type: NotificationType.follow,
-        relatedId: _currentUser!.uid,
-      );
-    }
+    await NotificationService.sendNotification(
+      targetToken: target?.fcmToken, 
+      targetUid: targetUid,
+      title: 'New Follower!', 
+      body: '${_currentUser!.name} followed you.',
+      type: NotificationType.follow,
+      relatedId: _currentUser!.uid,
+    );
 
     final updatedFollowing = List<String>.from(_currentUser!.following)..add(targetUid);
     _currentUser = _currentUser!.copyWith(following: updatedFollowing);
@@ -294,4 +297,18 @@ class AuthController extends ChangeNotifier {
   }
 
   bool get isProfileComplete => profileCompletionPercentage >= 0.8;
+
+  Future<void> updateFCMToken() async {
+    if (_currentUser == null) return;
+    try {
+      final token = await NotificationService.getToken();
+      if (token != null) {
+        await _firestoreService.updateFCMToken(_currentUser!.uid, token);
+        _currentUser = _currentUser!.copyWith(fcmToken: token);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('FCM Token Sync Error: $e');
+    }
+  }
 }

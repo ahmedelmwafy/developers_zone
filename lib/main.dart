@@ -18,12 +18,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await NotificationService.initialize();
-  MobileAds.instance.initialize();
+  await MobileAds.instance.initialize();
+  
   runApp(
     MultiProvider(
       providers: [
         Provider(create: (_) => FirestoreService()),
-        ChangeNotifierProvider(create: (_) => AppProvider()),
+        ChangeNotifierProvider(create: (_) => AppProvider()..initAdSettings()),
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => PostController()),
         ChangeNotifierProvider(create: (_) => ChatController()),

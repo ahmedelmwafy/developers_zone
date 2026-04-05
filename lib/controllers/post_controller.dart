@@ -53,21 +53,17 @@ class PostController extends ChangeNotifier {
   Future<void> togglePostLike(String postId, String uid, bool isLiking) async {
     await _firestoreService.togglePostLike(postId, uid, isLiking);
     if (isLiking) {
-       // Get post to find author
-       final posts = await _firestoreService.streamGlobalFeed().first;
-       final post = posts.firstWhere((p) => p.id == postId);
-       if (post.authorId != uid) {
+       final post = await _firestoreService.getPost(postId);
+       if (post != null && post.authorId != uid) {
           final author = await _firestoreService.getUser(post.authorId);
-          if (author?.fcmToken != null) {
-             await NotificationService.sendNotification(
-               targetToken: author!.fcmToken!, 
-               targetUid: post.authorId,
-               title: 'New Like!', 
-               body: 'Someone liked your post.',
-               type: NotificationType.like,
-               relatedId: postId,
-             );
-          }
+          await NotificationService.sendNotification(
+            targetToken: author?.fcmToken, 
+            targetUid: post.authorId,
+            title: 'New Like!', 
+            body: 'Someone liked your post.',
+            type: NotificationType.like,
+            relatedId: postId,
+          );
        }
     }
     notifyListeners();
@@ -75,21 +71,17 @@ class PostController extends ChangeNotifier {
 
   Future<void> addComment(CommentModel comment) async {
     await _firestoreService.addComment(comment);
-    // Get post to find author
-    final posts = await _firestoreService.streamGlobalFeed().first;
-    final post = posts.firstWhere((p) => p.id == comment.postId);
-    if (post.authorId != comment.authorId) {
+    final post = await _firestoreService.getPost(comment.postId);
+    if (post != null && post.authorId != comment.authorId) {
        final author = await _firestoreService.getUser(post.authorId);
-       if (author?.fcmToken != null) {
-          await NotificationService.sendNotification(
-            targetToken: author!.fcmToken!, 
-            targetUid: post.authorId,
-            title: 'New Comment!', 
-            body: '${comment.authorName} commented on your post.',
-            type: NotificationType.post,
-            relatedId: comment.postId,
-          );
-       }
+       await NotificationService.sendNotification(
+         targetToken: author?.fcmToken, 
+         targetUid: post.authorId,
+         title: 'New Comment!', 
+         body: '${comment.authorName} commented on your post.',
+         type: NotificationType.post,
+         relatedId: comment.postId,
+       );
     }
     notifyListeners();
   }

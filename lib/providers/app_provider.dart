@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../models/ad_model.dart';
+import '../services/firestore_service.dart';
+import 'dart:async';
 
 class AppLocalization {
   final Locale locale;
@@ -22,6 +26,55 @@ class AppLocalization {
 
   String translate(String key) {
     return _localizedStrings[key] ?? key;
+  }
+
+  static bool isArabic(BuildContext context) =>
+      of(context)?.locale.languageCode == 'ar';
+
+  static TextStyle font({
+    double? fontSize,
+    Color? color,
+    FontWeight? fontWeight,
+    double? letterSpacing,
+    double? height,
+  }) {
+    // We'll use a hack to get the locale since we can't easily pass context everywhere
+    // but the best way is to pass it. Since we are in the class, we'll assume the user
+    // will call it with context or we'll provide a fallback.
+    return GoogleFonts.spaceGrotesk(
+      fontSize: fontSize,
+      color: color,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
+
+  // Improved font getter that takes context
+  static TextStyle digitalFont(
+    BuildContext context, {
+    double? fontSize,
+    Color? color,
+    FontWeight? fontWeight,
+    double? letterSpacing,
+    double? height,
+  }) {
+    final isAr = isArabic(context);
+    if (isAr) {
+      return GoogleFonts.cairo(
+        fontSize: fontSize,
+        color: color,
+        fontWeight: fontWeight ?? FontWeight.w700,
+        height: height,
+      );
+    }
+    return GoogleFonts.spaceGrotesk(
+      fontSize: fontSize,
+      color: color,
+      fontWeight: fontWeight,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
   }
 }
 
@@ -62,6 +115,24 @@ class AppProvider extends ChangeNotifier {
   void setTabIndex(int index) {
     _currentTabIndex = index;
     notifyListeners();
+  }
+
+  AdSettingsModel _adSettings = AdSettingsModel();
+  AdSettingsModel get adSettings => _adSettings;
+  StreamSubscription? _adSub;
+
+  void initAdSettings() {
+    _adSub?.cancel();
+    _adSub = FirestoreService().streamAdSettings().listen((settings) {
+      _adSettings = settings;
+      notifyListeners();
+    });
+  }
+
+  @override
+  void dispose() {
+    _adSub?.cancel();
+    super.dispose();
   }
 
   void _loadLocale() async {

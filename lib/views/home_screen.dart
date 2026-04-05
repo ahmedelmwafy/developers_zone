@@ -11,6 +11,10 @@ import 'feed_page.dart';
 import 'search_screen.dart';
 import 'components/notification_badge.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/banner_ad_widget.dart';
+import 'admin_dashboard_page.dart';
+import 'settings_screen.dart';
+import '../widgets/terminal_dialog.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,51 +53,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF161616),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(locale.translate('profile_incomplete'),
-            style: GoogleFonts.spaceGrotesk(
-                color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00E5FF).withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.person_outline_rounded,
-                  size: 48, color: Color(0xFF00E5FF)),
-            ),
-            const SizedBox(height: 16),
-            Text(locale.translate('complete_to_verify'),
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: Colors.white.withOpacity(0.6))),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(locale.translate('cancel'),
-                style: GoogleFonts.spaceGrotesk(color: Colors.white30)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              appProps.setTabIndex(3); // Navigate to Profile
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00E5FF),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: Text(locale.translate('complete_profile'),
-                style: GoogleFonts.spaceGrotesk(
-                    color: Colors.black, fontWeight: FontWeight.bold)),
-          ),
-        ],
+      builder: (context) => TerminalDialog(
+        headerTag: 'GENESIS_PROTOCOL',
+        title: locale.translate('profile_incomplete'),
+        body: locale.translate('complete_to_verify'),
+        confirmLabel: locale.translate('complete_profile'),
+        cancelLabel: locale.translate('cancel'),
+        onConfirm: () {
+          Navigator.pop(context);
+          appProps.setTabIndex(3); // Navigate to Profile
+        },
       ),
     );
   }
@@ -102,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final locale = AppLocalization.of(context)!;
     final appProps = Provider.of<AppProvider>(context);
+    final auth = Provider.of<AuthController>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
@@ -126,7 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(width: 12),
             Text(
               locale.translate('REPOSITORY'),
-              style: GoogleFonts.spaceGrotesk(
+              style: AppLocalization.digitalFont(
+                context,
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
                 fontSize: 16,
@@ -136,17 +107,31 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined,
+                color: Color(0xFF00E5FF), size: 22),
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
           const Center(child: NotificationBadge()),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
       ),
-      body: IndexedStack(
-        index: appProps.currentTabIndex,
-        children: const [
-          FeedPage(),
-          NetworkPage(),
-          SearchScreen(),
-          ProfilePage(),
+      body: Column(
+        children: [
+          Expanded(
+            child: IndexedStack(
+              index: appProps.currentTabIndex,
+              children: [
+                const FeedPage(),
+                const NetworkPage(),
+                const SearchScreen(),
+                const ProfilePage(),
+                if (auth.currentUser?.isAdmin == true) const AdminDashboardPage(),
+              ],
+            ),
+          ),
+          const BannerAdWidget(),
         ],
       ),
       bottomNavigationBar: _DigitalBottomNav(
@@ -168,12 +153,27 @@ class _DigitalBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthController>(context);
+    final user = auth.currentUser;
+    final locale = AppLocalization.of(context)!;
+
     final items = [
-      {'icon': Icons.dns_rounded, 'label': 'FEED'},
-      {'icon': Icons.people_alt_rounded, 'label': 'NETWORK'},
-      {'icon': Icons.search_rounded, 'label': 'SEARCH'},
-      {'icon': Icons.account_circle_rounded, 'label': 'PROFILE'},
+      {'icon': Icons.dns_rounded, 'label': locale.translate('nav_feed').toUpperCase()},
+      {'icon': Icons.people_alt_rounded, 'label': locale.translate('nav_network').toUpperCase()},
+      {'icon': Icons.search_rounded, 'label': locale.translate('nav_search').toUpperCase()},
+      {
+        'icon': Icons.account_circle_rounded,
+        'label': locale.translate('nav_profile').toUpperCase(),
+        'isProfile': true
+      },
     ];
+
+    if (user?.isAdmin == true) {
+      items.add({
+        'icon': Icons.admin_panel_settings_rounded,
+        'label': locale.translate('admin').toUpperCase(),
+      });
+    }
 
     return Container(
       decoration: const BoxDecoration(
@@ -188,6 +188,8 @@ class _DigitalBottomNav extends StatelessWidget {
             children: List.generate(items.length, (index) {
               final isSelected = currentIndex == index;
               final item = items[index];
+              final isProfile = item['isProfile'] == true;
+
               return Expanded(
                 child: GestureDetector(
                   onTap: () => onTap(index),
@@ -210,17 +212,43 @@ class _DigitalBottomNav extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          item['icon'] as IconData,
-                          color: isSelected
-                              ? Colors.black
-                              : Colors.white.withOpacity(0.2),
-                          size: 24,
-                        ),
+                        if (isProfile &&
+                            user != null &&
+                            user.profileImage.isNotEmpty)
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? Colors.black
+                                    : Colors.white.withOpacity(0.2),
+                                width: 1.5,
+                              ),
+                              image: DecorationImage(
+                                image: NetworkImage(user.profileImage),
+                                fit: BoxFit.cover,
+                                colorFilter: isSelected
+                                    ? const ColorFilter.mode(
+                                        Colors.black, BlendMode.dstIn)
+                                    : null,
+                              ),
+                            ),
+                          )
+                        else
+                          Icon(
+                            item['icon'] as IconData,
+                            color: isSelected
+                                ? Colors.black
+                                : Colors.white.withOpacity(0.2),
+                            size: 24,
+                          ),
                         const SizedBox(height: 8),
                         Text(
                           item['label'] as String,
-                          style: GoogleFonts.spaceGrotesk(
+                          style: AppLocalization.digitalFont(
+                            context,
                             color: isSelected
                                 ? Colors.black
                                 : Colors.white.withOpacity(0.3),

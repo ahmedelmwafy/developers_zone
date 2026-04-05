@@ -1,0 +1,132 @@
+import 'package:flutter/material.dart';
+
+class PostMediaWidget extends StatefulWidget {
+  final List<String> images;
+  final double height;
+  final double borderRadius;
+
+  const PostMediaWidget({
+    required this.images,
+    this.height = 250,
+    this.borderRadius = 16,
+    super.key,
+  });
+
+  @override
+  State<PostMediaWidget> createState() => _PostMediaWidgetState();
+}
+
+class _PostMediaWidgetState extends State<PostMediaWidget> {
+  final PageController _pageController = PageController();
+  int _currentIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.images.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        Stack(
+          alignment: Alignment.bottomCenter,
+          children: [
+            SizedBox(
+              height: widget.height,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(widget.borderRadius),
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.images.length,
+                  onPageChanged: (index) {
+                    setState(() {
+                      _currentIndex = index;
+                    });
+                  },
+                  itemBuilder: (context, index) {
+                    return Image.network(
+                      widget.images[index],
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      loadingBuilder: (context, child, progress) {
+                        if (progress == null) return child;
+                        return Container(
+                          color: Colors.white.withOpacity(0.02),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF00E5FF),
+                              strokeWidth: 2,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.red.withOpacity(0.1),
+                          child: const Icon(Icons.error_outline, color: Colors.red),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ),
+            if (widget.images.length > 1)
+              Positioned(
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(
+                      widget.images.length,
+                      (index) => Container(
+                        width: 6,
+                        height: 6,
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _currentIndex == index
+                              ? const Color(0xFF00E5FF)
+                              : Colors.white24,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.images.length > 1)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Text(
+                    '${_currentIndex + 1}/${widget.images.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
