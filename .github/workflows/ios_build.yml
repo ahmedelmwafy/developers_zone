@@ -1,0 +1,61 @@
+name: "Build iOS IPA"
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & Release IPA
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.4" # Latest stable as of now, or leave empty for latest
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: ios/Pods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pods-
+
+      - name: Install Pods
+        run: |
+          cd ios
+          pod install
+          cd ..
+
+      - name: Import Apple Certificate
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.P12_BASE64 }}
+          p12-password: ${{ secrets.P12_PASSWORD }}
+
+      - name: Install Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.PROVISIONING_PROFILE_BASE64 }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+      - name: Build IPA
+        run: |
+          flutter build ipa --release \
+            --export-options-plist=ios/ExportOptions.plist
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ipa
+          path: build/ios/ipa/*.ipa
