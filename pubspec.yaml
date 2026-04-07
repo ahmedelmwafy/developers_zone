@@ -1,10 +1,10 @@
 name: developers_zone
 description: A social and communication platform for developers.
-publish_to: 'none'
-version: 1.0.0+1
+publish_to: "none"
+version: 1.0.0+2
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: ">=3.0.0 <4.0.0"
 
 dependencies:
   flutter:
@@ -13,12 +13,12 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.5
   flutter_markdown: ^0.7.2
-  
+
   state_notifier: ^1.0.0
   provider: ^6.0.5
   shimmer: ^3.0.0
   fl_chart: ^0.70.0
-  
+
   # Firebase
   firebase_core: ^4.6.0
   firebase_auth: ^6.3.0
@@ -26,19 +26,19 @@ dependencies:
   firebase_messaging: ^16.1.3
   firebase_analytics: ^12.2.0
   fluttertoast: ^9.0.0
-  
+
   # Networking & Images
   http: ^1.1.0
   googleapis_auth: ^1.4.1
   cached_network_image: ^3.3.0
   image_picker: ^1.0.4
-  
+
   # Integration
   google_sign_in: ^7.2.0
   sign_in_with_apple: ^7.0.1
   google_mobile_ads: ^7.0.0
   url_launcher: ^6.2.1
-  
+
   # Utils
   intl: ^0.20.2
   timeago: ^3.6.1
@@ -48,7 +48,7 @@ dependencies:
   uuid: ^4.2.1
   shared_preferences: ^2.2.2
   google_fonts: ^6.2.1
-  
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
