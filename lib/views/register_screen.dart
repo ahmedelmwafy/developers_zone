@@ -81,6 +81,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  void _signInWithApple() async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    try {
+      await auth.signInWithApple();
+      _navigate(auth);
+    } catch (e) {
+      if (mounted) {
+        AppWidgets.showSnackBar(context, e.toString(),
+            type: SnackBarType.error);
+      }
+    }
+  }
+
   void _signInWithGoogle() async {
     final auth = Provider.of<AuthController>(context, listen: false);
     try {
@@ -284,6 +297,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           icon: FontAwesomeIcons.github,
                           label: locale.translate('GITHUB'),
                           onPressed: _signInWithGitHub,
+                        )),
+                        const SizedBox(width: 12),
+                        Expanded(
+                            child: _SocialButton(
+                          icon: FontAwesomeIcons.apple,
+                          label: locale.translate('APPLE'),
+                          onPressed: _signInWithApple,
                         )),
                       ],
                     ),

@@ -158,6 +158,34 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> signInWithApple() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final credential = await _authService.signInWithApple();
+      if (credential != null && credential.user != null) {
+        final existingUser = await _firestoreService.getUser(credential.user!.uid);
+        if (existingUser == null) {
+          final newUser = UserModel(
+            uid: credential.user!.uid,
+            name: credential.user!.displayName ?? 'Developer',
+            email: credential.user!.email ?? '',
+            profileImage: credential.user!.photoURL ?? '',
+            createdAt: DateTime.now(),
+          );
+          await _firestoreService.createUser(newUser);
+          _currentUser = newUser;
+        } else {
+          _currentUser = existingUser;
+        }
+        updateFCMToken();
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     _currentUser = null;

@@ -78,6 +78,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
+  void _signInWithApple() async {
+    final auth = Provider.of<AuthController>(context, listen: false);
+    try {
+      await auth.signInWithApple();
+      _navigate(auth);
+    } catch (e) {
+      if (mounted) {
+        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthController>(context);
@@ -326,8 +338,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               label: locale.translate('GITHUB'),
                               onPressed: _signInWithGitHub,
                             )),
+                            const SizedBox(width: 12),
+                            Expanded(child: _SocialButton(
+                              icon: FontAwesomeIcons.apple,
+                              label: locale.translate('APPLE'),
+                              onPressed: _signInWithApple,
+                            )),
                           ],
                         ),
+                        
                         
                         const SizedBox(height: 32),
                         
