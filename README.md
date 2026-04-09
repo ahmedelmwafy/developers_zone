@@ -65,6 +65,27 @@ Developers Zone is a premium, high-performance social networking platform design
 
 ---
 
+## 🛡️ Child Safety Standards (CSAE Policy)
+
+Developers Zone is committed to providing a safe environment. We maintain a zero-tolerance policy against Child Sexual Abuse and Exploitation (CSAE). All nodes in our network are subject to our externally published standards.
+
+### 🔗 Safety Standards URL
+Provide a link to your app's externally published standards against child sexual abuse and exploitation (CSAE):
+**[https://developerszone.app/safety/csae-standards](https://developerszone.app/safety/csae-standards)**
+*(Link is active, publicly available, and not editable. Not a PDF.)*
+
+### 📧 Designated Point of Contact
+The designated point of contact is ready and able to speak about our app's child sexual abuse material (CSAM) prevention practices and compliance:
+- **Contact Team**: Developers Zone Safety Compliance
+- **Email**: [safety@developerszone.app](mailto:safety@developerszone.app)
+- **Role**: Designated CSAM Prevention Officer
+
+### 🚨 Reporting Protocol
+Users can instantly flag content for admin review via the **'Report Anomaly'** feature within the platform profile manifest.
+
+
+---
+
 ## 🛠️ Getting Started
 
 1. **Clone the repository**
