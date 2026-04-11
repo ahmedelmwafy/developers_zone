@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import '../widgets/app_cached_image.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/chat_controller.dart';
 import '../models/chat_model.dart';
@@ -29,14 +30,26 @@ class ChatDetailScreen extends StatefulWidget {
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  int _currentLimit = 50;
   UserModel? _otherUser;
-  bool _isUploading = false;
   String? _editingMessageId;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
     _loadOtherUser();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (mounted) {
+        setState(() {
+          _currentLimit += 50;
+        });
+      }
+    }
   }
 
   Future<void> _loadOtherUser() async {
@@ -131,12 +144,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           children: [
             Expanded(
               child: StreamBuilder<List<MessageModel>>(
-                stream: chatController.getMessages(widget.chatId),
+                stream: chatController.getMessages(widget.chatId, limit: _currentLimit),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
+                  if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                     return ShimmerComponent.listShimmer(count: 5);
                   }
-                  final messages = snapshot.data!;
+                  final messages = snapshot.data ?? [];
                   return ListView.builder(
                     controller: _scrollController,
                     reverse: true,
@@ -189,17 +202,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                         color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
-                    image: _otherUser?.profileImage.isNotEmpty == true
-                        ? DecorationImage(
-                            image: NetworkImage(_otherUser!.profileImage),
-                            fit: BoxFit.cover)
-                        : null,
-                    color: Colors.white.withValues(alpha: 0.05),
                   ),
-                  child: _otherUser?.profileImage.isEmpty == true
-                      ? const Icon(Icons.person,
-                          color: Colors.white24, size: 18)
-                      : null,
+                  child: AppCachedImage(
+                    imageUrl: _otherUser?.profileImage ?? '',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 8,
+                    errorWidget: const Icon(Icons.person,
+                        color: Colors.white24, size: 18),
+                  ),
                 ),
                 Positioned(
                   bottom: -1,
@@ -310,8 +321,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                               tag: 'chat_img_${message.id}',
                               child: ClipRRect(
                                   borderRadius: BorderRadius.circular(8),
-                                  child: Image.network(message.image!,
-                                      fit: BoxFit.cover)),
+                                  child: AppCachedImage(
+                                    imageUrl: message.image!,
+                                    fit: BoxFit.cover,
+                                  )),
                             ),
                           ),
                           if (message.text.isNotEmpty)
@@ -376,19 +389,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Widget _buildAvatar(String? image) {
-    return Container(
+    return AppCachedImage(
+      imageUrl: image ?? '',
       width: 32,
       height: 32,
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        shape: BoxShape.circle,
-        image: image?.isNotEmpty == true
-            ? DecorationImage(image: NetworkImage(image!), fit: BoxFit.cover)
-            : null,
-      ),
-      child: image?.isEmpty == true
-          ? const Icon(Icons.person, color: Colors.white24, size: 16)
-          : null,
+      isCircle: true,
+      errorWidget: const Icon(Icons.person, color: Colors.white24, size: 16),
     );
   }
 

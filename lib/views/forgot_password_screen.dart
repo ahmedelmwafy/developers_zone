@@ -33,12 +33,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       await auth.sendPasswordReset(_emailController.text.trim());
       if (mounted) {
-        AppWidgets.showSnackBar(context, locale.translate('SUCCESS_TOKEN_SENT'), type: SnackBarType.success);
+        AppWidgets.showToast(context, locale.translate('SUCCESS_TOKEN_SENT'), type: SnackBarType.success);
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     }
   }

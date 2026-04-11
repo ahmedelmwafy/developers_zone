@@ -1,39 +1,36 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../providers/app_provider.dart';
 
 class PrivacyPolicyScreen extends StatelessWidget {
   const PrivacyPolicyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return _LegalScreen(
-      title: 'Privacy Policy',
+      title: locale.translate('pp_title'),
       icon: Icons.privacy_tip_outlined,
-      sections: const [
+      sections: [
         _LegalSection(
-          title: 'Data We Collect',
-          body:
-              'We collect minimal personal information needed to provide our services, including your name, email address, and profile content you choose to share within Developers Zone.',
+          title: locale.translate('pp_sec1_title'),
+          body: locale.translate('pp_sec1_body'),
         ),
         _LegalSection(
-          title: 'How We Use Your Data',
-          body:
-              'Your information is used exclusively to facilitate communication and social interaction within the app. We do not sell, rent, or share your personal data with third parties for marketing purposes.',
+          title: locale.translate('pp_sec2_title'),
+          body: locale.translate('pp_sec2_body'),
         ),
         _LegalSection(
-          title: 'Data Security',
-          body:
-              'We use Firebase—a Google-backed infrastructure—to store and protect your data. All communications are encrypted in transit using industry-standard TLS protocols.',
+          title: locale.translate('pp_sec3_title'),
+          body: locale.translate('pp_sec3_body'),
         ),
         _LegalSection(
-          title: 'Your Rights',
-          body:
-              'You have the right to access, update, or delete your account and its associated data at any time from within the app settings. Contact us if you need further assistance.',
+          title: locale.translate('pp_sec4_title'),
+          body: locale.translate('pp_sec4_body'),
         ),
         _LegalSection(
-          title: 'Contact',
-          body:
-              'If you have questions about this Privacy Policy, please reach out through the app or at ahmedelmwafy@gmail.com.',
+          title: locale.translate('pp_sec5_title'),
+          body: locale.translate('pp_sec5_body'),
         ),
       ],
     );
@@ -45,34 +42,30 @@ class TermsConditionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final locale = AppLocalization.of(context)!;
     return _LegalScreen(
-      title: 'Terms & Conditions',
+      title: locale.translate('tc_title'),
       icon: Icons.gavel_outlined,
-      sections: const [
+      sections: [
         _LegalSection(
-          title: 'Community Standards',
-          body:
-              'By using Developers Zone, you agree to treat all community members with respect. Harassment, bullying, discrimination, spam, or any form of abusive behavior is strictly prohibited.',
+          title: locale.translate('tc_sec1_title'),
+          body: locale.translate('tc_sec1_body'),
         ),
         _LegalSection(
-          title: 'Content Responsibility',
-          body:
-              'You are solely responsible for the content you post. Do not share illegal content, copyrighted material without permission, or content that violates the rights of others.',
+          title: locale.translate('tc_sec2_title'),
+          body: locale.translate('tc_sec2_body'),
         ),
         _LegalSection(
-          title: 'Account Suspension',
-          body:
-              'Violations of these terms will result in warnings, temporary suspension, or permanent banning of your account, at the sole discretion of our admin team.',
+          title: locale.translate('tc_sec3_title'),
+          body: locale.translate('tc_sec3_body'),
         ),
         _LegalSection(
-          title: 'Service Availability',
-          body:
-              'We strive to keep Developers Zone available at all times, but we do not guarantee uninterrupted access. We reserve the right to modify or discontinue features without prior notice.',
+          title: locale.translate('tc_sec4_title'),
+          body: locale.translate('tc_sec4_body'),
         ),
         _LegalSection(
-          title: 'Changes to Terms',
-          body:
-              'These terms may be updated periodically. Continued use of the app after changes are posted constitutes your acceptance of the new terms.',
+          title: locale.translate('tc_sec5_title'),
+          body: locale.translate('tc_sec5_body'),
         ),
       ],
     );

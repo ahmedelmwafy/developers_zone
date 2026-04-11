@@ -8,8 +8,38 @@ import 'profile_page.dart';
 import 'chat_detail_screen.dart';
 import 'components/shimmer_loading.dart';
 
-class NotificationsPage extends StatelessWidget {
+class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
+
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  final ScrollController _scrollController = ScrollController();
+  int _currentLimit = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (mounted) {
+        setState(() {
+          _currentLimit += 20;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,9 +141,9 @@ class NotificationsPage extends StatelessWidget {
                   const SizedBox(height: 48),
                   Expanded(
                     child: StreamBuilder<List<AppNotificationModel>>(
-                      stream: firestore.streamNotifications(user.uid),
+                      stream: firestore.streamNotifications(user.uid, limit: _currentLimit),
                       builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
+                        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                           return ListView.builder(
                             physics: const NeverScrollableScrollPhysics(),
                             shrinkWrap: true,
@@ -139,6 +169,7 @@ class NotificationsPage extends StatelessWidget {
 
                         final notifications = snapshot.data!;
                         return ListView.builder(
+                          controller: _scrollController,
                           physics: const BouncingScrollPhysics(),
                           itemCount: notifications.length,
                           itemBuilder: (context, index) {

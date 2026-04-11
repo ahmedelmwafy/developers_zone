@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
@@ -10,6 +11,7 @@ import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
 import '../widgets/shimmer_component.dart';
 import '../widgets/page_entry_animation.dart';
+import '../widgets/app_cached_image.dart';
 
 class ChatListPage extends StatefulWidget {
   const ChatListPage({super.key});
@@ -20,6 +22,68 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage> {
   final _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  int _currentLimit = 20;
+
+  // Search State
+  String _searchQuery = '';
+  List<String> _matchingUserIds = [];
+  bool _isSearchingUsers = false;
+  Timer? _debounce; // Using Timer for debounce
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      if (mounted) {
+        setState(() {
+          _searchQuery = query.toLowerCase();
+          if (query.isEmpty) {
+            _matchingUserIds = [];
+            _isSearchingUsers = false;
+          }
+        });
+
+        if (query.isNotEmpty) {
+          setState(() => _isSearchingUsers = true);
+          try {
+            final users = await FirestoreService().searchUsers(query);
+            if (mounted) {
+              setState(() {
+                _matchingUserIds = users.map((u) => u.uid).toList();
+                _isSearchingUsers = false;
+              });
+            }
+          } catch (e) {
+            if (mounted) setState(() => _isSearchingUsers = false);
+          }
+        }
+      }
+    });
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (mounted) {
+        setState(() {
+          _currentLimit += 20;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +95,6 @@ class _ChatListPageState extends State<ChatListPage> {
     }
 
     final chatController = Provider.of<ChatController>(context);
-    final appProps = Provider.of<AppProvider>(context, listen: false);
 
     return Scaffold(
       backgroundColor: AppColors.surface,
@@ -49,6 +112,7 @@ class _ChatListPageState extends State<ChatListPage> {
               ),
               child: TextField(
                 controller: _searchController,
+                onChanged: _onSearchChanged,
                 style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 15),
                 decoration: InputDecoration(
                   hintText: locale.translate('search_conversations'),
@@ -56,6 +120,15 @@ class _ChatListPageState extends State<ChatListPage> {
                       AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.15)),
                   prefixIcon: Icon(Icons.search_rounded,
                       color: Colors.white.withValues(alpha: 0.3), size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty 
+                    ? IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white30, size: 16),
+                        onPressed: () {
+                          _searchController.clear();
+                          _onSearchChanged('');
+                        },
+                      )
+                    : null,
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 20),
                 ),
@@ -68,18 +141,40 @@ class _ChatListPageState extends State<ChatListPage> {
           // Chat List
           Expanded(
             child: StreamBuilder<List<ChatModel>>(
-              stream: chatController.getUserChats(currentUser.uid),
+              stream: chatController.getUserChats(currentUser.uid, limit: _currentLimit),
               builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
                   return ShimmerComponent.userTileShimmer(count: 6);
                 }
 
-                final chats = snapshot.data ?? [];
+                final allChats = snapshot.data ?? [];
+                
+                // Client-side filtering
+                final chats = allChats.where((chat) {
+                  if (_searchQuery.isEmpty) return true;
+                  
+                  // Check message content
+                  bool messageMatch = chat.lastMessage.toLowerCase().contains(_searchQuery);
+                  
+                  // Check matching user IDs (from Firestore search)
+                  final otherUserId = chat.users.firstWhere(
+                    (id) => id != currentUser.uid,
+                    orElse: () => chat.users.first,
+                  );
+                  bool userMatch = _matchingUserIds.contains(otherUserId);
+                  
+                  return messageMatch || userMatch;
+                }).toList();
+
                 if (chats.isEmpty) {
-                  return _buildEmptyState(locale);
+                  if (_isSearchingUsers) {
+                    return ShimmerComponent.userTileShimmer(count: 3);
+                  }
+                  return _buildEmptyState(locale, isSearch: _searchQuery.isNotEmpty);
                 }
 
                 return ListView.builder(
+                  controller: _scrollController,
                   padding: const EdgeInsets.only(top: 8, bottom: 80),
                   itemCount: chats.length,
                   itemBuilder: (context, index) {
@@ -104,48 +199,19 @@ class _ChatListPageState extends State<ChatListPage> {
           ),
         ],
       ),
-    ),
-    floatingActionButton: Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00E5FF), Color(0xFF2979FF)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => appProps.setTabIndex(1),
-          borderRadius: BorderRadius.circular(16),
-          child: const Icon(Icons.edit_note_rounded,
-              color: Colors.white, size: 32),
-        ),
-      ),
-    ),
-  );
-}
+    ));
+  }
 
-  Widget _buildEmptyState(AppLocalization locale) {
+  Widget _buildEmptyState(AppLocalization locale, {bool isSearch = false}) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.chat_bubble_outline_rounded,
+          Icon(isSearch ? Icons.search_off_rounded : Icons.chat_bubble_outline_rounded,
               size: 64, color: Colors.white.withValues(alpha: 0.05)),
           const SizedBox(height: 16),
           Text(
-            locale.translate('no_chats_yet'),
+            isSearch ? locale.translate('no_results_found') : locale.translate('no_chats_yet'),
             style: AppLocalization.digitalFont(context, 
                 color: AppColors.onSurface,
                 fontSize: 18,
@@ -210,17 +276,18 @@ class _ChatTileState extends State<_ChatTile> {
                       height: 60,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        color: AppColors.surfaceContainerHigh,
-                        image: (user?.profileImage.isNotEmpty == true)
-                            ? DecorationImage(
-                                image: NetworkImage(user!.profileImage),
-                                fit: BoxFit.cover)
-                            : null,
+                        border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.1)),
                       ),
-                      child: (user?.profileImage.isNotEmpty != true)
-                          ? Icon(Icons.person,
-                              color: Colors.white.withValues(alpha: 0.2), size: 30)
-                          : null,
+                      child: AppCachedImage(
+                        imageUrl: user?.profileImage ?? '',
+                        width: 60,
+                        height: 60,
+                        borderRadius: 12,
+                        errorWidget: Icon(Icons.person,
+                            color: Colors.white.withValues(alpha: 0.2),
+                            size: 30),
+                      ),
                     ),
                     Positioned(
                       right: 0,

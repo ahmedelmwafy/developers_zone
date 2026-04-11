@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../views/components/zoomable_image_page.dart';
-import '../widgets/shimmer_component.dart';
+import '../widgets/app_cached_image.dart';
 
 class PostMediaWidget extends StatefulWidget {
   final List<String> images;
@@ -68,24 +68,11 @@ class _PostMediaWidgetState extends State<PostMediaWidget> {
                       },
                       child: Hero(
                         tag: heroTag,
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
+                        child: AppCachedImage(
+                          imageUrl: imageUrl,
                           width: double.infinity,
-                          loadingBuilder: (context, child, progress) {
-                            if (progress == null) return child;
-                            return ShimmerComponent(
-                              width: double.infinity,
-                              height: widget.height,
-                              borderRadius: widget.borderRadius,
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.red.withValues(alpha: 0.1),
-                              child: const Icon(Icons.error_outline, color: Colors.red),
-                            );
-                          },
+                          height: widget.height,
+                          borderRadius: widget.borderRadius,
                         ),
                       ),
                     );

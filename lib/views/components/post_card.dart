@@ -12,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../widgets/post_media_widget.dart';
 import '../../widgets/terminal_dialog.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/app_cached_image.dart';
 import '../login_screen.dart';
 
 class PostCard extends StatelessWidget {
@@ -172,19 +173,18 @@ class PostCard extends StatelessWidget {
               border: Border.all(
                   color: const Color(0xFF00E5FF).withValues(alpha: 0.4)),
             ),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: const Color(0xFF0D0D0D),
-              backgroundImage: post.authorProfileImage.isNotEmpty
-                  ? NetworkImage(post.authorProfileImage)
-                  : null,
-              child: post.authorProfileImage.isEmpty
-                  ? Text(post.authorInitials,
-                      style: AppLocalization.digitalFont(context,
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800))
-                  : null,
+            child: AppCachedImage(
+              imageUrl: post.authorProfileImage,
+              width: 36,
+              height: 36,
+              isCircle: true,
+              errorWidget: Center(
+                child: Text(post.authorInitials,
+                    style: AppLocalization.digitalFont(context,
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800)),
+              ),
             ),
           ),
         ),
@@ -204,7 +204,7 @@ class PostCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                'COMMITTED ${_timeAgo(post.createdAt, locale).toUpperCase()} • ${post.authorPosition.toUpperCase()}',
+                '${locale.translate('committed_caps').toUpperCase()} ${_timeAgo(post.createdAt, locale).toUpperCase()} • ${post.authorPosition.toUpperCase()}',
                 style: AppLocalization.digitalFont(
                   context,
                   color: Colors.white.withValues(alpha: 0.35),
@@ -270,9 +270,10 @@ class PostCard extends StatelessWidget {
                     currentUser.uid,
                     currentUser.name,
                     currentUser.profileImage,
-                    currentUser.position);
+                    currentUser.position,
+                    locale.translate('REPOSTED_MANIFEST_TEXT'));
                 if (context.mounted) {
-                  AppWidgets.showSnackBar(
+                  AppWidgets.showToast(
                       context, locale.translate('repost_success'),
                       type: SnackBarType.success);
                 }
@@ -293,7 +294,7 @@ class PostCard extends StatelessWidget {
                 Navigator.pop(context);
                 await authController.blockUser(post.authorId);
                 if (context.mounted) {
-                  AppWidgets.showSnackBar(
+                  AppWidgets.showToast(
                       context, locale.translate('block_success'),
                       type: SnackBarType.error);
                 }
@@ -301,7 +302,7 @@ class PostCard extends StatelessWidget {
             ),
           );
         } else if (val == 'report' && !isMe) {
-          AppWidgets.showSnackBar(context, locale.translate('report_success'),
+          AppWidgets.showToast(context, locale.translate('report_success'),
               type: SnackBarType.warning);
         } else if (val == 'delete' && isMe) {
           showDialog(
@@ -317,7 +318,7 @@ class PostCard extends StatelessWidget {
                 Navigator.pop(context);
                 await postController.deletePost(post.id);
                 if (context.mounted) {
-                  AppWidgets.showSnackBar(
+                  AppWidgets.showToast(
                       context, locale.translate('post_purged'),
                       type: SnackBarType.error);
                 }
@@ -442,7 +443,7 @@ class PostCard extends StatelessWidget {
             if (currentUser != null) {
               postController.togglePostLike(post.id, currentUser.uid, !isLiked);
               if (!isLiked) {
-                AppWidgets.showSnackBar(
+                AppWidgets.showToast(
                     context, locale.translate('action_synced'),
                     type: SnackBarType.success);
               }
@@ -488,9 +489,10 @@ class PostCard extends StatelessWidget {
                       currentUser.name,
                       currentUser.profileImage,
                       currentUser.position,
+                      locale.translate('REPOSTED_MANIFEST_TEXT'),
                     );
                     if (context.mounted) {
-                      AppWidgets.showSnackBar(
+                      AppWidgets.showToast(
                           context, locale.translate('repost_success'),
                           type: SnackBarType.success);
                     }
@@ -514,7 +516,7 @@ class PostCard extends StatelessWidget {
                   currentUser.uid, post.id, !isSaved);
               await authController.refreshUser();
               if (context.mounted) {
-                AppWidgets.showSnackBar(
+                AppWidgets.showToast(
                     context, locale.translate('action_synced'),
                     type: SnackBarType.success);
               }
@@ -582,9 +584,9 @@ class PostCard extends StatelessWidget {
   String _timeAgo(DateTime dt, AppLocalization locale) {
     final diff = DateTime.now().difference(dt);
     if (diff.inDays >= 7) return '${dt.day}/${dt.month}/${dt.year}';
-    if (diff.inDays > 0) return '${diff.inDays}D AGO';
-    if (diff.inHours > 0) return '${diff.inHours}H AGO';
-    if (diff.inMinutes > 0) return '${diff.inMinutes}M AGO';
-    return 'JUST NOW';
+    if (diff.inDays > 0) return '${diff.inDays}${locale.translate('d_ago')}';
+    if (diff.inHours > 0) return '${diff.inHours}${locale.translate('h_ago')}';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}${locale.translate('m_ago')}';
+    return locale.translate('just_now').toUpperCase();
   }
 }

@@ -8,6 +8,8 @@ import '../controllers/post_controller.dart';
 import '../models/post_model.dart';
 import '../services/imgbb_service.dart';
 import '../providers/app_provider.dart';
+import '../widgets/app_cached_image.dart';
+import '../theme/app_theme.dart';
 
 class CreatePostScreen extends StatefulWidget {
   final PostModel? postToEdit;
@@ -34,10 +36,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       final user =
           Provider.of<AuthController>(context, listen: false).currentUser;
       if (user != null && !user.canPost) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppLocalization.of(context)!
-                  .translate('posting_restricted'))),
+        AppWidgets.showToast(
+          context,
+          AppLocalization.of(context)!.translate('posting_restricted'),
+          type: SnackBarType.error,
         );
         Navigator.pop(context);
       }
@@ -123,6 +125,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         authorProfileImage: user.profileImage,
         authorPosition: user.position,
         isAuthorVerified: user.isVerified,
+        isAuthorApproved: user.isApproved,
+        authorProfileComplete: Provider.of<AuthController>(context, listen: false).isProfileComplete,
         text: finalContent,
         images: imageUrls,
         tags: _tags,
@@ -132,12 +136,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     }
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text(AppLocalization.of(context)!.translate('action_synced')),
-          backgroundColor: const Color(0xFF00E5FF).withOpacity(0.8),
-        ),
+      AppWidgets.showToast(
+        context,
+        AppLocalization.of(context)!.translate('action_synced'),
+        type: SnackBarType.success,
       );
       Navigator.pop(context);
     }
@@ -483,13 +485,20 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         margin: const EdgeInsets.only(right: 12),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),
-                          image: DecorationImage(
-                            image: img is String
-                                ? NetworkImage(img)
-                                : FileImage(img) as ImageProvider,
-                            fit: BoxFit.cover,
-                          ),
                         ),
+                        child: img is String
+                            ? AppCachedImage(
+                                imageUrl: img,
+                                width: 240,
+                                height: 180,
+                                borderRadius: 16,
+                                fit: BoxFit.cover,
+                              )
+                            : ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.file(img as File,
+                                    width: 240, height: 180, fit: BoxFit.cover),
+                              ),
                       ),
                       Positioned(
                         top: 8,

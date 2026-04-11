@@ -12,10 +12,12 @@ class PageEntryAnimation extends StatelessWidget {
     this.curve = Curves.easeOutQuart,
   });
 
+  static final _tween = Tween<double>(begin: 0.0, end: 1.0);
+
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
+      tween: _tween,
       duration: duration,
       curve: curve,
       builder: (context, value, child) {

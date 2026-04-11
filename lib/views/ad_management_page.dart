@@ -7,6 +7,7 @@ import '../controllers/admin_controller.dart';
 import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/imgbb_service.dart';
+import '../widgets/app_cached_image.dart';
 
 class AdManagementPage extends StatelessWidget {
   const AdManagementPage({super.key});
@@ -325,8 +326,8 @@ class AdManagementPage extends StatelessWidget {
                             }
                           }
                           if (finalUrl.isEmpty) {
-                            AppWidgets.showSnackBar(
-                                context, locale.translate('fill_all_fields'));
+                            AppWidgets.showToast(
+                                context, locale.translate('fill_all_fields'), type: SnackBarType.warning);
                             return;
                           }
                           adminController.addAd(AdModel(
@@ -375,10 +376,12 @@ class _AdCard extends StatelessWidget {
             child: SizedBox(
               width: 90,
               height: 80,
-              child: Image.network(
-                ad.imageUrl,
+              child: AppCachedImage(
+                imageUrl: ad.imageUrl,
+                width: 90,
+                height: 80,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorWidget: Container(
                   color: AppColors.cardLight,
                   child: const Icon(Icons.image_not_supported_outlined,
                       color: AppColors.textMuted, size: 28),

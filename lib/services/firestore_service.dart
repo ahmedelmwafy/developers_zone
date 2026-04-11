@@ -179,12 +179,13 @@ class FirestoreService {
         .update({'commentCount': FieldValue.increment(-1)});
   }
 
-  Stream<List<CommentModel>> streamComments(String postId) {
+  Stream<List<CommentModel>> streamComments(String postId, {int limit = 20}) {
     return _db
         .collection('posts')
         .doc(postId)
         .collection('comments')
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => CommentModel.fromMap(doc.data(), doc.id))
@@ -192,9 +193,9 @@ class FirestoreService {
   }
 
   Stream<List<PostModel>> streamGlobalFeed(
-      {String? positionFilter, List<String> blockedUsers = const []}) {
+      {String? positionFilter, List<String> blockedUsers = const [], int limit = 20}) {
     Query query =
-        _db.collection('posts').orderBy('createdAt', descending: true);
+        _db.collection('posts').orderBy('createdAt', descending: true).limit(limit);
     if (positionFilter != null && positionFilter.isNotEmpty) {
       query = query.where('authorPosition', isEqualTo: positionFilter);
     }
@@ -218,10 +219,11 @@ class FirestoreService {
   }
 
   Stream<List<PostModel>> streamFollowingFeed(
-      {required String userId, required List<String> followingIds}) {
+      {required String userId, required List<String> followingIds, int limit = 20}) {
     return _db
         .collection('posts')
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
       final posts = snapshot.docs
@@ -233,10 +235,11 @@ class FirestoreService {
     });
   }
 
-  Stream<List<PostModel>> streamUserPosts(String uid) {
+  Stream<List<PostModel>> streamUserPosts(String uid, {int limit = 20}) {
     return _db
         .collection('posts')
         .where('authorId', isEqualTo: uid)
+        .limit(limit)
         // No orderBy to avoid composite index requirement — sorted client-side.
         .snapshots()
         .map((snapshot) {
@@ -322,24 +325,24 @@ class FirestoreService {
     });
   }
 
-  Stream<List<MessageModel>> streamMessages(String chatId) {
+  Stream<List<MessageModel>> streamMessages(String chatId, {int limit = 50}) {
     return _db
         .collection('chats')
         .doc(chatId)
         .collection('messages')
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => MessageModel.fromMap(doc.data(), doc.id))
             .toList());
   }
 
-  Stream<List<ChatModel>> streamUserChats(String uid) {
+  Stream<List<ChatModel>> streamUserChats(String uid, {int limit = 20}) {
     return _db
         .collection('chats')
         .where('users', arrayContains: uid)
-        // ⚠️ No orderBy here — avoids composite index requirement.
-        // Sorting is done client-side below.
+        .limit(limit)
         .snapshots()
         .map((snapshot) {
       final chats = snapshot.docs
@@ -427,8 +430,8 @@ class FirestoreService {
   }
 
   // ADMIN
-  Stream<List<UserModel>> streamAllUsers() {
-    return _db.collection('users').snapshots().map((snapshot) =>
+  Stream<List<UserModel>> streamAllUsers({int limit = 20}) {
+    return _db.collection('users').limit(limit).snapshots().map((snapshot) =>
         snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
   }
 
@@ -459,12 +462,13 @@ class FirestoreService {
         .add(notification.toMap());
   }
 
-  Stream<List<AppNotificationModel>> streamNotifications(String uid) {
+  Stream<List<AppNotificationModel>> streamNotifications(String uid, {int limit = 20}) {
     return _db
         .collection('users')
         .doc(uid)
         .collection('notifications')
         .orderBy('createdAt', descending: true)
+        .limit(limit)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => AppNotificationModel.fromMap(doc.data(), doc.id))
@@ -511,8 +515,8 @@ class FirestoreService {
     }
   }
 
-  Future<List<UserModel>> searchUsers(String query) async {
-    final snapshot = await _db.collection('users').get();
+  Future<List<UserModel>> searchUsers(String query, {int limit = 50}) async {
+    final snapshot = await _db.collection('users').limit(limit * 2).get(); // Fetch double for filtering margin
     final users =
         snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
     if (query.isEmpty) return [];
@@ -706,6 +710,16 @@ class FirestoreService {
           body: body,
           type: NotificationType.system,
         );
+      }
+    }
+  }
+
+  Future<void> autoFollowFeaturedUsers(String uid) async {
+    final featured = await _db.collection('users').where('isFeatured', isEqualTo: true).get();
+    for (var doc in featured.docs) {
+      final targetUid = doc.id;
+      if (targetUid != uid) {
+        await followUser(uid, targetUid);
       }
     }
   }

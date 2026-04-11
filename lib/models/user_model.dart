@@ -21,7 +21,9 @@ class UserModel {
   final bool isLocked;
   final bool canPost;
   final bool canComment;
+  final bool isFeatured;
   final List<String> blockedUsers;
+  final List<String> subscribedTopics;
   final List<String> followers; // uids who follow this user
   final List<String> following; // uids this user follows
   final String? fcmToken;
@@ -55,7 +57,9 @@ class UserModel {
     this.isLocked = false,
     this.canPost = true,
     this.canComment = true,
+    this.isFeatured = false,
     this.blockedUsers = const [],
+    this.subscribedTopics = const ['all', 'posts'],
     this.followers = const [],
     this.following = const [],
     this.fcmToken,
@@ -123,7 +127,9 @@ class UserModel {
       isLocked: data['isLocked'] ?? false,
       canPost: data['canPost'] ?? true,
       canComment: data['canComment'] ?? true,
+      isFeatured: data['isFeatured'] ?? false,
       blockedUsers: data['blockedUsers'] != null ? List<String>.from(data['blockedUsers']) : [],
+      subscribedTopics: data['subscribedTopics'] != null ? List<String>.from(data['subscribedTopics']) : ['all', 'posts'],
       followers: data['followers'] != null ? List<String>.from(data['followers']) : [],
       following: data['following'] != null ? List<String>.from(data['following']) : [],
       fcmToken: data['fcmToken'],
@@ -160,7 +166,9 @@ class UserModel {
       'isLocked': isLocked,
       'canPost': canPost,
       'canComment': canComment,
+      'isFeatured': isFeatured,
       'blockedUsers': blockedUsers,
+      'subscribedTopics': subscribedTopics,
       'followers': followers,
       'following': following,
       'fcmToken': fcmToken,
@@ -194,7 +202,9 @@ class UserModel {
     bool? isLocked,
     bool? canPost,
     bool? canComment,
+    bool? isFeatured,
     List<String>? blockedUsers,
+    List<String>? subscribedTopics,
     List<String>? followers,
     List<String>? following,
     String? fcmToken,
@@ -227,7 +237,9 @@ class UserModel {
       isLocked: isLocked ?? this.isLocked,
       canPost: canPost ?? this.canPost,
       canComment: canComment ?? this.canComment,
+      isFeatured: isFeatured ?? this.isFeatured,
       blockedUsers: blockedUsers ?? this.blockedUsers,
+      subscribedTopics: subscribedTopics ?? this.subscribedTopics,
       followers: followers ?? this.followers,
       following: following ?? this.following,
       fcmToken: fcmToken ?? this.fcmToken,

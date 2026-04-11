@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../services/imgbb_service.dart';
 import '../widgets/shimmer_component.dart';
 import '../widgets/page_entry_animation.dart';
+import '../widgets/app_cached_image.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -134,14 +135,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
         // Auto-update profile when image is uploaded
         await _updateProfile(silent: true);
         if (mounted) {
-          AppWidgets.showSnackBar(context, locale.translate('profile_image_uploaded'), type: SnackBarType.success);
+          AppWidgets.showToast(context, locale.translate('profile_image_uploaded'), type: SnackBarType.success);
         }
       } else {
         if (!mounted) {
           return;
         }
         setState(() => _isUploadingImage = false);
-        AppWidgets.showSnackBar(context, locale.translate('profile_image_failed'), type: SnackBarType.error);
+        AppWidgets.showToast(context, locale.translate('profile_image_failed'), type: SnackBarType.error);
       }
     }
   }
@@ -153,14 +154,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
     final user = auth.currentUser!;
 
     if (_nameController.text.trim().isEmpty) {
-      AppWidgets.showSnackBar(context, locale.translate('name_required'), type: SnackBarType.error);
+      AppWidgets.showToast(context, locale.translate('name_required'), type: SnackBarType.error);
       if (!silent) setState(() => _isLoading = false);
       return;
     }
 
     final newUsername = _usernameController.text.trim().toLowerCase();
     if (newUsername.isEmpty) {
-      AppWidgets.showSnackBar(context, locale.translate('username_required'), type: SnackBarType.error);
+      AppWidgets.showToast(context, locale.translate('username_required'), type: SnackBarType.error);
       if (!silent) setState(() => _isLoading = false);
       return;
     }
@@ -168,16 +169,38 @@ class _EditProfilePageState extends State<EditProfilePage> {
     // Check if username changed and is valid
     if (newUsername != user.username) {
       if (!RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(newUsername)) {
-        AppWidgets.showSnackBar(context, locale.translate('username_invalid'), type: SnackBarType.error);
+        AppWidgets.showToast(context, locale.translate('username_invalid'), type: SnackBarType.error);
         if (!silent) setState(() => _isLoading = false);
         return;
       }
       final available = await auth.checkUsernameAvailable(newUsername);
       if (!available) {
-        AppWidgets.showSnackBar(context, locale.translate('username_taken'), type: SnackBarType.error);
+        AppWidgets.showToast(context, locale.translate('username_taken'), type: SnackBarType.error);
         if (!silent) setState(() => _isLoading = false);
         return;
       }
+    }
+
+    // URL Validation
+    bool isValidSocial(String url) {
+      if (url.isEmpty) return true;
+      return Uri.tryParse(url)?.hasAbsolutePath ?? false;
+    }
+
+    if (!isValidSocial(_githubController.text.trim()) && _githubController.text.trim().isNotEmpty) {
+      AppWidgets.showToast(context, locale.translate('invalid_github_url'), type: SnackBarType.error);
+      if (!silent) setState(() => _isLoading = false);
+      return;
+    }
+    if (!isValidSocial(_linkedinController.text.trim()) && _linkedinController.text.trim().isNotEmpty) {
+      AppWidgets.showToast(context, locale.translate('invalid_linkedin_url'), type: SnackBarType.error);
+      if (!silent) setState(() => _isLoading = false);
+      return;
+    }
+    if (!isValidSocial(_portfolioController.text.trim()) && _portfolioController.text.trim().isNotEmpty) {
+      AppWidgets.showToast(context, locale.translate('invalid_portfolio_url'), type: SnackBarType.error);
+      if (!silent) setState(() => _isLoading = false);
+      return;
     }
 
     try {
@@ -200,12 +223,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       );
       await auth.updateProfile(updated);
       if (mounted && !silent) {
-        AppWidgets.showSnackBar(context, locale.translate('profile_sync_success'), type: SnackBarType.success);
+        AppWidgets.showToast(context, locale.translate('profile_sync_success'), type: SnackBarType.success);
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted && !silent) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     } finally {
       if (mounted && !silent) setState(() => _isLoading = false);
@@ -307,18 +330,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFF00E5FF).withValues(alpha: 0.3), width: 2),
-              image: _imageController.text.isNotEmpty
-                  ? DecorationImage(image: NetworkImage(_imageController.text), fit: BoxFit.cover)
-                  : user.profileImage.isNotEmpty
-                      ? DecorationImage(image: NetworkImage(user.profileImage), fit: BoxFit.cover)
-                      : null,
-              color: Colors.white10,
             ),
             child: _isUploadingImage 
               ? Center(child: ShimmerComponent.circleShimmer(size: 60))
-              : (_imageController.text.isEmpty && user.profileImage.isEmpty)
-                ? Icon(Icons.person_rounded, color: Colors.white.withValues(alpha: 0.1), size: 64)
-                : null,
+              : AppCachedImage(
+                  imageUrl: _imageController.text.isNotEmpty 
+                      ? _imageController.text 
+                      : user.profileImage,
+                  width: 120,
+                  height: 120,
+                  borderRadius: 24,
+                  errorWidget: Icon(Icons.person_rounded, color: Colors.white.withValues(alpha: 0.1), size: 64),
+                ),
           ),
           GestureDetector(
             onTap: _isUploadingImage ? null : _pickAndUploadImage,

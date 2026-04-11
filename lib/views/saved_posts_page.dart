@@ -68,7 +68,7 @@ class SavedPostsPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Bookmarks will appear here in your local cache.',
+            locale.translate('saved_manifests_empty_body'),
             style: AppLocalization.digitalFont(context, 
               color: Colors.white.withValues(alpha: 0.2),
               fontSize: 12,

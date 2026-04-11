@@ -64,12 +64,12 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Stream<List<MessageModel>> getMessages(String chatId) {
-    return _firestoreService.streamMessages(chatId);
+  Stream<List<MessageModel>> getMessages(String chatId, {int limit = 50}) {
+    return _firestoreService.streamMessages(chatId, limit: limit);
   }
 
-  Stream<List<ChatModel>> getUserChats(String uid) {
-    return _firestoreService.streamUserChats(uid);
+  Stream<List<ChatModel>> getUserChats(String uid, {int limit = 20}) {
+    return _firestoreService.streamUserChats(uid, limit: limit);
   }
 
   Future<void> markAsSeen(String chatId) async {

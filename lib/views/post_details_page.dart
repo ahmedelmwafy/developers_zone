@@ -16,6 +16,7 @@ import '../widgets/page_entry_animation.dart';
 import '../widgets/terminal_dialog.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
+import '../widgets/app_cached_image.dart';
 
 class PostDetailsPage extends StatefulWidget {
   final PostModel post;
@@ -163,15 +164,19 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
           _showGuestLoginPrompt(context, locale);
           return;
         }
-        if (value == 'repost')
+        if (value == 'repost') {
           _showRepostConfirm(
               context, post, currentUser, postController, locale);
-        if (value == 'block')
+        }
+        if (value == 'block') {
           _showBlockConfirm(context, post, currentUser, authController, locale);
-        if (value == 'delete')
+        }
+        if (value == 'delete') {
           _showDeleteConfirm(context, post, postController, locale);
-        if (value == 'report')
+        }
+        if (value == 'report') {
           _showReportConfirm(context, post, currentUser, locale);
+        }
       },
       itemBuilder: (context) => [
         PopupMenuItem(
@@ -249,9 +254,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         cancelLabel: locale.translate('CANCEL_ACTION'),
         onConfirm: () async {
           await postController.repostPost(post, currentUser.uid,
-              currentUser.name, currentUser.profileImage, currentUser.position);
+              currentUser.name, currentUser.profileImage, currentUser.position, '');
           if (context.mounted) {
-            AppWidgets.showSnackBar(context, locale.translate('repost_success'),
+            AppWidgets.showToast(context, locale.translate('repost_success'),
                 type: SnackBarType.success);
             Navigator.pop(context);
           }
@@ -281,7 +286,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         onConfirm: () async {
           await authController.blockUser(post.authorId);
           if (context.mounted) {
-            AppWidgets.showSnackBar(context, locale.translate('block_success'),
+            AppWidgets.showToast(context, locale.translate('block_success'),
                 type: SnackBarType.error);
             Navigator.pop(context);
             Navigator.pop(context);
@@ -305,7 +310,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         onConfirm: () async {
           await postController.deletePost(post.id);
           if (context.mounted) {
-            AppWidgets.showSnackBar(context, locale.translate('post_purged'),
+            AppWidgets.showToast(context, locale.translate('post_purged'),
                 type: SnackBarType.error);
             Navigator.pop(context);
             Navigator.pop(context);
@@ -317,7 +322,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
 
   void _showReportConfirm(BuildContext context, PostModel post,
       UserModel? currentUser, AppLocalization locale) {
-    AppWidgets.showSnackBar(context, locale.translate('report_success'),
+    AppWidgets.showToast(context, locale.translate('report_success'),
         type: SnackBarType.warning);
   }
 
@@ -384,15 +389,12 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
               border: Border.all(
                   color: const Color(0xFF00E5FF).withValues(alpha: 0.3)),
             ),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: const Color(0xFF0D0D0D),
-              backgroundImage: post.authorProfileImage.isNotEmpty
-                  ? NetworkImage(post.authorProfileImage)
-                  : null,
-              child: post.authorProfileImage.isEmpty
-                  ? const Icon(Icons.person, size: 22, color: Colors.white24)
-                  : null,
+            child: AppCachedImage(
+              imageUrl: post.authorProfileImage,
+              width: 44,
+              height: 44,
+              isCircle: true,
+              errorWidget: const Icon(Icons.person, size: 22, color: Colors.white24),
             ),
           ),
           const SizedBox(width: 16),
@@ -560,7 +562,7 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
             if (currentUser != null) {
               postController.togglePostLike(post.id, currentUser.uid, !isLiked);
               if (!isLiked) {
-                AppWidgets.showSnackBar(
+                AppWidgets.showToast(
                     context, locale.translate('action_synced'),
                     type: SnackBarType.success);
               }
@@ -620,8 +622,9 @@ class _PostDetailsPageState extends State<PostDetailsPage> {
         StreamBuilder<List<CommentModel>>(
           stream: postController.getPostComments(post.id),
           builder: (context, snapshot) {
-            if (!snapshot.hasData)
+            if (!snapshot.hasData) {
               return ShimmerComponent.listShimmer(count: 3);
+            }
             final comments = snapshot.data!;
             if (comments.isEmpty) return _buildEmptyState();
             return ListView.builder(
@@ -891,18 +894,16 @@ class _CommentNode extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: const Color(0xFF161616),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              image: comment.authorProfileImage.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(comment.authorProfileImage),
-                      fit: BoxFit.cover)
-                  : null,
             ),
-            child: comment.authorProfileImage.isEmpty
-                ? const Icon(Icons.person, color: Colors.white10, size: 20)
-                : null,
+            child: AppCachedImage(
+              imageUrl: comment.authorProfileImage,
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              errorWidget: const Icon(Icons.person, color: Colors.white10, size: 20),
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(

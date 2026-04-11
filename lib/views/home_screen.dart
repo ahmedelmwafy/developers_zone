@@ -13,6 +13,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../widgets/banner_ad_widget.dart';
 import 'settings_screen.dart';
 import '../widgets/terminal_dialog.dart';
+import '../widgets/app_cached_image.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -208,26 +209,16 @@ class _DigitalBottomNav extends StatelessWidget {
                         if (isProfile &&
                             user != null &&
                             user.profileImage.isNotEmpty)
-                          Container(
+                          AppCachedImage(
+                            imageUrl: user.profileImage,
                             width: 24,
                             height: 24,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
+                            isCircle: true,
+                            border: Border.all(
                                 color: isSelected
                                     ? Colors.black
                                     : Colors.white.withValues(alpha: 0.2),
-                                width: 1.5,
-                              ),
-                              image: DecorationImage(
-                                image: NetworkImage(user.profileImage),
-                                fit: BoxFit.cover,
-                                colorFilter: isSelected
-                                    ? const ColorFilter.mode(
-                                        Colors.black, BlendMode.dstIn)
-                                    : null,
-                              ),
-                            ),
+                                width: 1.5),
                           )
                         else
                           Icon(
@@ -302,20 +293,12 @@ class HomeAdsSection extends StatelessWidget {
                         }
                       }
                     },
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        image: DecorationImage(
-                            image: NetworkImage(ad.imageUrl),
-                            fit: BoxFit.cover),
-                        boxShadow: [
-                          BoxShadow(
-                              color: const Color(0xFF00E5FF).withValues(alpha: 0.1),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4)),
-                        ],
-                      ),
+                    child: AppCachedImage(
+                      imageUrl: ad.imageUrl,
+                      width: double.infinity,
+                      height: 90,
+                      borderRadius: 16,
+                      fit: BoxFit.cover,
                       child: Container(
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(16),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_theme.dart';
+import '../../widgets/app_cached_image.dart';
 
 class ZoomableImagePage extends StatelessWidget {
   final String imageUrl;
@@ -20,25 +20,13 @@ class ZoomableImagePage extends StatelessWidget {
               child: heroTag != null
                   ? Hero(
                       tag: heroTag!,
-                      child: Image.network(
-                        imageUrl,
+                      child: AppCachedImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.contain,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.primary,
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          );
-                        },
                       ),
                     )
-                  : Image.network(
-                      imageUrl,
+                  : AppCachedImage(
+                      imageUrl: imageUrl,
                       fit: BoxFit.contain,
                     ),
             ),

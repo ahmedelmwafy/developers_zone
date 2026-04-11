@@ -38,16 +38,16 @@ class PostController extends ChangeNotifier {
     }
   }
 
-  Stream<List<PostModel>> getGlobalFeed({String? positionFilter, List<String> blockedUsers = const []}) {
-    return _firestoreService.streamGlobalFeed(positionFilter: positionFilter, blockedUsers: blockedUsers);
+  Stream<List<PostModel>> getGlobalFeed({String? positionFilter, List<String> blockedUsers = const [], int limit = 20}) {
+    return _firestoreService.streamGlobalFeed(positionFilter: positionFilter, blockedUsers: blockedUsers, limit: limit);
   }
 
-  Stream<List<PostModel>> getFollowingFeed({required String userId, required List<String> followingIds}) {
-    return _firestoreService.streamFollowingFeed(userId: userId, followingIds: followingIds);
+  Stream<List<PostModel>> getFollowingFeed({required String userId, required List<String> followingIds, int limit = 20}) {
+    return _firestoreService.streamFollowingFeed(userId: userId, followingIds: followingIds, limit: limit);
   }
 
-  Stream<List<PostModel>> getUserPosts(String uid) {
-    return _firestoreService.streamUserPosts(uid);
+  Stream<List<PostModel>> getUserPosts(String uid, {int limit = 20}) {
+    return _firestoreService.streamUserPosts(uid, limit: limit);
   }
 
   Future<void> togglePostLike(String postId, String uid, bool isLiking) async {
@@ -97,7 +97,7 @@ class PostController extends ChangeNotifier {
     return await _firestoreService.searchPosts(query);
   }
 
-  Future<void> repostPost(PostModel originalPost, String currentUserId, String currentUserName, String currentUserProfileImage, String currentUserPosition) async {
+  Future<void> repostPost(PostModel originalPost, String currentUserId, String currentUserName, String currentUserProfileImage, String currentUserPosition, String repostLabel) async {
     _isLoading = true;
     notifyListeners();
     try {
@@ -107,7 +107,7 @@ class PostController extends ChangeNotifier {
         authorName: currentUserName,
         authorProfileImage: currentUserProfileImage,
         authorPosition: currentUserPosition,
-        text: '🔄 REPOSTED MANIFEST: \n\n${originalPost.text}',
+        text: '$repostLabel: \n\n${originalPost.text}',
         images: originalPost.images,
         createdAt: DateTime.now(),
         tags: ['REPOST', originalPost.id],

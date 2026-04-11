@@ -7,6 +7,7 @@ import '../providers/app_provider.dart';
 import 'profile_page.dart';
 import '../widgets/page_entry_animation.dart';
 import '../widgets/shimmer_component.dart';
+import '../widgets/app_cached_image.dart';
 
 enum NetworkTab { following, followers, blocked }
 
@@ -128,26 +129,18 @@ class _NetworkPageState extends State<NetworkPage> {
             letterSpacing: 1.5),
       ),
       actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 20),
+        AppCachedImage(
+          imageUrl: user.profileImage,
           width: 32,
           height: 32,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-            image: user.profileImage.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(user.profileImage), fit: BoxFit.cover)
-                : null,
-          ),
-          child: user.profileImage.isEmpty
-              ? Center(
-                  child: Text(user.initials,
-                      style: AppLocalization.digitalFont(context, 
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800)))
-              : null,
+          isCircle: true,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+          errorWidget: Center(
+              child: Text(user.initials,
+                  style: AppLocalization.digitalFont(context, 
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800))),
         ),
       ],
     );
@@ -524,20 +517,12 @@ class _NetworkPageState extends State<NetworkPage> {
       ),
       child: Row(
         children: [
-          Container(
+          AppCachedImage(
+            imageUrl: user.profileImage,
             width: 44,
             height: 44,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10),
-              image: user.profileImage.isNotEmpty
-                  ? DecorationImage(
-                      image: NetworkImage(user.profileImage), fit: BoxFit.cover)
-                  : null,
-              color: Colors.white.withValues(alpha: 0.05),
-            ),
-            child: (user.profileImage.isEmpty)
-                ? const Icon(Icons.person, color: Colors.white24)
-                : null,
+            borderRadius: 10,
+            errorWidget: const Icon(Icons.person, color: Colors.white24),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -654,19 +639,12 @@ class _NetworkPageState extends State<NetworkPage> {
   }
 
   Widget _buildAvatar(String image) {
-    return Container(
+    return AppCachedImage(
+      imageUrl: image,
       width: 54,
       height: 54,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        image: image.isNotEmpty
-            ? DecorationImage(image: NetworkImage(image), fit: BoxFit.cover)
-            : null,
-        color: Colors.white.withValues(alpha: 0.05),
-      ),
-      child: image.isEmpty
-          ? const Icon(Icons.person, color: Colors.white24, size: 24)
-          : null,
+      borderRadius: 14,
+      errorWidget: const Icon(Icons.person, color: Colors.white24, size: 24),
     );
   }
 

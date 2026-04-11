@@ -11,6 +11,7 @@ import '../views/chat_detail_screen.dart';
 import '../views/profile_page.dart';
 import '../views/admin_dashboard_page.dart';
 import '../theme/app_theme.dart';
+import '../firebase_options.dart';
 
 class NotificationService {
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -22,7 +23,6 @@ class NotificationService {
 
   static Future<void> initialize() async {
     await _messaging.requestPermission();
-    await _messaging.subscribeToTopic('all');
 
     // Foreground listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
@@ -42,10 +42,20 @@ class NotificationService {
     }
   }
 
+  static Future<void> subscribeToTopic(String topic) async {
+    await _messaging.subscribeToTopic(topic);
+    debugPrint('Node synchronized with topic: $topic');
+  }
+
+  static Future<void> unsubscribeFromTopic(String topic) async {
+    await _messaging.unsubscribeFromTopic(topic);
+    debugPrint('Node detached from topic: $topic');
+  }
+
   static void _showToast(RemoteMessage message) {
     if (navigatorKey.currentContext != null) {
-      AppWidgets.showSnackBar(
-        navigatorKey.currentContext,
+      AppWidgets.showToast(
+        navigatorKey.currentContext!,
         "${message.notification?.title}: ${message.notification?.body}",
         type: SnackBarType.info,
       );
@@ -133,14 +143,15 @@ class NotificationService {
           ));
     } catch (e) {
       debugPrint('Notification Database Persist Error: $e');
+      debugPrint('TIP: Ensure your Firestore Security Rules allow creation of documents in /users/{uid}/notifications/ by other users.');
     }
 
     // 2. If token exists, try sending push to node
     if (targetToken != null && targetToken.isNotEmpty) {
       try {
         final client = await _getAuthClient();
-        const String projectId = 'developers-zone-33a66';
-        const String url =
+        final String projectId = DefaultFirebaseOptions.currentPlatform.projectId;
+        final String url =
             'https://fcm.googleapis.com/v1/projects/$projectId/messages:send';
 
         final Map<String, dynamic> payload = {

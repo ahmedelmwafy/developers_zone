@@ -23,6 +23,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/post_media_widget.dart';
 import '../widgets/page_entry_animation.dart';
+import '../widgets/app_cached_image.dart';
 import '../theme/app_theme.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -69,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
         relatedId: myUser.uid,
       );
       if (mounted) {
-        AppWidgets.showSnackBar(
+        AppWidgets.showToast(
             context, locale.translate('profile_visit_synced'),
             type: SnackBarType.success);
       }
@@ -93,10 +94,10 @@ class _ProfilePageState extends State<ProfilePage> {
       return _GuestProfileUI(locale: locale);
     }
 
-    return FutureBuilder<UserModel?>(
-      future: FirestoreService().getUser(widget.userId!),
+    return StreamBuilder<UserModel?>(
+      stream: FirestoreService().streamUser(widget.userId!),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
           return Scaffold(
               backgroundColor: const Color(0xFF0D0D0D),
               body: Center(child: ShimmerComponent.listShimmer(count: 3)));
@@ -355,30 +356,32 @@ class _ProfileView extends StatelessWidget {
   Widget _buildIdentityHeader(BuildContext context, bool isFollowing) {
     return Column(
       children: [
-        Container(
-          width: 140,
-          height: 140,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-                color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
-                width: 3),
-            image: user.profileImage.isNotEmpty
-                ? DecorationImage(
-                    image: NetworkImage(user.profileImage), fit: BoxFit.cover)
-                : null,
-            color: Colors.white.withValues(alpha: 0.05),
-          ),
-          child: Stack(
-            children: [
-              if (user.profileImage.isEmpty)
-                Center(
-                    child: Text(user.initials,
-                        style: AppLocalization.digitalFont(context,
-                            color: Colors.white.withValues(alpha: 0.1),
-                            fontSize: 48,
-                            fontWeight: FontWeight.w800))),
-              Positioned(
+        Stack(
+          children: [
+            Container(
+              width: 140,
+              height: 140,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                    color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
+                    width: 3),
+              ),
+              child: AppCachedImage(
+                imageUrl: user.profileImage,
+                width: 140,
+                height: 140,
+                borderRadius: 28,
+                errorWidget: Center(
+                  child: Text(user.initials,
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white.withValues(alpha: 0.1),
+                          fontSize: 48,
+                          fontWeight: FontWeight.w800)),
+                ),
+              ),
+            ),
+            Positioned(
                 bottom: 10,
                 right: 10,
                 child: Container(
@@ -394,7 +397,6 @@ class _ProfileView extends StatelessWidget {
               ),
             ],
           ),
-        ),
         const SizedBox(height: 32),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -540,7 +542,7 @@ class _ProfileView extends StatelessWidget {
                 context,
                 label: isFollowing
                     ? AppLocalization.of(context)!
-                        .translate('following')
+                        .translate('unfollow')
                         .toUpperCase()
                     : AppLocalization.of(context)!
                         .translate('follow')
@@ -555,8 +557,7 @@ class _ProfileView extends StatelessWidget {
                         .followUser(auth.currentUser!.uid, user.uid);
                   }
                   if (context.mounted) {
-                    AppWidgets.showSnackBar(
-                        context, locale.translate('action_synced'),
+                    AppWidgets.showToast(context, locale.translate('action_synced'),
                         type: SnackBarType.success);
                   }
                 },
@@ -598,8 +599,7 @@ class _ProfileView extends StatelessWidget {
                 onConfirm: () async {
                   await auth.blockUser(user.uid);
                   if (context.mounted) {
-                    AppWidgets.showSnackBar(
-                        context, locale.translate('block_success'),
+                    AppWidgets.showToast(context, locale.translate('block_success'),
                         type: SnackBarType.error);
                     Navigator.pop(context);
                     Navigator.pop(context);
@@ -746,16 +746,18 @@ class _ProfileView extends StatelessWidget {
         cancelLabel: 'ABORT',
         isDestructive: field == 'isBanned',
         onConfirm: () async {
-          if (field == 'isBanned')
+          if (field == 'isBanned') {
             await admin.banUser(user.uid, value);
-          else if (field == 'isVerified')
+          } else if (field == 'isVerified') {
             await admin.verifyUser(user.uid, value);
-          else if (field == 'isApproved')
+          } else if (field == 'isApproved') {
             await admin.approveUser(user.uid, value);
-          else if (field == 'isAdmin') await admin.toggleAdmin(user.uid, value);
+          } else if (field == 'isAdmin') {
+            await admin.toggleAdmin(user.uid, value);
+          }
 
           if (context.mounted) {
-            AppWidgets.showSnackBar(context, locale.translate('action_synced'),
+            AppWidgets.showToast(context, locale.translate('action_synced'),
                 type: SnackBarType.success);
             Navigator.pop(ctx);
           }
@@ -831,54 +833,72 @@ class _ProfileView extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          _buildConfigActionTile(
+          const SizedBox(height: 32),
+          Text(
+            locale.translate('NOTIFICATION_LOGS').toUpperCase(),
+            style: AppLocalization.digitalFont(context,
+                color: const Color(0xFF00E5FF).withValues(alpha: 0.4),
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2),
+          ),
+          const SizedBox(height: 16),
+          _buildTopicToggle(
             context,
-            icon: Icons.visibility_rounded,
-            title: locale.translate('PREVIEW_PUBLIC_PROFILE'),
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => Scaffold(
-                  backgroundColor: const Color(0xFF0D0D0D),
-                  appBar: AppBar(
-                    backgroundColor: Colors.transparent,
-                    elevation: 0,
-                    leading: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded,
-                          color: Color(0xFF00E5FF), size: 24),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    title: Text(
-                      locale.translate('PREVIEW_MODE'),
-                      style: AppLocalization.digitalFont(context,
-                          color: const Color(0xFF00E5FF).withValues(alpha: 0.5),
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
-                          letterSpacing: 2),
-                    ),
-                    centerTitle: true,
-                  ),
-                  body: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 32),
-                        _buildIdentityHeader(context, false),
-                        const SizedBox(height: 48),
-                        _buildStatsHeader(context),
-                        const SizedBox(height: 40),
-                        _buildNodalMetadata(context, locale),
-                        const SizedBox(height: 48),
-                        _buildActivityFeed(
-                            Provider.of<PostController>(context), false),
-                        const SizedBox(height: 100),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            auth: auth,
+            topic: 'posts',
+            label: locale.translate('POSTS_TOPIC'),
+            icon: Icons.rss_feed_rounded,
+          ),
+          const SizedBox(height: 12),
+          _buildTopicToggle(
+            context,
+            auth: auth,
+            topic: 'all',
+            label: locale.translate('ALL_TOPIC'),
+            icon: Icons.broadcast_on_personal_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTopicToggle(
+    BuildContext context, {
+    required AuthController auth,
+    required String topic,
+    required String label,
+    required IconData icon,
+  }) {
+    final isSubscribed = auth.currentUser?.subscribedTopics.contains(topic) ?? false;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: isSubscribed ? const Color(0xFF00E5FF).withValues(alpha: 0.1) : Colors.transparent),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: isSubscribed ? const Color(0xFF00E5FF) : Colors.white24, size: 20),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              label,
+              style: AppLocalization.digitalFont(context,
+                  color: isSubscribed ? Colors.white : Colors.white24,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14),
             ),
+          ),
+          Switch(
+            value: isSubscribed,
+            onChanged: (val) => auth.toggleTopicSubscription(topic, val),
+            activeThumbColor: const Color(0xFF00E5FF),
+            activeTrackColor: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+            inactiveThumbColor: Colors.white24,
+            inactiveTrackColor: Colors.white10,
           ),
         ],
       ),
@@ -886,39 +906,7 @@ class _ProfileView extends StatelessWidget {
   }
 
 
-  Widget _buildConfigActionTile(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-    Color? titleColor,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Icon(icon,
-                color: titleColor?.withValues(alpha: 0.6) ?? Colors.white30,
-                size: 20),
-            const SizedBox(width: 16),
-            Text(
-              title,
-              style: AppLocalization.digitalFont(context,
-                  color: titleColor ?? Colors.white.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildNetworkHubPanel(
       BuildContext context, AuthController auth, AppLocalization locale) {
@@ -1147,21 +1135,17 @@ class _ProfileView extends StatelessWidget {
     return StreamBuilder<List<PostModel>>(
       stream: postController.getUserPosts(user.uid),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: ShimmerComponent.listShimmer(count: 2));
-        }
         final posts = snapshot.data ?? [];
         if (posts.isEmpty) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.only(top: 40),
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Text(
-                AppLocalization.of(context)!.translate('no_commit_history'),
+                AppLocalization.of(context)!.translate('no_posts_yet'),
                 style: AppLocalization.digitalFont(context,
-                    color: Colors.white.withValues(alpha: 0.1),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 2),
+                    color: Colors.white10,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800),
               ),
             ),
           );
@@ -1249,7 +1233,7 @@ class _ProfileView extends StatelessWidget {
         children: [
           Row(
             children: [
-              _buildSmallAvatar(),
+              _buildSmallAvatar(user),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1359,7 +1343,7 @@ class _ProfileView extends StatelessWidget {
           await Provider.of<AdminController>(context, listen: false)
               .deletePost(postId);
           if (context.mounted) {
-            AppWidgets.showSnackBar(context, locale.translate('post_purged'),
+            AppWidgets.showToast(context, locale.translate('post_purged'),
                 type: SnackBarType.error);
             Navigator.pop(ctx);
           }
@@ -1368,18 +1352,13 @@ class _ProfileView extends StatelessWidget {
     );
   }
 
-  Widget _buildSmallAvatar() {
-    return Container(
+  Widget _buildSmallAvatar(UserModel user) {
+    return AppCachedImage(
+      imageUrl: user.profileImage,
       width: 32,
       height: 32,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        image: user.profileImage.isNotEmpty
-            ? DecorationImage(
-                image: NetworkImage(user.profileImage), fit: BoxFit.cover)
-            : null,
-        color: Colors.white10,
-      ),
+      isCircle: true,
+      errorWidget: const Icon(Icons.person, color: Colors.white24, size: 16),
     );
   }
 

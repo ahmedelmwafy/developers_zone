@@ -50,7 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _emailController.text.trim().isEmpty ||
         _passwordController.text.isEmpty ||
         _passwordController.text != _confirmPasswordController.text) {
-      AppWidgets.showSnackBar(
+      AppWidgets.showToast(
           context, locale.translate('fill_all_fields_or_password_mismatch'),
           type: SnackBarType.warning);
       return;
@@ -62,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(),
+        AppWidgets.showToast(context, e.toString(),
             type: SnackBarType.error);
       }
     }
@@ -75,7 +75,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(),
+        AppWidgets.showToast(context, e.toString(),
             type: SnackBarType.error);
       }
     }
@@ -88,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(),
+        AppWidgets.showToast(context, e.toString(),
             type: SnackBarType.error);
       }
     }
@@ -101,7 +101,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(),
+        AppWidgets.showToast(context, e.toString(),
             type: SnackBarType.error);
       }
     }

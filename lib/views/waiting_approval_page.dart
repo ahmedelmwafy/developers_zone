@@ -46,7 +46,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
             MaterialPageRoute(builder: (_) => const HomeScreen()));
       } else {
         setState(() => _isRefreshing = false);
-        AppWidgets.showSnackBar(
+        AppWidgets.showToast(
           context,
           AppLocalization.of(context)!.translate('VERIFICATION_PENDING'),
           type: SnackBarType.error,
@@ -264,7 +264,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage>
         if (isBanned) ...[
           GestureDetector(
             onTap: () {
-              AppWidgets.showSnackBar(
+              AppWidgets.showToast(
                 context,
                 locale.translate('contact_support_init'),
                 type: SnackBarType.success,

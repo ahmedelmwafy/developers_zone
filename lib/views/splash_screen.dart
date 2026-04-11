@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../widgets/app_cached_image.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../services/ad_service.dart';
@@ -326,10 +327,10 @@ class _SplashScreenState extends State<SplashScreen>
             borderRadius: BorderRadius.circular(12),
             child: AspectRatio(
               aspectRatio: 16 / 7,
-              child: Image.network(
-                ad.imageUrl,
+              child: AppCachedImage(
+                imageUrl: ad.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorWidget: Container(
                   color: Colors.white.withValues(alpha: 0.05),
                   child: const Icon(Icons.cloud_queue_rounded,
                       color: Colors.white24, size: 40),

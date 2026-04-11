@@ -17,6 +17,30 @@ class FeedPage extends StatefulWidget {
 
 class _FeedPageState extends State<FeedPage> {
   int _selectedTab = 0;
+  final ScrollController _scrollController = ScrollController();
+  int _currentLimit = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (mounted) {
+        setState(() {
+          _currentLimit += 20;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +61,7 @@ class _FeedPageState extends State<FeedPage> {
       body: Stack(
         children: [
           CustomScrollView(
+            controller: _scrollController,
             physics: const BouncingScrollPhysics(),
             slivers: [
               _buildFeedTabs(locale),
@@ -114,10 +139,12 @@ class _FeedPageState extends State<FeedPage> {
       feedStream = postController.getFollowingFeed(
         userId: userId,
         followingIds: followingIds,
+        limit: _currentLimit,
       );
     } else {
       feedStream = postController.getGlobalFeed(
         blockedUsers: blockedUsers,
+        limit: _currentLimit,
       );
     }
 

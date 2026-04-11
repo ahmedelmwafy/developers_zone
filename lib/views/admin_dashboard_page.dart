@@ -11,6 +11,7 @@ import 'ad_management_page.dart';
 import 'post_details_page.dart';
 import '../models/post_model.dart';
 import '../models/ad_model.dart';
+import '../widgets/app_cached_image.dart';
 
 class AdminDashboardPage extends StatefulWidget {
   final String? initialUserId;
@@ -560,14 +561,12 @@ class _DetailedUserCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 30,
-                backgroundImage: user.profileImage.isNotEmpty
-                    ? NetworkImage(user.profileImage)
-                    : null,
-                child: user.profileImage.isEmpty
-                    ? const Icon(Icons.person, color: Colors.white)
-                    : null,
+              AppCachedImage(
+                imageUrl: user.profileImage,
+                width: 60,
+                height: 60,
+                isCircle: true,
+                errorWidget: const Icon(Icons.person, color: Colors.white, size: 30),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -637,6 +636,13 @@ class _DetailedUserCard extends StatelessWidget {
                 color: Colors.red,
                 onChanged: (val) => adminController.toggleUserPermission(
                     user.uid, 'canComment', !val),
+              ),
+              _ModerationToggle(
+                label: 'FEATURED NODE',
+                isActive: user.isFeatured,
+                color: const Color(0xFF00E5FF),
+                onChanged: (val) => adminController.toggleUserPermission(
+                    user.uid, 'isFeatured', val),
               ),
               _ModerationToggle(
                 label: locale.translate('make_admin'),
@@ -906,9 +912,7 @@ class _BroadcastViewState extends State<_BroadcastView> {
                       _titleController.clear();
                       _bodyController.clear();
                     });
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                        content:
-                            Text(widget.locale.translate('action_applied'))));
+                    AppWidgets.showToast(context, widget.locale.translate('action_applied'), type: SnackBarType.success);
                   },
             isLoading: _isSending,
           ),

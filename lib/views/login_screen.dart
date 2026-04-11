@@ -49,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     }
   }
@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     }
   }
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     }
   }
@@ -85,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _navigate(auth);
     } catch (e) {
       if (mounted) {
-        AppWidgets.showSnackBar(context, e.toString(), type: SnackBarType.error);
+        AppWidgets.showToast(context, e.toString(), type: SnackBarType.error);
       }
     }
   }

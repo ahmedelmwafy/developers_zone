@@ -24,7 +24,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   void _loadAd() {
     final adSettings = Provider.of<AppProvider>(context).adSettings;
-    
+
     bool isAdMobEnabled = false;
     bool isBannerEnabled = false;
 

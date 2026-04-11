@@ -1,7 +1,8 @@
-import 'dart:ui';
+import 'package:developers_zone/providers/app_provider.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:google_fonts/google_fonts.dart';
-import '../providers/app_provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 
 enum SnackBarType { success, error, warning, info }
@@ -361,14 +362,16 @@ class AppWidgets {
     );
   }
 
-  // ── Global SnackBar ──────────────────────────────────────────────────────
-  static void showSnackBar(
-    BuildContext? context,
+  // ── Global Toast ─────────────────────────────────────────────────────────
+  static void showToast(
+    BuildContext context,
     String message, {
     SnackBarType type = SnackBarType.info,
     Duration duration = const Duration(seconds: 3),
-    ScaffoldMessengerState? messenger,
   }) {
+    final fToast = FToast();
+    fToast.init(context);
+
     final colors = {
       SnackBarType.success: AppColors.success,
       SnackBarType.error: AppColors.error,
@@ -382,48 +385,39 @@ class AppWidgets {
       SnackBarType.info: Icons.info_outline_rounded,
     };
     final color = colors[type]!;
-    final messengerState = messenger ?? ScaffoldMessenger.of(context!);
 
-    messengerState.hideCurrentSnackBar();
-    messengerState.showSnackBar(
-      SnackBar(
-        duration: duration,
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        content: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.cardLight,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: color.withValues(alpha: 0.4)),
-            boxShadow: [
-              BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 20)
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(icons[type]!, color: color, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  message,
-                  style: context != null
-                      ? AppLocalization.digitalFont(context,
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500)
-                      : const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-        ),
+    Widget toast = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.cardLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: 0.15), blurRadius: 20)
+        ],
       ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icons[type]!, color: color, size: 20),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              message,
+              style: AppLocalization.digitalFont(context,
+                  color: AppColors.textPrimary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    fToast.showToast(
+      child: toast,
+      gravity: ToastGravity.TOP,
+      toastDuration: duration,
     );
   }
 }

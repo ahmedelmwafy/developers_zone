@@ -8,6 +8,7 @@ import 'profile_page.dart';
 import '../providers/app_provider.dart';
 import '../widgets/shimmer_component.dart';
 import '../widgets/page_entry_animation.dart';
+import '../widgets/app_cached_image.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -18,6 +19,7 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   Timer? _debounce;
   List<UserModel> _searchResults = [];
   bool _isLoading = false;
@@ -25,10 +27,35 @@ class _SearchScreenState extends State<SearchScreen> {
   // Filtering logic
   bool _isVerifiedOnly = false;
   String _selectedRole = 'ALL';
+  int _searchLimit = 20;
+  int _liveLimit = 20;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (_query.isEmpty) {
+        setState(() {
+          _liveLimit += 20;
+        });
+      } else {
+        setState(() {
+          _searchLimit += 20;
+        });
+        _performSearch(_query, isLoadMore: true);
+      }
+    }
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _debounce?.cancel();
     super.dispose();
   }
@@ -41,6 +68,7 @@ class _SearchScreenState extends State<SearchScreen> {
           _query = query;
         });
         if (query.isNotEmpty) {
+          _searchLimit = 20;
           _performSearch(query);
         } else {
           setState(() {
@@ -51,15 +79,18 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  Future<void> _performSearch(String query) async {
-    setState(() {
-      _isLoading = true;
-    });
+  Future<void> _performSearch(String query, {bool isLoadMore = false}) async {
+    if (!isLoadMore) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
 
     try {
       final authController =
           Provider.of<AuthController>(context, listen: false);
-      final results = await authController.searchUsers(query);
+      final results =
+          await authController.searchUsers(query, limit: _searchLimit);
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -80,6 +111,7 @@ class _SearchScreenState extends State<SearchScreen> {
       backgroundColor: const Color(0xFF0D0D0D),
       body: PageEntryAnimation(
         child: SingleChildScrollView(
+          controller: _scrollController,
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,29 +119,23 @@ class _SearchScreenState extends State<SearchScreen> {
               const SizedBox(height: 24),
               _buildSearchBar(locale),
               const SizedBox(height: 32),
-              _SectionHeader(
-                title: _query.isEmpty
-                    ? locale.translate('VERIFIED_CONTRIBUTORS')
-                    : '${locale.translate('SEARCH_RESULTS')} (${_searchResults.length})',
-                trailing: GestureDetector(
-                  onTap: _showFilterDialog,
-                  child: Row(
-                    children: [
-                      Text(
-                          _selectedRole == 'ALL'
-                              ? locale.translate('SORT_BY_RELEVANCE')
-                              : _selectedRole.toUpperCase(),
-                          style: AppLocalization.digitalFont(context, 
-                              color: const Color(0xFF00E5FF),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700)),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.filter_list_rounded,
-                          color: Color(0xFF00E5FF), size: 16),
-                    ],
-                  ),
-                ),
-              ),
+              StreamBuilder<List<UserModel>>(
+                  stream: FirestoreService()
+                      .streamAllUsers(limit: _query.isEmpty ? _liveLimit : 100),
+                  builder: (context, snapshot) {
+                    final allUsers = snapshot.data ?? [];
+                    return _SectionHeader(
+                      title: _query.isEmpty
+                          ? locale.translate('VERIFIED_CONTRIBUTORS')
+                          : '${locale.translate('SEARCH_RESULTS')} (${_searchResults.length})',
+                      trailing: IconButton(
+                        icon: const Icon(Icons.tune_rounded,
+                            color: Color(0xFF00E5FF), size: 18),
+                        onPressed: () => _showFilterDialog(allUsers),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    );
+                  }),
               const SizedBox(height: 24),
               if (_isLoading)
                 ShimmerComponent.userTileShimmer(count: 3)
@@ -135,10 +161,12 @@ class _SearchScreenState extends State<SearchScreen> {
       child: TextField(
         controller: _searchController,
         onChanged: _onSearchChanged,
-        style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 15),
+        style: AppLocalization.digitalFont(context,
+            color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           hintText: locale.translate('search_hint'),
-          hintStyle: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.15)),
+          hintStyle: AppLocalization.digitalFont(context,
+              color: Colors.white.withValues(alpha: 0.15)),
           prefixIcon: Icon(Icons.search_rounded,
               color: Colors.white.withValues(alpha: 0.3), size: 20),
           border: InputBorder.none,
@@ -150,12 +178,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildLiveContributors(AppLocalization locale, AuthController auth) {
     return StreamBuilder<List<UserModel>>(
-      stream: FirestoreService().streamAllUsers(),
+      stream: FirestoreService().streamAllUsers(limit: _liveLimit),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return ShimmerComponent.userTileShimmer(count: 3);
         }
-        
+
         var users = snapshot.data
                 ?.where((u) =>
                     !u.uid.startsWith('dummy_') &&
@@ -164,13 +193,20 @@ class _SearchScreenState extends State<SearchScreen> {
                 .toList() ??
             [];
 
+        // Sort by featured status first
+        users.sort(
+            (a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0));
+
         // APPLY FILTERS TO LIVE LIST
         if (_isVerifiedOnly) {
           users = users.where((u) => u.isVerified).toList();
         }
         if (_selectedRole != 'ALL') {
-          users = users.where((u) => 
-            u.position.toUpperCase().contains(_selectedRole.toUpperCase())).toList();
+          users = users
+              .where((u) => u.position
+                  .toUpperCase()
+                  .contains(_selectedRole.toUpperCase()))
+              .toList();
         }
 
         if (users.isEmpty) {
@@ -179,11 +215,15 @@ class _SearchScreenState extends State<SearchScreen> {
               padding: const EdgeInsets.symmetric(vertical: 60),
               child: Column(
                 children: [
-                  Icon(Icons.query_stats_rounded, color: Colors.white.withValues(alpha: 0.1), size: 48),
+                  Icon(Icons.query_stats_rounded,
+                      color: Colors.white.withValues(alpha: 0.1), size: 48),
                   const SizedBox(height: 16),
                   Text(
-                    locale.translate('no_developers_found').replaceAll('"{}"', ''),
-                    style: AppLocalization.digitalFont(context, color: Colors.white30),
+                    locale
+                        .translate('no_developers_found')
+                        .replaceAll('"{}"', ''),
+                    style: AppLocalization.digitalFont(context,
+                        color: Colors.white30),
                   ),
                 ],
               ),
@@ -220,13 +260,17 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Widget _buildSearchResults(AppLocalization locale) {
     final auth = Provider.of<AuthController>(context, listen: false);
-    
+
     var filteredResults = _searchResults
         .where((u) =>
             !u.uid.startsWith('dummy_') &&
             u.uid != auth.currentUser?.uid &&
             !(auth.currentUser?.blockedUsers.contains(u.uid) ?? false))
         .toList();
+
+    // Sort by featured status first
+    filteredResults
+        .sort((a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0));
 
     // Apply verification filter
     if (_isVerifiedOnly) {
@@ -235,8 +279,10 @@ class _SearchScreenState extends State<SearchScreen> {
 
     // Apply role filter
     if (_selectedRole != 'ALL') {
-      filteredResults = filteredResults.where((u) => 
-        u.position.toUpperCase().contains(_selectedRole.toUpperCase())).toList();
+      filteredResults = filteredResults
+          .where((u) =>
+              u.position.toUpperCase().contains(_selectedRole.toUpperCase()))
+          .toList();
     }
 
     if (filteredResults.isEmpty) {
@@ -245,11 +291,15 @@ class _SearchScreenState extends State<SearchScreen> {
           padding: const EdgeInsets.symmetric(vertical: 60),
           child: Column(
             children: [
-              Icon(Icons.search_off_rounded, color: Colors.white.withValues(alpha: 0.1), size: 48),
+              Icon(Icons.search_off_rounded,
+                  color: Colors.white.withValues(alpha: 0.1), size: 48),
               const SizedBox(height: 16),
               Text(
-                  locale.translate('no_developers_found').replaceAll('\"{}\"', ''),
-                  style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.3))),
+                  locale
+                      .translate('no_developers_found')
+                      .replaceAll('\"{}\"', ''),
+                  style: AppLocalization.digitalFont(context,
+                      color: Colors.white.withValues(alpha: 0.3))),
             ],
           ),
         ),
@@ -278,14 +328,28 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  void _showFilterDialog() {
+  void _showFilterDialog(List<UserModel> allUsers) {
     final locale = AppLocalization.of(context)!;
-    final roles = ['ALL', 'Frontend', 'Backend', 'Fullstack', 'Mobile', 'DevOps', 'Designer'];
+
+    // Extract unique positions from all users
+    final Set<String> uniquePositions = {'ALL'};
+    for (var u in allUsers) {
+      if (u.position.isNotEmpty) {
+        uniquePositions.add(u.position.trim());
+      }
+    }
+    final roles = uniquePositions.toList()
+      ..sort((a, b) => a == 'ALL'
+          ? -1
+          : b == 'ALL'
+              ? 1
+              : a.compareTo(b));
 
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF0D0D0D),
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -295,12 +359,18 @@ class _SearchScreenState extends State<SearchScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(locale.translate('FILTER_TRANSCRIPT'), style: AppLocalization.digitalFont(context, color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(locale.translate('FILTER_TRANSCRIPT'),
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(locale.translate('verified_only'), style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.7))),
+                      Text(locale.translate('verified_only'),
+                          style: AppLocalization.digitalFont(context,
+                              color: Colors.white.withValues(alpha: 0.7))),
                       Switch(
                         value: _isVerifiedOnly,
                         activeThumbColor: const Color(0xFF00E5FF),
@@ -312,7 +382,12 @@ class _SearchScreenState extends State<SearchScreen> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text(locale.translate('ROLE_FILTER'), style: AppLocalization.digitalFont(context, color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                  Text(locale.translate('ROLE_FILTER'),
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1)),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
@@ -325,15 +400,26 @@ class _SearchScreenState extends State<SearchScreen> {
                           setState(() {});
                         },
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isSelected ? const Color(0xFF00E5FF).withValues(alpha: 0.1) : const Color(0xFF161616),
+                            color: isSelected
+                                ? const Color(0xFF00E5FF).withValues(alpha: 0.1)
+                                : const Color(0xFF161616),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: isSelected ? const Color(0xFF00E5FF) : Colors.white.withValues(alpha: 0.05)),
+                            border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF00E5FF)
+                                    : Colors.white.withValues(alpha: 0.05)),
                           ),
                           child: Text(
                             role.toUpperCase(),
-                            style: AppLocalization.digitalFont(context, color: isSelected ? const Color(0xFF00E5FF) : Colors.white.withValues(alpha: 0.3), fontSize: 10, fontWeight: FontWeight.w800),
+                            style: AppLocalization.digitalFont(context,
+                                color: isSelected
+                                    ? const Color(0xFF00E5FF)
+                                    : Colors.white.withValues(alpha: 0.3),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800),
                           ),
                         ),
                       );
@@ -363,7 +449,8 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Text(
           title,
-          style: AppLocalization.digitalFont(context, 
+          style: AppLocalization.digitalFont(
+            context,
             color: Colors.white.withValues(alpha: 0.5),
             fontSize: 14,
             fontWeight: FontWeight.w700,
@@ -413,17 +500,11 @@ class _ContributorCard extends StatelessWidget {
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  Container(
+                  AppCachedImage(
+                    imageUrl: imageUrl,
                     width: 56,
                     height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      image: imageUrl.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(imageUrl), fit: BoxFit.cover)
-                          : null,
-                      color: Colors.white10,
-                    ),
+                    borderRadius: 8,
                   ),
                   if (isVerified)
                     Container(
@@ -442,15 +523,16 @@ class _ContributorCard extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: AppLocalization.digitalFont(context, 
+                      style: AppLocalization.digitalFont(context,
                           color: Colors.white,
                           fontSize: 18,
                           fontWeight: FontWeight.bold),
                     ),
                     Text(
                       title,
-                      style: AppLocalization.digitalFont(context, 
-                          color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
+                      style: AppLocalization.digitalFont(context,
+                          color: Colors.white.withValues(alpha: 0.4),
+                          fontSize: 12),
                     ),
                   ],
                 ),
@@ -459,12 +541,12 @@ class _ContributorCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(locale.translate('followers').toUpperCase(),
-                      style: AppLocalization.digitalFont(context, 
+                      style: AppLocalization.digitalFont(context,
                           color: Colors.white.withValues(alpha: 0.3),
                           fontSize: 8,
                           fontWeight: FontWeight.w700)),
                   Text(followers,
-                      style: AppLocalization.digitalFont(context, 
+                      style: AppLocalization.digitalFont(context,
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.bold)),
@@ -485,7 +567,7 @@ class _ContributorCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Text(tag.toUpperCase(),
-                            style: AppLocalization.digitalFont(context, 
+                            style: AppLocalization.digitalFont(context,
                                 color: Colors.white.withValues(alpha: 0.5),
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700)),
@@ -508,7 +590,8 @@ class _ContributorCard extends StatelessWidget {
               child: Center(
                 child: Text(
                   locale.translate('VIEW_PROFILE_CAPS'),
-                  style: AppLocalization.digitalFont(context, 
+                  style: AppLocalization.digitalFont(
+                    context,
                     color: Colors.black,
                     fontWeight: FontWeight.w800,
                     fontSize: 12,

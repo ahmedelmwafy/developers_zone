@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
@@ -17,24 +18,31 @@ class AuthController extends ChangeNotifier {
 
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
+  StreamSubscription<UserModel?>? _userSubscription;
 
   AuthController() {
-    _authService.authStateChanges.listen((user) async {
-      try {
-        if (user != null) {
-          _currentUser = await _firestoreService.getUser(user.uid);
-          // Auto-sync FCM Node
-          updateFCMToken();
-        } else {
-          _currentUser = null;
-        }
-      } catch (e) {
+    _authService.authStateChanges.listen((user) {
+      _userSubscription?.cancel();
+      if (user != null) {
+        _userSubscription = _firestoreService.streamUser(user.uid).listen((userData) {
+          _currentUser = userData;
+          _isInitialized = true;
+          notifyListeners();
+        });
+        // Auto-sync FCM Node
+        updateFCMToken();
+      } else {
         _currentUser = null;
-      } finally {
         _isInitialized = true;
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> register(String email, String password, String name) async {
@@ -50,6 +58,8 @@ class AuthController extends ChangeNotifier {
           createdAt: DateTime.now(),
         );
         await _firestoreService.createUser(newUser);
+        await _firestoreService.autoFollowFeaturedUsers(newUser.uid);
+        await _syncSubscriptions(newUser);
         _currentUser = newUser;
         updateFCMToken();
 
@@ -118,6 +128,7 @@ class AuthController extends ChangeNotifier {
             createdAt: DateTime.now(),
           );
           await _firestoreService.createUser(newUser);
+          await _firestoreService.autoFollowFeaturedUsers(newUser.uid);
           _currentUser = newUser;
         } else {
           // Optional: Update existing user with latest GitHub data if desired
@@ -146,6 +157,8 @@ class AuthController extends ChangeNotifier {
             createdAt: DateTime.now(),
           );
           await _firestoreService.createUser(newUser);
+          await _firestoreService.autoFollowFeaturedUsers(newUser.uid);
+          await _syncSubscriptions(newUser);
           _currentUser = newUser;
         } else {
           _currentUser = existingUser;
@@ -174,6 +187,8 @@ class AuthController extends ChangeNotifier {
             createdAt: DateTime.now(),
           );
           await _firestoreService.createUser(newUser);
+          await _firestoreService.autoFollowFeaturedUsers(newUser.uid);
+          await _syncSubscriptions(newUser);
           _currentUser = newUser;
         } else {
           _currentUser = existingUser;
@@ -223,22 +238,12 @@ class AuthController extends ChangeNotifier {
     if (_currentUser == null) return;
     final isBlocking = !_currentUser!.blockedUsers.contains(otherUid);
     await _firestoreService.blockUser(_currentUser!.uid, otherUid, isBlocking);
-    final updatedList = List<String>.from(_currentUser!.blockedUsers);
-    if (isBlocking) {
-      updatedList.add(otherUid);
-    } else {
-      updatedList.remove(otherUid);
-    }
-    _currentUser = _currentUser!.copyWith(blockedUsers: updatedList);
-    notifyListeners();
+    // Note: Local state will be updated via the stream listener
   }
 
   Future<void> unblockUser(String otherUid) async {
     if (_currentUser == null) return;
     await _firestoreService.blockUser(_currentUser!.uid, otherUid, false);
-    final updatedList = List<String>.from(_currentUser!.blockedUsers)..remove(otherUid);
-    _currentUser = _currentUser!.copyWith(blockedUsers: updatedList);
-    notifyListeners();
   }
 
   Future<void> followUser(String targetUid) async {
@@ -255,26 +260,19 @@ class AuthController extends ChangeNotifier {
       type: NotificationType.follow,
       relatedId: _currentUser!.uid,
     );
-
-    final updatedFollowing = List<String>.from(_currentUser!.following)..add(targetUid);
-    _currentUser = _currentUser!.copyWith(following: updatedFollowing);
-    notifyListeners();
   }
 
   Future<void> unfollowUser(String targetUid) async {
     if (_currentUser == null) return;
     await _firestoreService.unfollowUser(_currentUser!.uid, targetUid);
-    final updatedFollowing = List<String>.from(_currentUser!.following)..remove(targetUid);
-    _currentUser = _currentUser!.copyWith(following: updatedFollowing);
-    notifyListeners();
   }
 
   bool isFollowing(String uid) => _currentUser?.following.contains(uid) ?? false;
 
   bool isBlocked(String uid) => _currentUser?.blockedUsers.contains(uid) ?? false;
 
-  Future<List<UserModel>> searchUsers(String query) async {
-    return await _firestoreService.searchUsers(query);
+  Future<List<UserModel>> searchUsers(String query, {int limit = 50}) async {
+    return await _firestoreService.searchUsers(query, limit: limit);
   }
 
   Future<List<UserModel>> getBlockedUsers() async {
@@ -287,9 +285,8 @@ class AuthController extends ChangeNotifier {
     final wasComplete = isProfileComplete;
     
     await _firestoreService.updateUser(newUser);
-    _currentUser = newUser;
-    notifyListeners();
-
+    // Local state will be updated via the stream listener
+    
     // If profile is now complete and user is not yet approved, notify admins
     if (!wasApproved && !newUser.isApproved && isProfileComplete && !wasComplete) {
        await NotificationService.notifyAdmins(
@@ -360,7 +357,31 @@ class AuthController extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('FCM Token Sync Error: $e');
+      debugPrint('Error updating FCM Token: $e');
     }
+  }
+  Future<void> _syncSubscriptions(UserModel user) async {
+    for (final topic in user.subscribedTopics) {
+      await NotificationService.subscribeToTopic(topic);
+    }
+  }
+
+  Future<void> toggleTopicSubscription(String topic, bool subscribe) async {
+    if (_currentUser == null) return;
+
+    final updatedTopics = List<String>.from(_currentUser!.subscribedTopics);
+    if (subscribe) {
+      if (!updatedTopics.contains(topic)) {
+        updatedTopics.add(topic);
+        await NotificationService.subscribeToTopic(topic);
+      }
+    } else {
+      updatedTopics.remove(topic);
+      await NotificationService.unsubscribeFromTopic(topic);
+    }
+
+    _currentUser = _currentUser!.copyWith(subscribedTopics: updatedTopics);
+    await _firestoreService.updateUser(_currentUser!);
+    notifyListeners();
   }
 }
